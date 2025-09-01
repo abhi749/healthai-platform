@@ -1,0 +1,21 @@
+name = "healthai-platform"
+compatibility_date = "2024-09-02"
+
+[env.production]
+name = "healthai-platform"
+route = { pattern = "analysemyhealth.com/*", zone_name = "analysemyhealth.com" }
+
+# Enable Workers AI
+[ai]
+binding = "AI"
+
+# Enable R2 Storage (for future document storage)
+[[r2_buckets]]
+binding = "DOCUMENTS"
+bucket_name = "healthai-documents"
+
+# Enable D1 Database (for future session management)
+[[d1_databases]]
+binding = "DB"
+database_name = "healthai-sessions"
+database_id = "your-database-id" # This will be updated after D1 setup
