@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthAI - Privacy-First Health Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .test-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 40px;
+            margin-bottom: 30px;
+        }
+        
+        .test-card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .analyze-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 20px auto;
+        }
+        
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .analyze-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            background: #f8f9ff;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .result h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .analysis-content {
+            white-space: pre-line;
+            line-height: 1.8;
+            background: white;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-style: italic;
+            padding: 20px;
+        }
+        
+        .error {
+            background: #ffe6e6;
+            border: 2px solid #ff6b6b;
+            color: #d63031;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            color: white;
+        }
+        
+        .feature-card h3 {
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .status-info {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .test-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩺 HealthAI</h1>
+            <p>Privacy-First AI Health Analysis • Powered by Cloudflare Edge AI</p>
+        </div>
+        
+        <div class="test-card">
+            <h2>🧠 AI Health Analysis Test</h2>
+            <div class="status-info">
+                <strong>Test Environment:</strong> Using Llama 3.2-8B model on Cloudflare Workers AI
+            </div>
+            
+            <div class="input-group">
+                <label for="healthData">Enter Your Health Data for Analysis:</label>
+                <textarea 
+                    id="healthData" 
+                    placeholder="Example: Cholesterol Total: 240 mg/dL, HDL: 35 mg/dL, LDL: 180 mg/dL, Triglycerides: 300 mg/dL, Glucose: 110 mg/dL, Blood Pressure: 140/90"
+                >Cholesterol Total: 240 mg/dL, HDL: 35 mg/dL, LDL: 180 mg/dL, Triglycerides: 300 mg/dL, Glucose: 110 mg/dL, Blood Pressure: 140/90, Age: 45, Weight: 180 lbs</textarea>
+            </div>
+            
+            <button class="analyze-btn" onclick="testAI()" id="analyzeBtn">
+                🧠 Analyze Health Data
+            </button>
+            
+            <div id="result"></div>
+        </div>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3>⚡ Lightning Fast</h3>
+                <p>Sub-3-second analysis using global edge AI infrastructure</p>
+            </div>
+            <div class="feature-card">
+                <h3>🔒 Complete Privacy</h3>
+                <p>Anonymous processing - your identity never leaves your device</p>
+            </div>
+            <div class="feature-card">
+                <h3>🌍 Global Scale</h3>
+                <p>Consistent performance worldwide via Cloudflare's edge network</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function testAI() {
+            const healthData = document.getElementById('healthData').value;
+            const resultDiv = document.getElementById('result');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            if (!healthData.trim()) {
+                alert('Please enter some health data to analyze');
+                return;
+            }
+            
+            // Disable button and show loading
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '🤖 Analyzing...';
+            
+            resultDiv.innerHTML = `
+                <div class="loading">
+                    🧠 AI is analyzing your health data using Llama 3.2-8B...<br>
+                    <small>Processing on Cloudflare edge servers worldwide</small>
+                </div>
+            `;
+            
+            try {
+                const startTime = Date.now();
+                
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ healthData })
+                });
+                
+                const data = await response.json();
+                const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="result">
+                            <h3>✅ AI Health Analysis Complete</h3>
+                            <div class="analysis-content">${data.analysis}</div>
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+                                <strong>Model:</strong> ${data.model} | 
+                                <strong>Processing Time:</strong> ${processingTime}s | 
+                                <strong>Generated:</strong> ${new Date(data.timestamp).toLocaleTimeString()}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Analysis Error</h3>
+                            <p><strong>Error:</strong> ${data.error}</p>
+                            <p><strong>Details:</strong> ${data.details || 'Please check your Cloudflare Workers AI configuration'}</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Network Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>Suggestion:</strong> Check that your Cloudflare Pages function is deployed correctly</p>
+                    </div>
+                `;
+            } finally {
+                // Re-enable button
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '🧠 Analyze Health Data';
+            }
+        }
+    </script>
+</body>
+</html>
