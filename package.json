@@ -1,0 +1,17 @@
+{
+  "name": "healthai-platform",
+  "version": "1.0.0",
+  "description": "Privacy-first health document analysis platform",
+  "main": "functions/api/[[route]].js",
+  "scripts": {
+    "build": "npm run build:frontend",
+    "build:frontend": "mkdir -p dist && cp -r public/* dist/",
+    "dev": "wrangler pages dev dist --compatibility-date=2024-09-02"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20240909.0"
+  },
+  "keywords": ["health", "ai", "privacy", "cloudflare"],
+  "author": "HealthAI Team",
+  "license": "MIT"
+}
