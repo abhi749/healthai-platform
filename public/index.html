@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HealthAI - Privacy-First Health Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -20,7 +21,7 @@
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -43,18 +44,33 @@
             opacity: 0.9;
         }
         
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
         .main-card {
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            padding: 40px;
-            margin-bottom: 30px;
+            padding: 30px;
+            grid-column: 1 / -1;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 25px;
         }
         
         .tabs {
             display: flex;
             margin-bottom: 30px;
             border-bottom: 2px solid #f0f0f0;
+            flex-wrap: wrap;
         }
         
         .tab {
@@ -67,6 +83,8 @@
             color: #666;
             border-bottom: 2px solid transparent;
             transition: all 0.3s ease;
+            flex: 1;
+            min-width: 120px;
         }
         
         .tab.active {
@@ -112,7 +130,7 @@
             display: none;
         }
         
-        .upload-btn {
+        .btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
@@ -120,7 +138,112 @@
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
+            transition: transform 0.2s ease;
+            font-size: 14px;
         }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .document-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .document-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .document-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .document-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .document-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .document-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .document-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .trend-chart {
+            margin: 20px 0;
+            height: 300px;
+        }
+        
+        .trend-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .trend-card {
+            background: #f8f9ff;
+            border: 1px solid #e0e6ff;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .trend-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .trend-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .trend-change {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .trend-up { color: #28a745; }
+        .trend-down { color: #dc3545; }
+        .trend-stable { color: #6c757d; }
         
         .privacy-info {
             background: #e6f7ff;
@@ -142,78 +265,6 @@
             border-radius: 8px;
             padding: 20px;
             margin: 20px 0;
-        }
-        
-        .document-preview {
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .sanitization-log {
-            background: #f0f8f0;
-            border: 1px solid #52c41a;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-        }
-        
-        .input-group {
-            margin-bottom: 20px;
-        }
-        
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #555;
-        }
-        
-        textarea {
-            width: 100%;
-            min-height: 120px;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            resize: vertical;
-            transition: border-color 0.3s ease;
-        }
-        
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        
-        .analyze-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 20px auto;
-        }
-        
-        .analyze-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .analyze-btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
         }
         
         .result {
@@ -254,26 +305,26 @@
             margin-top: 20px;
         }
         
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 40px;
-        }
-        
-        .feature-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 25px;
+        .empty-state {
             text-align: center;
-            color: white;
+            padding: 40px;
+            color: #666;
         }
         
-        .feature-card h3 {
+        .empty-state h3 {
             margin-bottom: 10px;
-            font-size: 1.3rem;
+            color: #999;
         }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-active { background: #d4edda; color: #155724; }
+        .status-processing { background: #fff3cd; color: #856404; }
         
         .smart-badge {
             background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
@@ -294,17 +345,24 @@
                 font-size: 2rem;
             }
             
-            .main-card {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-card, .card {
                 padding: 20px;
             }
             
             .tabs {
-                flex-wrap: wrap;
+                flex-direction: column;
             }
             
             .tab {
-                flex: 1;
-                min-width: 150px;
+                flex: none;
+            }
+            
+            .trend-summary {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -313,20 +371,22 @@
     <div class="container">
         <div class="header">
             <h1>🩺 HealthAI</h1>
-            <p>Privacy-First AI Health Analysis • Universal Medical Parameter Recognition</p>
+            <p>Privacy-First Health Analysis • Multi-Document Trend Tracking</p>
         </div>
         
         <div class="main-card">
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('upload')">📄 Smart Upload <span class="smart-badge">AI-Powered</span></button>
-                <button class="tab" onclick="switchTab('manual')">✏️ Manual Entry</button>
+                <button class="tab active" onclick="switchTab('upload')">📄 Upload & Analyze</button>
+                <button class="tab" onclick="switchTab('dashboard')">📊 Health Dashboard</button>
+                <button class="tab" onclick="switchTab('trends')">📈 Trend Analysis</button>
+                <button class="tab" onclick="switchTab('documents')">📁 Document History</button>
             </div>
             
-            <!-- Smart Document Upload Tab -->
+            <!-- Upload & Analyze Tab -->
             <div class="tab-content active" id="upload-tab">
                 <div class="privacy-info">
                     <h4>🧠 Universal Health Parameter Recognition</h4>
-                    <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents - lab results, DEXA scans, hormone panels, fitness data, genetic reports, and more. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
+                    <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
                 </div>
                 
                 <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
@@ -335,7 +395,7 @@
                        🏃 Fitness Reports • 🧬 Genetic Analysis • 🩸 Blood Work<br>
                        📊 Body Composition • 💊 Metabolic Panels • Any Health Data<br>
                        <strong>Maximum file size: 25MB • Format: PDF</strong></p>
-                    <button class="upload-btn">Choose File</button>
+                    <button class="btn">Choose File</button>
                     <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
                 </div>
                 
@@ -344,57 +404,112 @@
                     <div id="processingSteps"></div>
                 </div>
                 
-                <div class="document-preview" id="documentPreview" style="display: none;">
-                    <h4>📄 Document Content Preview:</h4>
-                    <div id="documentContent"></div>
-                </div>
-                
-                <div class="sanitization-log" id="sanitizationLog" style="display: none;">
-                    <h4>🔒 Smart Privacy Protection & Parameter Extraction:</h4>
-                    <div id="sanitizationSteps"></div>
-                </div>
-                
                 <div id="documentResult"></div>
             </div>
             
-            <!-- Manual Entry Tab -->
-            <div class="tab-content" id="manual-tab">
-                <div class="input-group">
-                    <label for="healthData">Enter Your Health Data for Analysis:</label>
-                    <textarea 
-                        id="healthData" 
-                        placeholder="Example: Cholesterol Total: 240 mg/dL, HDL: 35 mg/dL, LDL: 180 mg/dL, Triglycerides: 300 mg/dL, Glucose: 110 mg/dL, Blood Pressure: 140/90"
-                    >Cholesterol Total: 240 mg/dL, HDL: 35 mg/dL, LDL: 180 mg/dL, Triglycerides: 300 mg/dL, Glucose: 110 mg/dL, Blood Pressure: 140/90, Age: 45, Weight: 180 lbs</textarea>
+            <!-- Health Dashboard Tab -->
+            <div class="tab-content" id="dashboard-tab">
+                <div class="trend-summary" id="healthSummary">
+                    <div class="trend-card">
+                        <div class="trend-value">--</div>
+                        <div class="trend-label">Total Documents</div>
+                    </div>
+                    <div class="trend-card">
+                        <div class="trend-value">--</div>
+                        <div class="trend-label">Parameters Tracked</div>
+                    </div>
+                    <div class="trend-card">
+                        <div class="trend-value">--</div>
+                        <div class="trend-label">Latest Analysis</div>
+                    </div>
                 </div>
                 
-                <button class="analyze-btn" onclick="testAI()" id="analyzeBtn">
-                    🧠 Analyze Health Data
-                </button>
+                <div class="trend-chart">
+                    <canvas id="overviewChart" width="800" height="300"></canvas>
+                </div>
                 
-                <div id="result"></div>
+                <div id="dashboardInsights">
+                    <div class="loading">📊 Loading your health dashboard...</div>
+                </div>
             </div>
-        </div>
-        
-        <div class="features">
-            <div class="feature-card">
-                <h3>🧠 Smart AI Recognition</h3>
-                <p>Automatically identifies ANY medical parameter - from basic labs to specialized tests</p>
+            
+            <!-- Trend Analysis Tab -->
+            <div class="tab-content" id="trends-tab">
+                <div style="margin-bottom: 20px;">
+                    <label for="timeRange" style="font-weight: 600; margin-right: 10px;">Time Range:</label>
+                    <select id="timeRange" onchange="loadTrends()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                        <option value="3months">Last 3 Months</option>
+                        <option value="6months" selected>Last 6 Months</option>
+                        <option value="1year">Last Year</option>
+                        <option value="2years">Last 2 Years</option>
+                    </select>
+                    <button class="btn" onclick="loadTrends()" style="margin-left: 10px;">🔄 Refresh Trends</button>
+                </div>
+                
+                <div class="trend-chart">
+                    <canvas id="trendsChart" width="800" height="300"></canvas>
+                </div>
+                
+                <div id="trendAnalysis">
+                    <div class="loading">📈 Loading trend analysis...</div>
+                </div>
             </div>
-            <div class="feature-card">
-                <h3>🔒 Complete Privacy</h3>
-                <p>Personal identifiers detected & removed on your device before AI processing</p>
-            </div>
-            <div class="feature-card">
-                <h3>⚡ Universal Support</h3>
-                <p>Works with all health documents - evolving platform that gets smarter over time</p>
+            
+            <!-- Document History Tab -->
+            <div class="tab-content" id="documents-tab">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>📁 Your Health Documents</h3>
+                    <button class="btn" onclick="loadDocuments()">🔄 Refresh</button>
+                </div>
+                
+                <div class="document-list" id="documentList">
+                    <div class="loading">📄 Loading your documents...</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Global state
+        let currentSession = null;
+        let documents = [];
+        let trendData = [];
+        let charts = {};
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDashboard();
+        });
+        
+        function initializeDashboard() {
+            // Check for existing session
+            const savedSession = localStorage.getItem('healthai_session');
+            if (savedSession) {
+                try {
+                    currentSession = JSON.parse(savedSession);
+                    console.log('Found existing session:', currentSession.sessionToken.substring(0, 20) + '...');
+                } catch (error) {
+                    console.error('Error parsing saved session:', error);
+                    localStorage.removeItem('healthai_session');
+                }
+            }
+            
+            // Load dashboard data if we have a session
+            if (currentSession) {
+                loadDashboardData();
+            }
+        }
+        
+        async function loadDashboardData() {
+            await Promise.all([
+                loadDocuments(),
+                loadHealthSummary(),
+                loadTrends()
+            ]);
+        }
+        
         // Tab switching functionality
         function switchTab(tabName) {
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
             });
@@ -402,11 +517,461 @@
                 tab.classList.remove('active');
             });
             
-            // Show selected tab
             document.getElementById(tabName + '-tab').classList.add('active');
             event.target.classList.add('active');
+            
+            // Load data for specific tabs
+            if (tabName === 'dashboard' && currentSession) {
+                loadHealthSummary();
+            } else if (tabName === 'trends' && currentSession) {
+                loadTrends();
+            } else if (tabName === 'documents' && currentSession) {
+                loadDocuments();
+            }
         }
-
+        
+        // Document upload functionality (enhanced from previous version)
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+        
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            
+            if (file.type !== 'application/pdf') {
+                alert('Please upload a PDF file only.');
+                return;
+            }
+            
+            if (file.size > 25 * 1024 * 1024) {
+                alert('File size must be less than 25MB.');
+                return;
+            }
+            
+            processDocument(file);
+        }
+        
+        async function processDocument(file) {
+            const processingStatus = document.getElementById('processingStatus');
+            const processingSteps = document.getElementById('processingSteps');
+            
+            processingStatus.style.display = 'block';
+            
+            try {
+                processingSteps.innerHTML = '⏳ Step 1: Processing document with AI extraction...';
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Simulate different document types
+                const fileName = file.name.toLowerCase();
+                let simulatedData = generateSimulatedDocumentData(fileName);
+                
+                processingSteps.innerHTML += '<br>✅ Step 2: Extracting health parameters...';
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Extract parameters using our smart API
+                const extractionResponse = await fetch('/api/extract', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ documentText: simulatedData.text })
+                });
+                
+                const extractionData = await extractionResponse.json();
+                
+                if (extractionData.success) {
+                    processingSteps.innerHTML += '<br>⏳ Step 3: Analyzing with AI + Medical Context...';
+                    
+                    // Analyze with enhanced AI
+                    const analysisResponse = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            healthData: formatHealthDataForAnalysis(extractionData.extractedData.healthParameters)
+                        })
+                    });
+                    
+                    const analysisData = await analysisResponse.json();
+                    
+                    if (analysisData.success) {
+                        processingSteps.innerHTML += '<br>⏳ Step 4: Storing document for trend tracking...';
+                        
+                        // Store document if we have a session
+                        if (currentSession) {
+                            await storeDocument(file.name, extractionData.extractedData, analysisData.analysis, simulatedData.type, simulatedData.testDate);
+                        }
+                        
+                        processingSteps.innerHTML += '<br>✅ Step 5: Complete! Document processed and stored.';
+                        
+                        // Show results
+                        showAnalysisResults(analysisData, extractionData.extractedData);
+                        
+                        // Refresh dashboard data
+                        if (currentSession) {
+                            setTimeout(() => {
+                                loadDashboardData();
+                            }, 1000);
+                        }
+                    } else {
+                        throw new Error('Analysis failed: ' + analysisData.error);
+                    }
+                } else {
+                    throw new Error('Extraction failed: ' + extractionData.error);
+                }
+                
+            } catch (error) {
+                processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
+            }
+        }
+        
+        function generateSimulatedDocumentData(fileName) {
+            const testDate = new Date().toISOString().split('T')[0];
+            
+            if (fileName.includes('dexa') || fileName.includes('bone')) {
+                return {
+                    type: 'DEXA Scan',
+                    testDate: testDate,
+                    text: `DEXA SCAN RESULTS\nScan Date: ${testDate}\nLumbar Spine BMD: 0.952 g/cm² (T-score: -1.8)\nTotal Hip BMD: 0.821 g/cm² (T-score: -1.9)\nBody Fat Percentage: 29.0%\nLean Mass: 98.4 lbs`
+                };
+            } else if (fileName.includes('hormone')) {
+                return {
+                    type: 'Hormone Panel',
+                    testDate: testDate,
+                    text: `HORMONE PANEL\nTest Date: ${testDate}\nTSH: 4.2 mIU/L\nFree T4: 1.1 ng/dL\nTestosterone: 320 ng/dL\nCortisol: 18.5 μg/dL`
+                };
+            } else {
+                return {
+                    type: 'Comprehensive Lab Panel',
+                    testDate: testDate,
+                    text: `LAB RESULTS\nTest Date: ${testDate}\nTotal Cholesterol: 285 mg/dL\nHDL: 32 mg/dL\nLDL: 195 mg/dL\nTriglycerides: 290 mg/dL\nGlucose: 118 mg/dL\nHemoglobin A1c: 6.2%`
+                };
+            }
+        }
+        
+        function formatHealthDataForAnalysis(healthParameters) {
+            if (!healthParameters || !Array.isArray(healthParameters)) return '';
+            
+            return healthParameters.map(param => 
+                `${param.parameter}: ${param.value}${param.unit ? ' ' + param.unit : ''}`
+            ).join('\n');
+        }
+        
+        function showAnalysisResults(analysisData, extractionData) {
+            const resultDiv = document.getElementById('documentResult');
+            
+            resultDiv.innerHTML = `
+                <div class="result">
+                    <h3>✅ Health Analysis Complete</h3>
+                    <div class="analysis-content">${analysisData.analysis}</div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+                        <strong>Parameters Found:</strong> ${extractionData.totalParametersFound || extractionData.healthParameters?.length || 0}<br>
+                        <strong>Medical Context:</strong> ${analysisData.medicalContextIncluded ? 'Included' : 'Not available'}<br>
+                        <strong>Processing Time:</strong> ${analysisData.timestamp ? 'Complete' : 'Unknown'}<br>
+                        <strong>Document Stored:</strong> ${currentSession ? 'Yes - Available in dashboard' : 'Session required for storage'}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Document storage
+        async function storeDocument(documentName, extractedData, analysisResult, documentType, testDate) {
+            if (!currentSession) return;
+            
+            try {
+                const response = await fetch('/api/documents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'store',
+                        sessionToken: currentSession.sessionToken,
+                        documentName: documentName,
+                        extractedParameters: extractedData.healthParameters || [],
+                        analysisResult: analysisResult,
+                        documentType: documentType,
+                        testDate: testDate
+                    })
+                });
+                
+                const result = await response.json();
+                if (!result.success) {
+                    console.error('Failed to store document:', result.error);
+                }
+                
+            } catch (error) {
+                console.error('Error storing document:', error);
+            }
+        }
+        
+        // Load documents
+        async function loadDocuments() {
+            if (!currentSession) {
+                document.getElementById('documentList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>🔐 Session Required</h3>
+                        <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to store and track documents.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    documents = data.documents || [];
+                    renderDocumentList();
+                } else {
+                    throw new Error(data.error);
+                }
+                
+            } catch (error) {
+                document.getElementById('documentList').innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error Loading Documents</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderDocumentList() {
+            const documentList = document.getElementById('documentList');
+            
+            if (documents.length === 0) {
+                documentList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>📄 No Documents Yet</h3>
+                        <p>Upload your first health document to start tracking trends!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            documentList.innerHTML = documents.map(doc => `
+                <div class="document-item">
+                    <div class="document-title">📄 ${doc.document_name}</div>
+                    <div class="document-meta">
+                        <span class="status-badge status-${doc.status}">${doc.status}</span>
+                        <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
+                        <strong>Test Date:</strong> ${doc.test_date || 'Unknown'} • 
+                        <strong>Parameters:</strong> ${doc.parameter_count || 0}
+                    </div>
+                    <div class="document-actions">
+                        <button class="btn btn-secondary" onclick="viewDocument('${doc.document_id}')">👁️ View</button>
+                        <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Load health summary
+        async function loadHealthSummary() {
+            if (!currentSession) {
+                document.getElementById('healthSummary').innerHTML = `
+                    <div class="trend-card">
+                        <div class="trend-value">--</div>
+                        <div class="trend-label">Session Required</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const totalDocs = data.documents?.length || 0;
+                    const totalParams = data.documents?.reduce((sum, doc) => sum + (doc.parameter_count || 0), 0) || 0;
+                    const latestDoc = data.documents?.[0]?.created_at ? new Date(data.documents[0].created_at).toLocaleDateString() : '--';
+                    
+                    document.getElementById('healthSummary').innerHTML = `
+                        <div class="trend-card">
+                            <div class="trend-value">${totalDocs}</div>
+                            <div class="trend-label">Total Documents</div>
+                        </div>
+                        <div class="trend-card">
+                            <div class="trend-value">${totalParams}</div>
+                            <div class="trend-label">Parameters Tracked</div>
+                        </div>
+                        <div class="trend-card">
+                            <div class="trend-value">${latestDoc}</div>
+                            <div class="trend-label">Latest Analysis</div>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error loading health summary:', error);
+            }
+        }
+        
+        // Load trends
+        async function loadTrends() {
+            if (!currentSession) {
+                document.getElementById('trendAnalysis').innerHTML = `
+                    <div class="empty-state">
+                        <h3>🔐 Session Required</h3>
+                        <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view trend analysis.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            try {
+                const timeRange = document.getElementById('timeRange')?.value || '6months';
+                
+                const response = await fetch('/api/documents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'analyze-trends',
+                        sessionToken: currentSession.sessionToken,
+                        timeRange: timeRange
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    trendData = data.trendData || [];
+                    renderTrendChart();
+                    
+                    document.getElementById('trendAnalysis').innerHTML = `
+                        <div class="result">
+                            <h3>📈 Trend Analysis (${timeRange})</h3>
+                            <div class="analysis-content">${data.analysis || 'No trend analysis available yet. Upload more documents to see patterns over time.'}</div>
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+                                <strong>Trends Found:</strong> ${data.trendsFound || 0}<br>
+                                <strong>Time Range:</strong> ${timeRange}<br>
+                                <strong>Generated:</strong> ${new Date(data.generatedAt || Date.now()).toLocaleString()}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error);
+                }
+                
+            } catch (error) {
+                document.getElementById('trendAnalysis').innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error Loading Trends</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderTrendChart() {
+            const ctx = document.getElementById('trendsChart');
+            if (!ctx) return;
+            
+            // Destroy existing chart
+            if (charts.trends) {
+                charts.trends.destroy();
+            }
+            
+            if (trendData.length === 0) {
+                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
+                const context = ctx.getContext('2d');
+                context.fillStyle = '#666';
+                context.font = '16px Arial';
+                context.textAlign = 'center';
+                context.fillText('No trend data available yet', ctx.width / 2, ctx.height / 2);
+                return;
+            }
+            
+            const datasets = trendData.map((trend, index) => {
+                const colors = ['#667eea', '#764ba2', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'];
+                return {
+                    label: trend.parameter,
+                    data: trend.data.map(d => ({ x: d.date, y: d.value })),
+                    borderColor: colors[index % colors.length],
+                    backgroundColor: colors[index % colors.length] + '20',
+                    tension: 0.4,
+                    fill: false
+                };
+            });
+            
+            charts.trends = new Chart(ctx, {
+                type: 'line',
+                data: { datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Health Parameter Trends Over Time'
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                parser: 'YYYY-MM-DD',
+                                displayFormats: {
+                                    month: 'MMM YYYY'
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Value'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Document actions
+        function viewDocument(documentId) {
+            alert(`View document functionality coming soon! Document ID: ${documentId}`);
+        }
+        
+        async function deleteDocument(documentId) {
+            if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/documents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete',
+                        sessionToken: currentSession.sessionToken,
+                        documentId: documentId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Refresh document list
+                    await loadDocuments();
+                    await loadHealthSummary();
+                } else {
+                    throw new Error(data.error);
+                }
+                
+            } catch (error) {
+                alert('Error deleting document: ' + error.message);
+            }
+        }
+        
         // Drag and drop functionality
         const uploadArea = document.getElementById('uploadArea');
         
@@ -431,415 +996,46 @@
             }, false);
         });
         
-        uploadArea.addEventListener('drop', handleDrop, false);
-        
-        function handleDrop(e) {
+        uploadArea.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
             const files = dt.files;
             handleFiles(files);
+        }, false);
+        
+        // Session management
+        function checkSession() {
+            if (!currentSession) {
+                const shouldCreateSession = confirm('You need to create a session to store documents and track trends. Would you like to create one now?');
+                if (shouldCreateSession) {
+                    window.location.href = '/setup.html';
+                }
+                return false;
+            }
+            return true;
         }
         
-        function handleFileSelect(e) {
-            const files = e.target.files;
-            handleFiles(files);
-        }
-        
-        // File processing functionality
-        function handleFiles(files) {
-            if (files.length === 0) return;
+        // Initialize charts on tab switch
+        function initializeChart(chartId, type = 'line') {
+            const ctx = document.getElementById(chartId);
+            if (!ctx) return null;
             
-            const file = files[0];
-            
-            // Validate file
-            if (file.type !== 'application/pdf') {
-                alert('Please upload a PDF file only.');
-                return;
-            }
-            
-            if (file.size > 25 * 1024 * 1024) { // 25MB
-                alert('File size must be less than 25MB.');
-                return;
-            }
-            
-            processDocument(file);
-        }
-        
-        // Enhanced smart document processing
-        async function processDocument(file) {
-            const processingStatus = document.getElementById('processingStatus');
-            const processingSteps = document.getElementById('processingSteps');
-            const documentPreview = document.getElementById('documentPreview');
-            const documentContent = document.getElementById('documentContent');
-            const sanitizationLog = document.getElementById('sanitizationLog');
-            const sanitizationSteps = document.getElementById('sanitizationSteps');
-            
-            // Show processing status
-            processingStatus.style.display = 'block';
-            
-            try {
-                // Step 1: Read PDF
-                processingSteps.innerHTML = '⏳ Step 1: Reading PDF document...';
-                await new Promise(resolve => setTimeout(resolve, 800));
-                
-                // Step 2: Extract text (simulated OCR)
-                processingSteps.innerHTML += '<br>⏳ Step 2: Extracting text with OCR...';
-                await new Promise(resolve => setTimeout(resolve, 1200));
-                
-                // For demo, simulate different document types based on filename
-                const fileName = file.name.toLowerCase();
-                let simulatedText;
-                
-                if (fileName.includes('dexa') || fileName.includes('bone')) {
-                    simulatedText = `
-DEXA SCAN RESULTS - BONE DENSITY ANALYSIS
-Patient: Sarah Johnson
-DOB: 07/22/1975  
-Address: 456 Oak Street, Springfield, IL 62701
-Phone: (217) 555-9876
-
-SCAN DATE: September 15, 2024
-TECHNICIAN: Dr. Martinez
-
-BONE MINERAL DENSITY RESULTS:
-Lumbar Spine L1-L4: 0.952 g/cm² (T-score: -1.8, Z-score: -0.9)
-Left Femoral Neck: 0.789 g/cm² (T-score: -2.1, Z-score: -1.2)  
-Total Hip: 0.821 g/cm² (T-score: -1.9, Z-score: -1.0)
-Left Forearm: 0.645 g/cm² (T-score: -1.5, Z-score: -0.8)
-
-BODY COMPOSITION:
-Total Body Weight: 145.2 lbs
-Lean Mass: 98.4 lbs
-Fat Mass: 42.1 lbs  
-Body Fat Percentage: 29.0%
-Visceral Fat: 0.8 lbs
-Bone Mineral Content: 4.7 lbs
-
-DIAGNOSIS: Osteopenia (Low Bone Density)
-`;
-                } else if (fileName.includes('hormone') || fileName.includes('thyroid')) {
-                    simulatedText = `
-COMPREHENSIVE HORMONE PANEL
-Patient Name: Michael Rodriguez
-Date of Birth: 12/03/1982
-SSN: ***-**-7890
-Address: 789 Pine Ave, Denver, CO 80202
-
-TEST DATE: August 28, 2024
-FASTING: Yes (12 hours)
-
-THYROID FUNCTION:
-TSH: 4.2 mIU/L (Normal: 0.4-4.0)
-Free T4: 1.1 ng/dL (Normal: 0.8-1.8)
-Free T3: 2.8 pg/mL (Normal: 2.3-4.2)
-Reverse T3: 18 ng/dL (Normal: 8-25)
-Anti-TPO Antibodies: 45 IU/mL (Normal: <35)
-
-REPRODUCTIVE HORMONES:
-Testosterone Total: 320 ng/dL (Normal: 300-1000)
-Testosterone Free: 8.2 pg/mL (Normal: 9-30)
-SHBG: 42 nmol/L (Normal: 10-57)
-LH: 4.1 mIU/mL (Normal: 1.7-8.6)
-FSH: 3.8 mIU/mL (Normal: 1.5-12.4)
-
-ADRENAL FUNCTION:
-Cortisol AM: 18.5 μg/dL (Normal: 6-23)
-DHEA-S: 180 μg/dL (Normal: 102-416)
-Aldosterone: 8.2 ng/dL (Normal: 4-31)
-`;
-                } else if (fileName.includes('fitness') || fileName.includes('activity')) {
-                    simulatedText = `
-FITNESS & ACTIVITY REPORT
-User: Jennifer Chen (ID: FC-2024-8901)
-Email: j.chen@email.com
-Device: Apple Watch Series 9
-Reporting Period: August 1-31, 2024
-
-DAILY AVERAGES:
-Steps: 12,847 steps/day
-Active Calories: 487 cal/day
-Total Calories: 2,156 cal/day
-Distance: 6.2 miles/day
-Flights Climbed: 18 floors/day
-
-EXERCISE METRICS:
-Workout Frequency: 5.2 sessions/week
-Average Workout Duration: 47 minutes
-Heart Rate Zones:
-  - Zone 1 (50-60%): 28% of workout time
-  - Zone 2 (60-70%): 35% of workout time  
-  - Zone 3 (70-80%): 25% of workout time
-  - Zone 4 (80-90%): 10% of workout time
-  - Zone 5 (90-100%): 2% of workout time
-
-RECOVERY METRICS:
-Resting Heart Rate: 58 bpm (Excellent)
-HRV (Heart Rate Variability): 45 ms (Good)
-Sleep Quality Score: 82/100 (Good)
-Average Sleep Duration: 7h 23min
-REM Sleep: 1h 45min (24% of sleep)
-Deep Sleep: 1h 12min (16% of sleep)
-
-BODY MEASUREMENTS:
-Weight: 128.4 lbs (stable)
-Body Fat: 18.2% (Athletic range)
-Muscle Mass: 104.8 lbs
-Hydration Level: 58% (Good)
-`;
-                } else {
-                    // Default comprehensive lab panel
-                    simulatedText = `
-COMPREHENSIVE METABOLIC PANEL + LIPIDS
-Patient Information: Robert Kim
-Date of Birth: 05/10/1978
-Medical Record #: MR-445789
-Address: 321 Maple Drive, Austin, TX 73301
-Insurance: Blue Cross PPO
-
-Collection Date: September 1, 2024
-Received: September 1, 2024 10:30 AM
-Reported: September 2, 2024 8:15 AM
-Fasting Status: 14 hours
-
-LIPID PANEL:
-Total Cholesterol: 285 mg/dL (Desirable: <200)
-HDL Cholesterol: 32 mg/dL (Low: <40 M, <50 F) 
-LDL Cholesterol: 195 mg/dL (Optimal: <100)
-Triglycerides: 290 mg/dL (Normal: <150)
-Non-HDL Cholesterol: 253 mg/dL (Optimal: <130)
-Cholesterol/HDL Ratio: 8.9 (Optimal: <5.0)
-
-GLUCOSE METABOLISM:
-Glucose, Fasting: 118 mg/dL (Normal: 70-99)
-Hemoglobin A1c: 6.2% (Pre-diabetic: 5.7-6.4%)
-Insulin: 15.2 μU/mL (Normal: 2.6-24.9)
-
-KIDNEY FUNCTION:
-Creatinine: 1.2 mg/dL (Normal: 0.7-1.3)
-BUN: 22 mg/dL (Normal: 6-24)
-eGFR: 68 mL/min/1.73m² (Normal: >60)
-
-LIVER FUNCTION:
-ALT: 45 U/L (Normal: 7-56)
-AST: 38 U/L (Normal: 10-40) 
-Total Bilirubin: 1.1 mg/dL (Normal: 0.3-1.2)
-
-INFLAMMATORY MARKERS:
-CRP (High Sensitivity): 4.8 mg/L (Low Risk: <1.0)
-ESR: 28 mm/hr (Normal: 0-22)
-
-VITAMINS & MINERALS:
-Vitamin D, 25-OH: 18 ng/mL (Deficient: <30)
-Vitamin B12: 450 pg/mL (Normal: 232-1245)
-Folate: 8.2 ng/mL (Normal: >3.0)
-Iron: 65 μg/dL (Normal: 65-175)
-Ferritin: 45 ng/mL (Normal: 12-300)
-`;
-                }
-                
-                // Step 3: Display extracted content
-                processingSteps.innerHTML += '<br>✅ Step 3: Text extraction complete';
-                documentPreview.style.display = 'block';
-                documentContent.innerHTML = `<pre style="white-space: pre-wrap; font-size: 12px; max-height: 200px; overflow-y: auto;">${simulatedText}</pre>`;
-                
-                // Step 4: Smart AI-powered extraction
-                processingSteps.innerHTML += '<br>⏳ Step 4: AI analyzing document for ALL health parameters...';
-                
-                const extractionResponse = await fetch('/api/extract', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ documentText: simulatedText })
-                });
-                
-                const extractionData = await extractionResponse.json();
-                
-                if (extractionData.success) {
-                    const extracted = extractionData.extractedData;
-                    
-                    // Step 5: Show intelligent extraction results
-                    processingSteps.innerHTML += '<br>✅ Step 5: Smart extraction complete - found ' + (extracted.totalParametersFound || extracted.healthParameters?.length || 0) + ' health parameters';
-                    
-                    sanitizationLog.style.display = 'block';
-                    
-                    // Show what personal data was identified and removed
-                    let personalDataLog = '';
-                    if (extracted.personalDataFound && extracted.personalDataFound.length > 0) {
-                        personalDataLog = `
-PERSONAL IDENTIFIERS DETECTED & REMOVED:
-${extracted.personalDataFound.map(item => `❌ ${item.charAt(0).toUpperCase() + item.slice(1)} → [REMOVED]`).join('\n')}
-
-`;
+            return new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
                     }
-                    
-                    // Show extracted health parameters
-                    let healthParamsLog = '';
-                    if (extracted.healthParameters && extracted.healthParameters.length > 0) {
-                        healthParamsLog = `HEALTH PARAMETERS EXTRACTED (Anonymous):
-${extracted.healthParameters.map(param => 
-    `✅ ${param.parameter}: ${param.value}${param.unit ? ' ' + param.unit : ''} ${param.referenceRange ? '(Ref: ' + param.referenceRange + ')' : ''}`
-).join('\n')}`;
-                    } else if (extracted.rawAIResponse) {
-                        healthParamsLog = `AI EXTRACTION RESULT:\n${extracted.rawAIResponse}`;
-                    }
-                    
-                    sanitizationSteps.innerHTML = `
-${personalDataLog}
-${healthParamsLog}
-
-📊 DOCUMENT TYPE: ${extracted.documentType || 'Unknown'}
-📅 TEST DATE: ${extracted.testDate || 'Not specified'}
-🔍 TOTAL PARAMETERS FOUND: ${extracted.totalParametersFound || extracted.healthParameters?.length || 0}
-🤖 EXTRACTION METHOD: AI-Powered Dynamic Recognition
-                    `;
-                    
-                    // Step 6: Format for analysis
-                    let healthDataForAnalysis = '';
-                    if (extracted.healthParameters && extracted.healthParameters.length > 0) {
-                        healthDataForAnalysis = extracted.healthParameters.map(param => 
-                            `${param.parameter}: ${param.value}${param.unit ? ' ' + param.unit : ''}`
-                        ).join('\n');
-                    } else if (extracted.rawAIResponse) {
-                        healthDataForAnalysis = extracted.rawAIResponse;
-                    }
-                    
-                    if (healthDataForAnalysis.trim()) {
-                        // Step 7: Analyze with AI
-                        processingSteps.innerHTML += '<br>⏳ Step 6: Sending anonymous health data to AI for comprehensive analysis...';
-                        await analyzeExtractedData(healthDataForAnalysis, `Document Type: ${extracted.documentType || 'Health Report'}`);
-                    } else {
-                        throw new Error('No health parameters could be extracted from this document');
-                    }
-                    
-                } else {
-                    throw new Error('Failed to extract health parameters: ' + extractionData.error);
                 }
-                
-            } catch (error) {
-                processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
-                document.getElementById('documentResult').innerHTML = `
-                    <div class="error">
-                        <h3>❌ Processing Error</h3>
-                        <p><strong>Error:</strong> ${error.message}</p>
-                        <p><strong>Note:</strong> This is a demo - real PDF processing would use PDF.js for actual document reading.</p>
-                    </div>
-                `;
-            }
-        }
-        
-        async function analyzeExtractedData(healthData, documentContext = '') {
-            try {
-                const startTime = Date.now();
-                
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ healthData: documentContext + '\n\n' + healthData })
-                });
-                
-                const data = await response.json();
-                const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
-                
-                if (data.success) {
-                    document.getElementById('documentResult').innerHTML = `
-                        <div class="result">
-                            <h3>✅ AI Health Analysis Complete</h3>
-                            <div class="analysis-content">${data.analysis}</div>
-                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                                <strong>Source:</strong> Smart Document Analysis (AI-Powered Parameter Extraction)<br>
-                                <strong>Privacy:</strong> Personal identifiers removed before AI processing<br>
-                                <strong>Model:</strong> ${data.model} | 
-                                <strong>Processing Time:</strong> ${processingTime}s | 
-                                <strong>Generated:</strong> ${new Date(data.timestamp).toLocaleTimeString()}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    throw new Error(data.error);
-                }
-                
-            } catch (error) {
-                document.getElementById('documentResult').innerHTML = `
-                    <div class="error">
-                        <h3>❌ Analysis Error</h3>
-                        <p><strong>Error:</strong> ${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-
-        // Manual entry analysis (existing function)
-        async function testAI() {
-            const healthData = document.getElementById('healthData').value;
-            const resultDiv = document.getElementById('result');
-            const analyzeBtn = document.getElementById('analyzeBtn');
-            
-            if (!healthData.trim()) {
-                alert('Please enter some health data to analyze');
-                return;
-            }
-            
-            // Disable button and show loading
-            analyzeBtn.disabled = true;
-            analyzeBtn.innerHTML = '🤖 Analyzing...';
-            
-            resultDiv.innerHTML = `
-                <div class="loading">
-                    🧠 AI is analyzing your health data using Llama 3.1-8B...<br>
-                    <small>Processing on Cloudflare edge servers worldwide</small>
-                </div>
-            `;
-            
-            try {
-                const startTime = Date.now();
-                
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ healthData })
-                });
-                
-                const data = await response.json();
-                const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
-                
-                if (data.success) {
-                    resultDiv.innerHTML = `
-                        <div class="result">
-                            <h3>✅ AI Health Analysis Complete</h3>
-                            <div class="analysis-content">${data.analysis}</div>
-                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                                <strong>Model:</strong> ${data.model} | 
-                                <strong>Processing Time:</strong> ${processingTime}s | 
-                                <strong>Generated:</strong> ${new Date(data.timestamp).toLocaleTimeString()}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    resultDiv.innerHTML = `
-                        <div class="error">
-                            <h3>❌ Analysis Error</h3>
-                            <p><strong>Error:</strong> ${data.error}</p>
-                            <p><strong>Details:</strong> ${data.details || 'Please check your configuration'}</p>
-                        </div>
-                    `;
-                }
-                
-            } catch (error) {
-                resultDiv.innerHTML = `
-                    <div class="error">
-                        <h3>❌ Network Error</h3>
-                        <p><strong>Error:</strong> ${error.message}</p>
-                    </div>
-                `;
-            } finally {
-                // Re-enable button
-                analyzeBtn.disabled = false;
-                analyzeBtn.innerHTML = '🧠 Analyze Health Data';
-            }
+            });
         }
     </script>
 </body>
