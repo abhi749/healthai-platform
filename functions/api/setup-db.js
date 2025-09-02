@@ -85,7 +85,9 @@ export async function onRequestGet(context) {
         'anonymous_sessions',
         'device_access', 
         'processing_logs',
-        'analysis_cache'
+        'analysis_cache',
+        'health_documents',
+        'health_parameters'
       ],
       timestamp: new Date().toISOString()
     }), {
