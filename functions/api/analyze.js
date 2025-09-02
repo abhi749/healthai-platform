@@ -50,7 +50,7 @@ Analysis:`;
     console.log('Sending request to Cloudflare Workers AI...');
     
     // Call Cloudflare Workers AI
-    const aiResponse = await env.AI.run('@cf/meta/llama-3.2-8b-instruct', {
+    const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: prompt,
       max_tokens: 400,
       temperature: 0.7
@@ -65,7 +65,7 @@ Analysis:`;
     return new Response(JSON.stringify({
       success: true,
       analysis: aiResponse.response.trim(),
-      model: 'llama-3.2-8b-instruct',
+      model: 'llama-3.1-8b-instruct',
       timestamp: new Date().toISOString(),
       processingLocation: 'Cloudflare Edge'
     }), {
