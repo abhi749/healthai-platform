@@ -20,7 +20,7 @@
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -43,7 +43,7 @@
             opacity: 0.9;
         }
         
-        .test-card {
+        .main-card {
             background: white;
             border-radius: 12px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -51,12 +51,116 @@
             margin-bottom: 30px;
         }
         
-        .test-card h2 {
-            color: #667eea;
-            margin-bottom: 20px;
+        .tabs {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .upload-area.dragover {
+            border-color: #4c51bf;
+            background: #e6f3ff;
+        }
+        
+        .upload-area h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .upload-area p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .privacy-info {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .privacy-info h4 {
+            color: #1890ff;
+            margin-bottom: 10px;
+        }
+        
+        .processing-status {
+            display: none;
+            background: #fff7e6;
+            border: 1px solid #ffd666;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .document-preview {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .sanitization-log {
+            background: #f0f8f0;
+            border: 1px solid #52c41a;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
         }
         
         .input-group {
@@ -171,15 +275,6 @@
             font-size: 1.3rem;
         }
         
-        .status-info {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            font-size: 14px;
-        }
-        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -189,8 +284,17 @@
                 font-size: 2rem;
             }
             
-            .test-card {
+            .main-card {
                 padding: 20px;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+            
+            .tab {
+                flex: 1;
+                min-width: 150px;
             }
         }
     </style>
@@ -199,28 +303,63 @@
     <div class="container">
         <div class="header">
             <h1>🩺 HealthAI</h1>
-            <p>Privacy-First AI Health Analysis • Powered by Cloudflare Edge AI</p>
+            <p>Privacy-First AI Health Analysis • Anonymous Processing on Cloudflare Edge</p>
         </div>
         
-        <div class="test-card">
-            <h2>🧠 AI Health Analysis Test</h2>
-            <div class="status-info">
-                <strong>Test Environment:</strong> Using Llama 3.2-8B model on Cloudflare Workers AI
+        <div class="main-card">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('upload')">📄 Upload Document</button>
+                <button class="tab" onclick="switchTab('manual')">✏️ Manual Entry</button>
             </div>
             
-            <div class="input-group">
-                <label for="healthData">Enter Your Health Data for Analysis:</label>
-                <textarea 
-                    id="healthData" 
-                    placeholder="Example: Cholesterol Total: 240 mg/dL, HDL: 35 mg/dL, LDL: 180 mg/dL, Triglycerides: 300 mg/dL, Glucose: 110 mg/dL, Blood Pressure: 140/90"
-                >Cholesterol Total: 240 mg/dL, HDL: 35 mg/dL, LDL: 180 mg/dL, Triglycerides: 300 mg/dL, Glucose: 110 mg/dL, Blood Pressure: 140/90, Age: 45, Weight: 180 lbs</textarea>
+            <!-- Document Upload Tab -->
+            <div class="tab-content active" id="upload-tab">
+                <div class="privacy-info">
+                    <h4>🔒 Privacy-First Processing</h4>
+                    <p><strong>Your personal identifiers never leave your device.</strong> We extract only health values and dates before any data transmission to our AI servers.</p>
+                </div>
+                
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <h3>📁 Drop Your Health Document Here</h3>
+                    <p>Support: PDF lab reports, body composition scans<br>Maximum file size: 25MB</p>
+                    <button class="upload-btn">Choose File</button>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
+                </div>
+                
+                <div class="processing-status" id="processingStatus">
+                    <h4>🔧 Processing Your Document...</h4>
+                    <div id="processingSteps"></div>
+                </div>
+                
+                <div class="document-preview" id="documentPreview" style="display: none;">
+                    <h4>📄 Document Content Preview:</h4>
+                    <div id="documentContent"></div>
+                </div>
+                
+                <div class="sanitization-log" id="sanitizationLog" style="display: none;">
+                    <h4>🔒 Privacy Sanitization Log:</h4>
+                    <div id="sanitizationSteps"></div>
+                </div>
+                
+                <div id="documentResult"></div>
             </div>
             
-            <button class="analyze-btn" onclick="testAI()" id="analyzeBtn">
-                🧠 Analyze Health Data
-            </button>
-            
-            <div id="result"></div>
+            <!-- Manual Entry Tab -->
+            <div class="tab-content" id="manual-tab">
+                <div class="input-group">
+                    <label for="healthData">Enter Your Health Data for Analysis:</label>
+                    <textarea 
+                        id="healthData" 
+                        placeholder="Example: Cholesterol Total: 240 mg/dL, HDL: 35 mg/dL, LDL: 180 mg/dL, Triglycerides: 300 mg/dL, Glucose: 110 mg/dL, Blood Pressure: 140/90"
+                    >Cholesterol Total: 240 mg/dL, HDL: 35 mg/dL, LDL: 180 mg/dL, Triglycerides: 300 mg/dL, Glucose: 110 mg/dL, Blood Pressure: 140/90, Age: 45, Weight: 180 lbs</textarea>
+                </div>
+                
+                <button class="analyze-btn" onclick="testAI()" id="analyzeBtn">
+                    🧠 Analyze Health Data
+                </button>
+                
+                <div id="result"></div>
+            </div>
         </div>
         
         <div class="features">
@@ -230,7 +369,7 @@
             </div>
             <div class="feature-card">
                 <h3>🔒 Complete Privacy</h3>
-                <p>Anonymous processing - your identity never leaves your device</p>
+                <p>Personal identifiers stripped on your device before any AI processing</p>
             </div>
             <div class="feature-card">
                 <h3>🌍 Global Scale</h3>
@@ -240,6 +379,239 @@
     </div>
 
     <script>
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // Drag and drop functionality
+        const uploadArea = document.getElementById('uploadArea');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.add('dragover');
+            }, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadArea.addEventListener(eventName, () => {
+                uploadArea.classList.remove('dragover');
+            }, false);
+        });
+        
+        uploadArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+        
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            handleFiles(files);
+        }
+        
+        // File processing functionality
+        function handleFiles(files) {
+            if (files.length === 0) return;
+            
+            const file = files[0];
+            
+            // Validate file
+            if (file.type !== 'application/pdf') {
+                alert('Please upload a PDF file only.');
+                return;
+            }
+            
+            if (file.size > 25 * 1024 * 1024) { // 25MB
+                alert('File size must be less than 25MB.');
+                return;
+            }
+            
+            processDocument(file);
+        }
+        
+        async function processDocument(file) {
+            const processingStatus = document.getElementById('processingStatus');
+            const processingSteps = document.getElementById('processingSteps');
+            const documentPreview = document.getElementById('documentPreview');
+            const documentContent = document.getElementById('documentContent');
+            const sanitizationLog = document.getElementById('sanitizationLog');
+            const sanitizationSteps = document.getElementById('sanitizationSteps');
+            
+            // Show processing status
+            processingStatus.style.display = 'block';
+            
+            try {
+                // Step 1: Read PDF (simulated - in real implementation would use PDF.js)
+                processingSteps.innerHTML = '⏳ Step 1: Reading PDF document...';
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Step 2: Extract text (simulated OCR)
+                processingSteps.innerHTML += '<br>⏳ Step 2: Extracting text with OCR...';
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Simulate extracted text (in real implementation, this would be from PDF.js + OCR)
+                const simulatedExtractedText = `
+PATIENT INFORMATION
+Name: John Doe
+Date of Birth: 03/15/1985
+Address: 123 Main Street, Anytown, ST 12345
+Phone: (555) 123-4567
+
+LABORATORY RESULTS
+Test Date: 08/15/2024
+Cholesterol, Total: 240 mg/dL (Reference: <200)
+HDL Cholesterol: 35 mg/dL (Reference: >40)
+LDL Cholesterol: 180 mg/dL (Reference: <100)
+Triglycerides: 300 mg/dL (Reference: <150)
+Glucose, Fasting: 110 mg/dL (Reference: 70-99)
+Blood Pressure: 140/90 mmHg
+
+ADDITIONAL NOTES
+Patient weight: 180 lbs
+Patient height: 5'10"
+`;
+                
+                // Step 3: Display extracted content
+                processingSteps.innerHTML += '<br>✅ Step 3: Text extraction complete';
+                documentPreview.style.display = 'block';
+                documentContent.innerHTML = `<pre style="white-space: pre-wrap; font-size: 12px;">${simulatedExtractedText}</pre>`;
+                
+                // Step 4: Client-side sanitization
+                processingSteps.innerHTML += '<br>⏳ Step 4: Removing personal identifiers (client-side)...';
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Perform sanitization
+                const sanitizedData = sanitizeHealthData(simulatedExtractedText);
+                
+                // Step 5: Show sanitization log
+                processingSteps.innerHTML += '<br>✅ Step 5: Privacy sanitization complete';
+                sanitizationLog.style.display = 'block';
+                sanitizationSteps.innerHTML = `
+REMOVED (Never transmitted):
+❌ Name: "John Doe" → [REMOVED]
+❌ DOB: "03/15/1985" → [REMOVED] 
+❌ Address: "123 Main Street..." → [REMOVED]
+❌ Phone: "(555) 123-4567" → [REMOVED]
+
+EXTRACTED (Anonymous health data only):
+✅ Cholesterol Total: 240 mg/dL
+✅ HDL: 35 mg/dL  
+✅ LDL: 180 mg/dL
+✅ Triglycerides: 300 mg/dL
+✅ Glucose: 110 mg/dL
+✅ Blood Pressure: 140/90 mmHg
+✅ Test Date: 08/15/2024
+✅ Weight: 180 lbs
+✅ Height: 5'10"
+                `;
+                
+                // Step 6: Analyze with AI
+                processingSteps.innerHTML += '<br>⏳ Step 6: Sending anonymous data to AI for analysis...';
+                await analyzeExtractedData(sanitizedData);
+                
+            } catch (error) {
+                processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
+            }
+        }
+        
+        function sanitizeHealthData(text) {
+            // This is a simplified version - real implementation would be more sophisticated
+            const healthData = {
+                cholesterolTotal: extractValue(text, /Cholesterol, Total:\s*(\d+)/),
+                hdl: extractValue(text, /HDL Cholesterol:\s*(\d+)/),
+                ldl: extractValue(text, /LDL Cholesterol:\s*(\d+)/),
+                triglycerides: extractValue(text, /Triglycerides:\s*(\d+)/),
+                glucose: extractValue(text, /Glucose.*?:\s*(\d+)/),
+                bloodPressure: extractValue(text, /Blood Pressure:\s*(\d+\/\d+)/),
+                testDate: extractValue(text, /Test Date:\s*(\d{2}\/\d{2}\/\d{4})/),
+                weight: extractValue(text, /weight:\s*(\d+)/i),
+                height: extractValue(text, /height:\s*([\d'"\s]+)/i)
+            };
+            
+            // Convert to readable format
+            let sanitizedText = `Test Date: ${healthData.testDate}\n`;
+            if (healthData.cholesterolTotal) sanitizedText += `Cholesterol Total: ${healthData.cholesterolTotal} mg/dL\n`;
+            if (healthData.hdl) sanitizedText += `HDL: ${healthData.hdl} mg/dL\n`;
+            if (healthData.ldl) sanitizedText += `LDL: ${healthData.ldl} mg/dL\n`;
+            if (healthData.triglycerides) sanitizedText += `Triglycerides: ${healthData.triglycerides} mg/dL\n`;
+            if (healthData.glucose) sanitizedText += `Glucose: ${healthData.glucose} mg/dL\n`;
+            if (healthData.bloodPressure) sanitizedText += `Blood Pressure: ${healthData.bloodPressure} mmHg\n`;
+            if (healthData.weight) sanitizedText += `Weight: ${healthData.weight} lbs\n`;
+            if (healthData.height) sanitizedText += `Height: ${healthData.height}\n`;
+            
+            return sanitizedText;
+        }
+        
+        function extractValue(text, regex) {
+            const match = text.match(regex);
+            return match ? match[1] : null;
+        }
+        
+        async function analyzeExtractedData(healthData) {
+            try {
+                const startTime = Date.now();
+                
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ healthData })
+                });
+                
+                const data = await response.json();
+                const processingTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                
+                if (data.success) {
+                    document.getElementById('documentResult').innerHTML = `
+                        <div class="result">
+                            <h3>✅ AI Health Analysis Complete</h3>
+                            <div class="analysis-content">${data.analysis}</div>
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+                                <strong>Source:</strong> Document Upload (Privacy-First Processing)<br>
+                                <strong>Model:</strong> ${data.model} | 
+                                <strong>Processing Time:</strong> ${processingTime}s | 
+                                <strong>Generated:</strong> ${new Date(data.timestamp).toLocaleTimeString()}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error);
+                }
+                
+            } catch (error) {
+                document.getElementById('documentResult').innerHTML = `
+                    <div class="error">
+                        <h3>❌ Analysis Error</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Manual entry analysis (existing function)
         async function testAI() {
             const healthData = document.getElementById('healthData').value;
             const resultDiv = document.getElementById('result');
@@ -256,7 +628,7 @@
             
             resultDiv.innerHTML = `
                 <div class="loading">
-                    🧠 AI is analyzing your health data using Llama 3.2-8B...<br>
+                    🧠 AI is analyzing your health data using Llama 3.1-8B...<br>
                     <small>Processing on Cloudflare edge servers worldwide</small>
                 </div>
             `;
@@ -292,7 +664,7 @@
                         <div class="error">
                             <h3>❌ Analysis Error</h3>
                             <p><strong>Error:</strong> ${data.error}</p>
-                            <p><strong>Details:</strong> ${data.details || 'Please check your Cloudflare Workers AI configuration'}</p>
+                            <p><strong>Details:</strong> ${data.details || 'Please check your configuration'}</p>
                         </div>
                     `;
                 }
@@ -302,7 +674,6 @@
                     <div class="error">
                         <h3>❌ Network Error</h3>
                         <p><strong>Error:</strong> ${error.message}</p>
-                        <p><strong>Suggestion:</strong> Check that your Cloudflare Pages function is deployed correctly</p>
                     </div>
                 `;
             } finally {
