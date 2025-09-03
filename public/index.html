@@ -13,8 +13,6 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            margin: 0;
-            padding: 0;
         }
         .upload-animation {
             animation: pulse 2s infinite;
@@ -30,16 +28,6 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
-        .gradient-blue-purple {
-            background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
-        }
-        .card-hover {
-            transition: all 0.3s ease;
-        }
-        .card-hover:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
     </style>
 </head>
 <body>
@@ -50,9 +38,9 @@
         const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
         const { 
             Upload, FileText, Brain, Shield, Clock, Users, 
-            TrendingUp, AlertTriangle, CheckCircle, X, 
+            TrendingUp, AlertTriangle, CheckCircle, 
             ArrowUpRight, ArrowDownRight, Activity,
-            Heart, Droplets, Zap, Eye
+            Heart, Zap, Eye
         } = lucideReact;
 
         const HealthAIDashboard = () => {
@@ -63,7 +51,7 @@
             const [dragOver, setDragOver] = useState(false);
             const [analysisResults, setAnalysisResults] = useState(null);
 
-            // Load data from localStorage on component mount
+            // Load data from localStorage
             useEffect(() => {
                 const savedData = localStorage.getItem('healthAI_data');
                 if (savedData) {
@@ -75,7 +63,7 @@
                 }
             }, []);
 
-            // Save data to localStorage whenever healthData changes
+            // Save data to localStorage
             useEffect(() => {
                 if (healthData.length > 0) {
                     localStorage.setItem('healthAI_data', JSON.stringify(healthData));
@@ -100,7 +88,6 @@
                 const insights = [];
                 const recommendations = [];
 
-                // Enhanced parsing for various health metrics
                 const patterns = {
                     'Total Cholesterol': /(?:total\s*)?cholesterol[\s:]*(\d+(?:\.\d+)?)/i,
                     'LDL Cholesterol': /ldl[\s\-]*cholesterol[\s:]*(\d+(?:\.\d+)?)/i,
@@ -108,25 +95,11 @@
                     'Triglycerides': /triglycerides?[\s:]*(\d+(?:\.\d+)?)/i,
                     'Glucose': /(?:fasting\s*)?glucose[\s:]*(\d+(?:\.\d+)?)/i,
                     'HbA1c': /hba1c[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Blood Pressure Systolic': /blood\s*pressure[\s:]*(\d+)/i,
-                    'Blood Pressure Diastolic': /blood\s*pressure[\s:]*\d+\/(\d+)/i,
                     'Heart Rate': /heart\s*rate[\s:]*(\d+)/i,
                     'BMI': /bmi[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Weight': /weight[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Height': /height[\s:]*(\d+(?:\.\d+)?)/i,
                     'Hemoglobin': /(?:hb|hemoglobin)[\s:]*(\d+(?:\.\d+)?)/i,
-                    'White Blood Cells': /(?:wbc|white\s*blood\s*cells?)[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Red Blood Cells': /(?:rbc|red\s*blood\s*cells?)[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Platelets': /platelets?[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Creatinine': /creatinine[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Blood Urea Nitrogen': /(?:bun|blood\s*urea\s*nitrogen)[\s:]*(\d+(?:\.\d+)?)/i,
-                    'ALT': /alt[\s:]*(\d+(?:\.\d+)?)/i,
-                    'AST': /ast[\s:]*(\d+(?:\.\d+)?)/i,
                     'Vitamin D': /vitamin\s*d[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Vitamin B12': /vitamin\s*b12[\s:]*(\d+(?:\.\d+)?)/i,
-                    'TSH': /tsh[\s:]*(\d+(?:\.\d+)?)/i,
-                    'T3': /t3[\s:]*(\d+(?:\.\d+)?)/i,
-                    'T4': /t4[\s:]*(\d+(?:\.\d+)?)/i
+                    'TSH': /tsh[\s:]*(\d+(?:\.\d+)?)/i
                 };
 
                 Object.entries(patterns).forEach(([metric, pattern]) => {
@@ -141,7 +114,6 @@
                     }
                 });
 
-                // Generate AI insights based on detected metrics
                 Object.entries(metrics).forEach(([metric, data]) => {
                     const assessment = assessMetric(metric, data.value);
                     if (assessment) {
@@ -152,13 +124,12 @@
                     }
                 });
 
-                // Add general insights if we have multiple metrics
                 if (Object.keys(metrics).length >= 3) {
-                    insights.push("✨ Comprehensive health profile detected. Multiple biomarkers analyzed for complete assessment.");
+                    insights.push("✨ Comprehensive health profile detected. Multiple biomarkers analyzed.");
                 }
 
                 if (Object.keys(metrics).length === 0) {
-                    insights.push("📄 Document processed successfully. Consider uploading lab reports with numerical health values for detailed analysis.");
+                    insights.push("📄 Document processed. Upload lab reports with numerical values for detailed analysis.");
                 }
 
                 return {
@@ -167,8 +138,7 @@
                     metrics,
                     insights,
                     recommendations,
-                    rawText: text.substring(0, 500) + (text.length > 500 ? '...' : ''),
-                    processingTime: Math.random() * 2 + 1 // Simulate processing time
+                    processingTime: Math.random() * 2 + 1
                 };
             };
 
@@ -180,25 +150,11 @@
                     'Triglycerides': 'mg/dL',
                     'Glucose': 'mg/dL',
                     'HbA1c': '%',
-                    'Blood Pressure Systolic': 'mmHg',
-                    'Blood Pressure Diastolic': 'mmHg',
                     'Heart Rate': 'bpm',
                     'BMI': 'kg/m²',
-                    'Weight': 'kg',
-                    'Height': 'cm',
                     'Hemoglobin': 'g/dL',
-                    'White Blood Cells': '10³/µL',
-                    'Red Blood Cells': '10⁶/µL',
-                    'Platelets': '10³/µL',
-                    'Creatinine': 'mg/dL',
-                    'Blood Urea Nitrogen': 'mg/dL',
-                    'ALT': 'U/L',
-                    'AST': 'U/L',
                     'Vitamin D': 'ng/mL',
-                    'Vitamin B12': 'pg/mL',
-                    'TSH': 'mIU/L',
-                    'T3': 'ng/dL',
-                    'T4': 'µg/dL'
+                    'TSH': 'mIU/L'
                 };
                 return units[metric] || '';
             };
@@ -207,62 +163,35 @@
                 const ranges = {
                     'Total Cholesterol': '< 200 mg/dL',
                     'LDL Cholesterol': '< 100 mg/dL',
-                    'HDL Cholesterol': '> 40 mg/dL (men), > 50 mg/dL (women)',
+                    'HDL Cholesterol': '> 40 mg/dL',
                     'Triglycerides': '< 150 mg/dL',
-                    'Glucose': '70-99 mg/dL (fasting)',
+                    'Glucose': '70-99 mg/dL',
                     'HbA1c': '< 5.7%',
-                    'Blood Pressure Systolic': '< 120 mmHg',
-                    'Blood Pressure Diastolic': '< 80 mmHg',
                     'Heart Rate': '60-100 bpm',
                     'BMI': '18.5-24.9 kg/m²',
-                    'Hemoglobin': '12-16 g/dL (women), 14-18 g/dL (men)',
-                    'White Blood Cells': '4.5-11.0 10³/µL',
-                    'Red Blood Cells': '4.0-5.5 10⁶/µL',
-                    'Platelets': '150-450 10³/µL',
-                    'Creatinine': '0.6-1.2 mg/dL',
-                    'Blood Urea Nitrogen': '7-20 mg/dL',
-                    'ALT': '7-56 U/L',
-                    'AST': '10-40 U/L',
+                    'Hemoglobin': '12-18 g/dL',
                     'Vitamin D': '30-100 ng/mL',
-                    'Vitamin B12': '200-900 pg/mL',
-                    'TSH': '0.4-4.0 mIU/L',
-                    'T3': '80-200 ng/dL',
-                    'T4': '4.5-12.0 µg/dL'
+                    'TSH': '0.4-4.0 mIU/L'
                 };
-                return ranges[metric] || 'Consult reference ranges';
+                return ranges[metric] || 'Consult reference';
             };
 
             const assessMetric = (metric, value) => {
                 const assessments = {
                     'Total Cholesterol': (val) => {
-                        if (val < 200) return { insight: '✅ Total cholesterol is in optimal range', recommendation: null };
-                        if (val < 240) return { insight: '⚠️ Total cholesterol is borderline high', recommendation: 'Consider dietary changes and regular exercise' };
-                        return { insight: '🚨 Total cholesterol is high', recommendation: 'Consult healthcare provider for management plan' };
-                    },
-                    'LDL Cholesterol': (val) => {
-                        if (val < 100) return { insight: '✅ LDL cholesterol is optimal', recommendation: null };
-                        if (val < 130) return { insight: '⚠️ LDL cholesterol is near optimal', recommendation: 'Maintain healthy lifestyle habits' };
-                        return { insight: '🚨 LDL cholesterol is elevated', recommendation: 'Focus on heart-healthy diet and regular exercise' };
-                    },
-                    'HDL Cholesterol': (val) => {
-                        if (val >= 60) return { insight: '✅ HDL cholesterol is protective level', recommendation: null };
-                        if (val >= 40) return { insight: '⚠️ HDL cholesterol is acceptable', recommendation: 'Consider increasing physical activity' };
-                        return { insight: '🚨 HDL cholesterol is low', recommendation: 'Increase physical activity and consider omega-3 supplements' };
-                    },
-                    'Triglycerides': (val) => {
-                        if (val < 150) return { insight: '✅ Triglycerides are in normal range', recommendation: null };
-                        if (val < 200) return { insight: '⚠️ Triglycerides are borderline high', recommendation: 'Reduce simple carbohydrates and increase fiber' };
-                        return { insight: '🚨 Triglycerides are elevated', recommendation: 'Significant dietary changes and weight management needed' };
+                        if (val < 200) return { insight: '✅ Total cholesterol is optimal', recommendation: null };
+                        if (val < 240) return { insight: '⚠️ Total cholesterol is borderline high', recommendation: 'Consider dietary changes' };
+                        return { insight: '🚨 Total cholesterol is high', recommendation: 'Consult healthcare provider' };
                     },
                     'Glucose': (val) => {
                         if (val < 100) return { insight: '✅ Blood glucose is normal', recommendation: null };
-                        if (val < 126) return { insight: '⚠️ Blood glucose indicates prediabetes', recommendation: 'Lifestyle modifications to prevent diabetes' };
-                        return { insight: '🚨 Blood glucose indicates diabetes range', recommendation: 'Immediate medical consultation recommended' };
+                        if (val < 126) return { insight: '⚠️ Blood glucose indicates prediabetes', recommendation: 'Lifestyle modifications needed' };
+                        return { insight: '🚨 Blood glucose indicates diabetes range', recommendation: 'Medical consultation recommended' };
                     },
                     'HbA1c': (val) => {
-                        if (val < 5.7) return { insight: '✅ HbA1c is in normal range', recommendation: null };
-                        if (val < 6.5) return { insight: '⚠️ HbA1c indicates prediabetes', recommendation: 'Blood sugar management and lifestyle changes needed' };
-                        return { insight: '🚨 HbA1c indicates diabetes', recommendation: 'Medical management and regular monitoring required' };
+                        if (val < 5.7) return { insight: '✅ HbA1c is normal', recommendation: null };
+                        if (val < 6.5) return { insight: '⚠️ HbA1c indicates prediabetes', recommendation: 'Blood sugar management needed' };
+                        return { insight: '🚨 HbA1c indicates diabetes', recommendation: 'Medical management required' };
                     }
                 };
 
@@ -270,24 +199,22 @@
                 return assessor ? assessor(value) : null;
             };
 
-            // Risk assessment functions
             const assessTriglyceridesRisk = (value) => {
-                if (value < 150) return { level: 'Normal', color: 'text-green-600', description: 'Optimal triglyceride level' };
-                if (value < 200) return { level: 'Borderline High', color: 'text-yellow-600', description: 'Slightly elevated, monitor diet' };
-                if (value < 500) return { level: 'High', color: 'text-orange-600', description: 'High risk, lifestyle changes needed' };
-                return { level: 'Very High', color: 'text-red-600', description: 'Very high risk, medical attention required' };
+                if (value < 150) return { level: 'Normal', color: 'text-green-600', description: 'Optimal level' };
+                if (value < 200) return { level: 'Borderline High', color: 'text-yellow-600', description: 'Monitor diet' };
+                return { level: 'High', color: 'text-red-600', description: 'Lifestyle changes needed' };
             };
 
             const assessGlucoseRisk = (value) => {
-                if (value < 100) return { level: 'Normal', color: 'text-green-600', description: 'Optimal glucose level' };
-                if (value < 126) return { level: 'Prediabetes', color: 'text-yellow-600', description: 'Elevated, lifestyle changes recommended' };
-                return { level: 'Diabetes Range', color: 'text-red-600', description: 'High risk, consult healthcare provider' };
+                if (value < 100) return { level: 'Normal', color: 'text-green-600', description: 'Optimal level' };
+                if (value < 126) return { level: 'Prediabetes', color: 'text-yellow-600', description: 'Lifestyle changes recommended' };
+                return { level: 'Diabetes Range', color: 'text-red-600', description: 'Consult healthcare provider' };
             };
 
             const assessHbA1cRisk = (value) => {
-                if (value < 5.7) return { level: 'Normal', color: 'text-green-600', description: 'Optimal HbA1c level' };
-                if (value < 6.5) return { level: 'Prediabetes', color: 'text-yellow-600', description: 'Elevated, monitor closely' };
-                return { level: 'Diabetes Range', color: 'text-red-600', description: 'High risk, medical management needed' };
+                if (value < 5.7) return { level: 'Normal', color: 'text-green-600', description: 'Optimal level' };
+                if (value < 6.5) return { level: 'Prediabetes', color: 'text-yellow-600', description: 'Monitor closely' };
+                return { level: 'Diabetes Range', color: 'text-red-600', description: 'Medical management needed' };
             };
 
             const handleFileUpload = async (files) => {
@@ -302,31 +229,22 @@
                     for (let i = 0; i < files.length; i++) {
                         const file = files[i];
                         
-                        // Simulate file reading and processing
                         const text = await new Promise((resolve) => {
                             const reader = new FileReader();
                             reader.onload = (e) => {
-                                // Simulate health document content
                                 const simulatedContent = `
                                     Health Report - ${file.name}
-                                    Patient: [REDACTED FOR PRIVACY]
                                     Date: ${new Date().toLocaleDateString()}
                                     
-                                    Lab Results:
                                     Total Cholesterol: ${Math.floor(Math.random() * 100) + 180} mg/dL
                                     LDL Cholesterol: ${Math.floor(Math.random() * 60) + 70} mg/dL
                                     HDL Cholesterol: ${Math.floor(Math.random() * 40) + 35} mg/dL
                                     Triglycerides: ${Math.floor(Math.random() * 150) + 100} mg/dL
                                     Glucose: ${Math.floor(Math.random() * 40) + 80} mg/dL
                                     HbA1c: ${(Math.random() * 2 + 4.5).toFixed(1)} %
-                                    Blood Pressure: ${Math.floor(Math.random() * 40) + 110}/${Math.floor(Math.random() * 20) + 70} mmHg
                                     Heart Rate: ${Math.floor(Math.random() * 40) + 60} bpm
                                     BMI: ${(Math.random() * 10 + 20).toFixed(1)} kg/m²
-                                    
-                                    Additional Markers:
                                     Hemoglobin: ${(Math.random() * 4 + 12).toFixed(1)} g/dL
-                                    White Blood Cells: ${(Math.random() * 6 + 4).toFixed(1)} 10³/µL
-                                    Platelets: ${Math.floor(Math.random() * 300) + 150} 10³/µL
                                     Vitamin D: ${Math.floor(Math.random() * 50) + 20} ng/mL
                                     TSH: ${(Math.random() * 3 + 1).toFixed(2)} mIU/L
                                 `;
@@ -339,16 +257,12 @@
                         newHealthData.push(analysisResult);
                     }
 
-                    // Add the new documents to existing data
                     setHealthData(prevData => [...prevData, ...newHealthData]);
 
-                    // Set the latest analysis result for display
                     if (newHealthData.length > 0) {
                         setAnalysisResults(newHealthData[newHealthData.length - 1]);
                         setActiveTab('results');
                     }
-
-                    console.log('Multi-document processing completed:', newHealthData);
 
                 } catch (error) {
                     console.error('Error processing files:', error);
@@ -386,17 +300,15 @@
                     <div className="text-center mb-8">
                         <h2 className="text-3xl font-bold text-gray-900 mb-4">Upload Your Health Documents</h2>
                         <p className="text-lg text-gray-600">
-                            Drag and drop your lab reports or health documents for instant AI analysis
+                            Drag and drop your lab reports for instant AI analysis
                         </p>
                     </div>
 
                     <div
                         className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${
-                            dragOver
-                                ? 'border-blue-400 bg-blue-50'
-                                : isProcessing
-                                ? 'border-green-400 bg-green-50'
-                                : 'border-gray-300 hover:border-gray-400'
+                            dragOver ? 'border-blue-400 bg-blue-50' : 
+                            isProcessing ? 'border-green-400 bg-green-50' : 
+                            'border-gray-300 hover:border-gray-400'
                         } ${isProcessing ? 'upload-animation' : ''}`}
                         onDrop={handleDrop}
                         onDragOver={handleDragOver}
@@ -417,12 +329,12 @@
                                     <div 
                                         className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                         style={{ width: `${processingProgress}%` }}
-                                    ></div>
+                                    />
                                 </div>
                                 <p className="text-sm text-gray-500">{processingProgress}% Complete</p>
                             </div>
                         ) : (
-                            <>
+                            <div>
                                 <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
                                     {dragOver ? 'Drop your files here!' : 'Choose files or drag and drop'}
@@ -442,11 +354,10 @@
                                 >
                                     Select Files
                                 </label>
-                            </>
+                            </div>
                         )}
                     </div>
 
-                    {/* Privacy Assurance */}
                     <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
                         <div className="flex items-start">
                             <Shield className="h-6 w-6 text-green-600 mr-3 mt-0.5" />
@@ -479,8 +390,7 @@
                 
                 return (
                     <div className="max-w-6xl mx-auto space-y-6">
-                        {/* Analysis Header */}
-                        <div className="gradient-blue-purple rounded-lg text-white p-6">
+                        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h2 className="text-2xl font-bold mb-2">Health Analysis Complete</h2>
@@ -496,18 +406,16 @@
                             </div>
                         </div>
 
-                        {/* Health Metrics Grid */}
                         {Object.keys(latestResult.metrics).length > 0 && (
                             <div>
                                 <h3 className="text-xl font-semibold text-gray-900 mb-4">📊 Health Metrics</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                                     {Object.entries(latestResult.metrics).map(([metric, data]) => (
-                                        <div key={metric} className="bg-white rounded-lg border p-4 card-hover">
+                                        <div key={metric} className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
                                             <div className="flex items-center justify-between mb-2">
                                                 <h4 className="font-semibold text-gray-900 text-sm">{metric}</h4>
                                                 {metric.toLowerCase().includes('cholesterol') && <Heart className="h-4 w-4 text-red-500" />}
                                                 {metric.toLowerCase().includes('glucose') && <Zap className="h-4 w-4 text-yellow-500" />}
-                                                {metric.toLowerCase().includes('pressure') && <Activity className="h-4 w-4 text-blue-500" />}
                                             </div>
                                             <div className="text-2xl font-bold text-gray-900 mb-1">
                                                 {data.value} <span className="text-sm font-normal text-gray-500">{data.unit}</span>
@@ -521,7 +429,6 @@
                             </div>
                         )}
 
-                        {/* AI Insights */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <div className="bg-white rounded-lg border p-6">
                                 <div className="flex items-center mb-4">
@@ -532,13 +439,32 @@
                                     {latestResult.insights.map((insight, index) => (
                                         <div key={index} className="flex items-start">
                                             <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                                            <p className="text-gray-500 italic">No specific recommendations at this time. Continue monitoring your health metrics.</p>
+                                            <p className="text-gray-700">{insight}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg border p-6">
+                                <div className="flex items-center mb-4">
+                                    <AlertTriangle className="h-6 w-6 text-orange-600 mr-2" />
+                                    <h3 className="text-xl font-semibold text-gray-900">Recommendations</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {latestResult.recommendations.length > 0 ? (
+                                        latestResult.recommendations.map((rec, index) => (
+                                            <div key={index} className="flex items-start">
+                                                <ArrowUpRight className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+                                                <p className="text-gray-700">{rec}</p>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 italic">No specific recommendations at this time. Continue monitoring your health metrics.</p>
                                     )}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Processing Stats */}
                         <div className="bg-gray-50 rounded-lg p-4">
                             <div className="flex items-center justify-between text-sm text-gray-600">
                                 <div className="flex items-center">
@@ -569,7 +495,6 @@
                     );
                 }
 
-                // Get unique metrics across all documents
                 const allMetrics = new Set();
                 healthData.forEach(doc => {
                     if (doc.metrics && typeof doc.metrics === 'object') {
@@ -610,7 +535,6 @@
                             const change = latestValue - previousValue;
                             const percentChange = previousValue !== 0 ? ((change / previousValue) * 100).toFixed(1) : '0.0';
 
-                            // Format data for chart
                             const chartData = metricData.map(d => ({
                                 ...d,
                                 date: new Date(d.date).toLocaleDateString()
@@ -622,7 +546,7 @@
                                         <h3 className="text-lg font-semibold text-gray-900">{metric}</h3>
                                         <div className="flex items-center">
                                             {Math.abs(change) > 0.01 && (
-                                                <>
+                                                <div>
                                                     {change > 0 ? (
                                                         <ArrowUpRight className="h-4 w-4 text-red-500 mr-1" />
                                                     ) : (
@@ -633,7 +557,7 @@
                                                     }`}>
                                                         {change > 0 ? '+' : ''}{percentChange}%
                                                     </span>
-                                                </>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -642,9 +566,7 @@
                                             <CartesianGrid strokeDasharray="3 3" />
                                             <XAxis dataKey="date" />
                                             <YAxis />
-                                            <Tooltip 
-                                                formatter={(value) => [value, metric]}
-                                            />
+                                            <Tooltip formatter={(value) => [value, metric]} />
                                             <Line 
                                                 type="monotone" 
                                                 dataKey="value" 
@@ -660,337 +582,3 @@
                                         Change: <span className={`font-semibold ${change >= 0 ? 'text-red-600' : 'text-green-600'}`}>
                                             {change > 0 ? '+' : ''}{change.toFixed(2)}
                                         </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                );
-            };
-
-            const renderRisk = () => {
-                if (healthData.length === 0) {
-                    return (
-                        <div className="text-center py-8">
-                            <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="text-gray-500 mt-2">Upload health documents to see risk assessment</p>
-                        </div>
-                    );
-                }
-
-                // Get the latest document's metrics for risk assessment
-                const latestDoc = healthData[healthData.length - 1];
-                const riskFactors = [];
-
-                // Assess various risk factors based on available metrics
-                if (latestDoc.metrics['Triglycerides']?.value) {
-                    const risk = assessTriglyceridesRisk(latestDoc.metrics['Triglycerides'].value);
-                    riskFactors.push({
-                        metric: 'Triglycerides',
-                        value: latestDoc.metrics['Triglycerides'].value,
-                        unit: latestDoc.metrics['Triglycerides'].unit,
-                        risk: risk
-                    });
-                }
-
-                if (latestDoc.metrics['Glucose']?.value) {
-                    const risk = assessGlucoseRisk(latestDoc.metrics['Glucose'].value);
-                    riskFactors.push({
-                        metric: 'Blood Glucose',
-                        value: latestDoc.metrics['Glucose'].value,
-                        unit: latestDoc.metrics['Glucose'].unit,
-                        risk: risk
-                    });
-                }
-
-                if (latestDoc.metrics['HbA1c']?.value) {
-                    const risk = assessHbA1cRisk(latestDoc.metrics['HbA1c'].value);
-                    riskFactors.push({
-                        metric: 'HbA1c',
-                        value: latestDoc.metrics['HbA1c'].value,
-                        unit: latestDoc.metrics['HbA1c'].unit,
-                        risk: risk
-                    });
-                }
-
-                // Add cholesterol assessments
-                if (latestDoc.metrics['Total Cholesterol']?.value) {
-                    const value = latestDoc.metrics['Total Cholesterol'].value;
-                    let risk;
-                    if (value < 200) risk = { level: 'Normal', color: 'text-green-600', description: 'Optimal cholesterol level' };
-                    else if (value < 240) risk = { level: 'Borderline High', color: 'text-yellow-600', description: 'Monitor and improve diet' };
-                    else risk = { level: 'High', color: 'text-red-600', description: 'High risk, seek medical advice' };
-                    
-                    riskFactors.push({
-                        metric: 'Total Cholesterol',
-                        value: value,
-                        unit: latestDoc.metrics['Total Cholesterol'].unit,
-                        risk: risk
-                    });
-                }
-
-                if (latestDoc.metrics['LDL Cholesterol']?.value) {
-                    const value = latestDoc.metrics['LDL Cholesterol'].value;
-                    let risk;
-                    if (value < 100) risk = { level: 'Optimal', color: 'text-green-600', description: 'Excellent LDL level' };
-                    else if (value < 130) risk = { level: 'Near Optimal', color: 'text-yellow-600', description: 'Good, maintain current habits' };
-                    else if (value < 160) risk = { level: 'Borderline High', color: 'text-orange-600', description: 'Lifestyle changes recommended' };
-                    else risk = { level: 'High', color: 'text-red-600', description: 'High risk, medical consultation needed' };
-                    
-                    riskFactors.push({
-                        metric: 'LDL Cholesterol',
-                        value: value,
-                        unit: latestDoc.metrics['LDL Cholesterol'].unit,
-                        risk: risk
-                    });
-                }
-
-                if (riskFactors.length === 0) {
-                    return (
-                        <div className="text-center py-8">
-                            <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="text-gray-500 mt-2">No risk factors could be assessed from your health data</p>
-                        </div>
-                    );
-                }
-
-                return (
-                    <div className="space-y-6">
-                        <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-lg text-white p-6">
-                            <h2 className="text-2xl font-bold mb-2">Health Risk Assessment</h2>
-                            <p className="text-orange-100">Based on your latest health metrics</p>
-                        </div>
-
-                        <div className="grid gap-6">
-                            {riskFactors.map((factor, index) => (
-                                <div key={index} className="bg-white rounded-lg border p-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-gray-900">{factor.metric}</h3>
-                                            <p className="text-2xl font-bold text-gray-700">
-                                                {factor.value} <span className="text-sm font-normal text-gray-500">{factor.unit}</span>
-                                            </p>
-                                        </div>
-                                        <div className="text-right">
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                                factor.risk.level === 'Normal' || factor.risk.level === 'Optimal' ? 'bg-green-100 text-green-800' :
-                                                factor.risk.level === 'Borderline High' || factor.risk.level === 'Near Optimal' || factor.risk.level === 'Prediabetes' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-red-100 text-red-800'
-                                            }`}>
-                                                {factor.risk.level}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <p className={`text-sm ${factor.risk.color}`}>{factor.risk.description}</p>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Overall Risk Summary */}
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-blue-900 mb-3">💡 Risk Management Tips</h3>
-                            <ul className="text-sm text-blue-800 space-y-2">
-                                <li>• Regular exercise (150 minutes moderate activity per week)</li>
-                                <li>• Heart-healthy diet rich in fruits, vegetables, and whole grains</li>
-                                <li>• Maintain healthy weight and limit processed foods</li>
-                                <li>• Regular health screenings and follow-up with healthcare providers</li>
-                                <li>• Stress management and adequate sleep (7-9 hours nightly)</li>
-                            </ul>
-                        </div>
-                    </div>
-                );
-            };
-
-            const renderHistory = () => {
-                if (healthData.length === 0) {
-                    return (
-                        <div className="text-center py-8">
-                            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="text-gray-500 mt-2">No documents uploaded yet</p>
-                        </div>
-                    );
-                }
-
-                return (
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-gray-900">Document History</h2>
-                            <div className="text-sm text-gray-500">
-                                {healthData.length} document{healthData.length !== 1 ? 's' : ''} processed
-                            </div>
-                        </div>
-
-                        {healthData.map((doc, index) => (
-                            <div key={index} className="bg-white rounded-lg border card-hover">
-                                <div className="p-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center">
-                                            <FileText className="h-6 w-6 text-blue-600 mr-3" />
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-900">{doc.fileName}</h3>
-                                                <p className="text-sm text-gray-500">
-                                                    {new Date(doc.uploadDate).toLocaleString()}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            Processed
-                                        </span>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                        <div className="text-center p-3 bg-gray-50 rounded">
-                                            <div className="text-2xl font-bold text-gray-900">{Object.keys(doc.metrics).length}</div>
-                                            <div className="text-xs text-gray-500">Metrics</div>
-                                        </div>
-                                        <div className="text-center p-3 bg-gray-50 rounded">
-                                            <div className="text-2xl font-bold text-gray-900">{doc.insights.length}</div>
-                                            <div className="text-xs text-gray-500">Insights</div>
-                                        </div>
-                                        <div className="text-center p-3 bg-gray-50 rounded">
-                                            <div className="text-2xl font-bold text-gray-900">{doc.recommendations.length}</div>
-                                            <div className="text-xs text-gray-500">Recommendations</div>
-                                        </div>
-                                    </div>
-
-                                    {Object.keys(doc.metrics).length > 0 && (
-                                        <div>
-                                            <h4 className="font-semibold text-gray-900 mb-2">Key Metrics:</h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {Object.entries(doc.metrics).slice(0, 6).map(([metric, data]) => (
-                                                    <span key={metric} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                        {metric}: {data.value} {data.unit}
-                                                    </span>
-                                                ))}
-                                                {Object.keys(doc.metrics).length > 6 && (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                        +{Object.keys(doc.metrics).length - 6} more
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                );
-            };
-
-            return (
-                <div className="min-h-screen bg-gray-50">
-                    {/* Header */}
-                    <header className="bg-white shadow-sm border-b">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex justify-between items-center py-4">
-                                <div className="flex items-center">
-                                    <div className="flex items-center">
-                                        <div className="w-10 h-10 gradient-blue-purple rounded-lg flex items-center justify-center mr-3">
-                                            <Brain className="h-6 w-6 text-white" />
-                                        </div>
-                                        <h1 className="text-2xl font-bold text-gray-900">HealthAI</h1>
-                                    </div>
-                                </div>
-                                <div className="flex items-center space-x-4">
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <Shield className="h-4 w-4 mr-1" />
-                                        Privacy Protected
-                                    </div>
-                                    <div className="flex items-center text-sm text-gray-500">
-                                        <Users className="h-4 w-4 mr-1" />
-                                        {healthData.length} Documents
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </header>
-
-                    {/* Navigation */}
-                    <nav className="bg-white border-b">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex space-x-8">
-                                {[
-                                    { id: 'upload', label: 'Upload', icon: Upload },
-                                    { id: 'results', label: 'Results', icon: Brain },
-                                    { id: 'trends', label: 'Trends', icon: TrendingUp },
-                                    { id: 'risk', label: 'Risk Assessment', icon: AlertTriangle },
-                                    { id: 'history', label: 'History', icon: FileText }
-                                ].map(({ id, label, icon: Icon }) => (
-                                    <button
-                                        key={id}
-                                        onClick={() => setActiveTab(id)}
-                                        className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                            activeTab === id
-                                                ? 'border-blue-500 text-blue-600'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                    >
-                                        <Icon className="h-4 w-4 mr-2" />
-                                        {label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </nav>
-
-                    {/* Main Content */}
-                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                        {activeTab === 'upload' && renderUpload()}
-                        {activeTab === 'results' && renderResults()}
-                        {activeTab === 'trends' && renderTrends()}
-                        {activeTab === 'risk' && renderRisk()}
-                        {activeTab === 'history' && renderHistory()}
-                    </main>
-
-                    {/* Footer */}
-                    <footer className="bg-white border-t mt-auto">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                            <div className="flex justify-between items-center text-sm text-gray-500">
-                                <div className="flex items-center space-x-6">
-                                    <div className="flex items-center">
-                                        <Clock className="h-4 w-4 mr-1" />
-                                        Sub-3s Analysis
-                                    </div>
-                                    <div className="flex items-center">
-                                        <Shield className="h-4 w-4 mr-1" />
-                                        100% Private
-                                    </div>
-                                    <div className="flex items-center">
-                                        <Brain className="h-4 w-4 mr-1" />
-                                        AI-Powered
-                                    </div>
-                                </div>
-                                <div>
-                                    © 2024 HealthAI. Privacy-first health analysis.
-                                </div>
-                            </div>
-                        </div>
-                    </footer>
-                </div>
-            );
-        };
-
-        ReactDOM.render(<HealthAIDashboard />, document.getElementById('root'));
-    </script>
-</body>
-</html>text-gray-700">{insight}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="bg-white rounded-lg border p-6">
-                                <div className="flex items-center mb-4">
-                                    <AlertTriangle className="h-6 w-6 text-orange-600 mr-2" />
-                                    <h3 className="text-xl font-semibold text-gray-900">Recommendations</h3>
-                                </div>
-                                <div className="space-y-3">
-                                    {latestResult.recommendations.length > 0 ? (
-                                        latestResult.recommendations.map((rec, index) => (
-                                            <div key={index} className="flex items-start">
-                                                <ArrowUpRight className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-                                                <p className="text-gray-700">{rec}</p>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p className="
