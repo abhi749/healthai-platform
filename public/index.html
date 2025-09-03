@@ -4,15 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HealthAI - Privacy-First Health Analysis</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            margin: 0;
+            padding: 0;
         }
         .upload-animation {
             animation: pulse 2s infinite;
@@ -28,13 +29,19 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+        .gradient-bg {
+            background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+        }
+        .gradient-orange {
+            background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
+    <script>
+        const { useState, useEffect, useCallback, createElement: e } = React;
         const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
         const { 
             Upload, FileText, Brain, Shield, Clock, Users, 
@@ -295,290 +302,395 @@
                 setDragOver(false);
             }, []);
 
-            const renderUpload = () => (
-                <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-8">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Upload Your Health Documents</h2>
-                        <p className="text-lg text-gray-600">
-                            Drag and drop your lab reports for instant AI analysis
-                        </p>
-                    </div>
-
-                    <div
-                        className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${
+            const renderUpload = () => {
+                return e('div', { className: 'max-w-4xl mx-auto' },
+                    e('div', { className: 'text-center mb-8' },
+                        e('h2', { className: 'text-3xl font-bold text-gray-900 mb-4' }, 'Upload Your Health Documents'),
+                        e('p', { className: 'text-lg text-gray-600' }, 'Drag and drop your lab reports for instant AI analysis')
+                    ),
+                    e('div', {
+                        className: `border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${
                             dragOver ? 'border-blue-400 bg-blue-50' : 
                             isProcessing ? 'border-green-400 bg-green-50' : 
                             'border-gray-300 hover:border-gray-400'
-                        } ${isProcessing ? 'upload-animation' : ''}`}
-                        onDrop={handleDrop}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                    >
-                        {isProcessing ? (
-                            <div className="py-8">
-                                <div className="processing-animation inline-block mb-4">
-                                    <Brain className="h-12 w-12 text-blue-600" />
-                                </div>
-                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                    AI Processing Your Health Data
-                                </h3>
-                                <p className="text-gray-600 mb-4">
-                                    Analyzing patterns and generating insights...
-                                </p>
-                                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                                    <div 
-                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                                        style={{ width: `${processingProgress}%` }}
-                                    />
-                                </div>
-                                <p className="text-sm text-gray-500">{processingProgress}% Complete</p>
-                            </div>
-                        ) : (
-                            <div>
-                                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                    {dragOver ? 'Drop your files here!' : 'Choose files or drag and drop'}
-                                </h3>
-                                <p className="text-gray-500 mb-4">PDF documents up to 25MB each</p>
-                                <input
-                                    type="file"
-                                    multiple
-                                    accept=".pdf"
-                                    onChange={(e) => handleFileUpload(Array.from(e.target.files))}
-                                    className="hidden"
-                                    id="file-upload"
-                                />
-                                <label
-                                    htmlFor="file-upload"
-                                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                                >
-                                    Select Files
-                                </label>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
-                        <div className="flex items-start">
-                            <Shield className="h-6 w-6 text-green-600 mr-3 mt-0.5" />
-                            <div>
-                                <h4 className="text-lg font-semibold text-green-800 mb-2">Your Privacy is Protected</h4>
-                                <ul className="text-sm text-green-700 space-y-1">
-                                    <li>• All processing happens locally in your browser</li>
-                                    <li>• Personal identifiers are automatically removed</li>
-                                    <li>• No health data is sent to external servers</li>
-                                    <li>• Analysis results are stored securely on your device</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
+                        } ${isProcessing ? 'upload-animation' : ''}`,
+                        onDrop: handleDrop,
+                        onDragOver: handleDragOver,
+                        onDragLeave: handleDragLeave
+                    },
+                        isProcessing ? 
+                            e('div', { className: 'py-8' },
+                                e('div', { className: 'processing-animation inline-block mb-4' },
+                                    e(Brain, { className: 'h-12 w-12 text-blue-600' })
+                                ),
+                                e('h3', { className: 'text-xl font-semibold text-gray-900 mb-2' }, 'AI Processing Your Health Data'),
+                                e('p', { className: 'text-gray-600 mb-4' }, 'Analyzing patterns and generating insights...'),
+                                e('div', { className: 'w-full bg-gray-200 rounded-full h-2 mb-2' },
+                                    e('div', { 
+                                        className: 'bg-blue-600 h-2 rounded-full transition-all duration-300',
+                                        style: { width: `${processingProgress}%` }
+                                    })
+                                ),
+                                e('p', { className: 'text-sm text-gray-500' }, `${processingProgress}% Complete`)
+                            ) :
+                            e('div', null,
+                                e(Upload, { className: 'h-12 w-12 text-gray-400 mx-auto mb-4' }),
+                                e('h3', { className: 'text-xl font-semibold text-gray-900 mb-2' }, 
+                                    dragOver ? 'Drop your files here!' : 'Choose files or drag and drop'
+                                ),
+                                e('p', { className: 'text-gray-500 mb-4' }, 'PDF documents up to 25MB each'),
+                                e('input', {
+                                    type: 'file',
+                                    multiple: true,
+                                    accept: '.pdf',
+                                    onChange: (e) => handleFileUpload(Array.from(e.target.files)),
+                                    className: 'hidden',
+                                    id: 'file-upload'
+                                }),
+                                e('label', {
+                                    htmlFor: 'file-upload',
+                                    className: 'inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                                }, 'Select Files')
+                            )
+                    ),
+                    e('div', { className: 'mt-8 bg-green-50 border border-green-200 rounded-lg p-6' },
+                        e('div', { className: 'flex items-start' },
+                            e(Shield, { className: 'h-6 w-6 text-green-600 mr-3 mt-0.5' }),
+                            e('div', null,
+                                e('h4', { className: 'text-lg font-semibold text-green-800 mb-2' }, 'Your Privacy is Protected'),
+                                e('ul', { className: 'text-sm text-green-700 space-y-1' },
+                                    e('li', null, '• All processing happens locally in your browser'),
+                                    e('li', null, '• Personal identifiers are automatically removed'),
+                                    e('li', null, '• No health data is sent to external servers'),
+                                    e('li', null, '• Analysis results are stored securely on your device')
+                                )
+                            )
+                        )
+                    )
+                );
+            };
 
             const renderResults = () => {
                 if (!analysisResults && healthData.length === 0) {
-                    return (
-                        <div className="text-center py-12">
-                            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Analysis Results</h3>
-                            <p className="text-gray-500">Upload a health document to see AI-generated insights</p>
-                        </div>
+                    return e('div', { className: 'text-center py-12' },
+                        e(FileText, { className: 'h-12 w-12 text-gray-400 mx-auto mb-4' }),
+                        e('h3', { className: 'text-xl font-semibold text-gray-900 mb-2' }, 'No Analysis Results'),
+                        e('p', { className: 'text-gray-500' }, 'Upload a health document to see AI-generated insights')
                     );
                 }
 
                 const latestResult = analysisResults || healthData[healthData.length - 1];
                 
-                return (
-                    <div className="max-w-6xl mx-auto space-y-6">
-                        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white p-6">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-2xl font-bold mb-2">Health Analysis Complete</h2>
-                                    <p className="text-blue-100">Document: {latestResult.fileName}</p>
-                                    <p className="text-blue-100 text-sm">
-                                        Processed: {new Date(latestResult.uploadDate).toLocaleString()}
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-3xl font-bold">{Object.keys(latestResult.metrics).length}</div>
-                                    <div className="text-blue-100">Metrics Analyzed</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {Object.keys(latestResult.metrics).length > 0 && (
-                            <div>
-                                <h3 className="text-xl font-semibold text-gray-900 mb-4">📊 Health Metrics</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                                    {Object.entries(latestResult.metrics).map(([metric, data]) => (
-                                        <div key={metric} className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h4 className="font-semibold text-gray-900 text-sm">{metric}</h4>
-                                                {metric.toLowerCase().includes('cholesterol') && <Heart className="h-4 w-4 text-red-500" />}
-                                                {metric.toLowerCase().includes('glucose') && <Zap className="h-4 w-4 text-yellow-500" />}
-                                            </div>
-                                            <div className="text-2xl font-bold text-gray-900 mb-1">
-                                                {data.value} <span className="text-sm font-normal text-gray-500">{data.unit}</span>
-                                            </div>
-                                            <div className="text-xs text-gray-500">
-                                                Normal: {data.normal_range}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="bg-white rounded-lg border p-6">
-                                <div className="flex items-center mb-4">
-                                    <Brain className="h-6 w-6 text-purple-600 mr-2" />
-                                    <h3 className="text-xl font-semibold text-gray-900">AI Insights</h3>
-                                </div>
-                                <div className="space-y-3">
-                                    {latestResult.insights.map((insight, index) => (
-                                        <div key={index} className="flex items-start">
-                                            <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                                            <p className="text-gray-700">{insight}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="bg-white rounded-lg border p-6">
-                                <div className="flex items-center mb-4">
-                                    <AlertTriangle className="h-6 w-6 text-orange-600 mr-2" />
-                                    <h3 className="text-xl font-semibold text-gray-900">Recommendations</h3>
-                                </div>
-                                <div className="space-y-3">
-                                    {latestResult.recommendations.length > 0 ? (
-                                        latestResult.recommendations.map((rec, index) => (
-                                            <div key={index} className="flex items-start">
-                                                <ArrowUpRight className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-                                                <p className="text-gray-700">{rec}</p>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p className="text-gray-500 italic">No specific recommendations at this time. Continue monitoring your health metrics.</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="bg-gray-50 rounded-lg p-4">
-                            <div className="flex items-center justify-between text-sm text-gray-600">
-                                <div className="flex items-center">
-                                    <Clock className="h-4 w-4 mr-1" />
-                                    Processing Time: {latestResult.processingTime?.toFixed(2)}s
-                                </div>
-                                <div className="flex items-center">
-                                    <Shield className="h-4 w-4 mr-1" />
-                                    Privacy Protected
-                                </div>
-                                <div className="flex items-center">
-                                    <Eye className="h-4 w-4 mr-1" />
-                                    {Object.keys(latestResult.metrics).length} Metrics Found
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                return e('div', { className: 'max-w-6xl mx-auto space-y-6' },
+                    e('div', { className: 'gradient-bg rounded-lg text-white p-6' },
+                        e('div', { className: 'flex items-center justify-between' },
+                            e('div', null,
+                                e('h2', { className: 'text-2xl font-bold mb-2' }, 'Health Analysis Complete'),
+                                e('p', { className: 'text-blue-100' }, `Document: ${latestResult.fileName}`),
+                                e('p', { className: 'text-blue-100 text-sm' }, `Processed: ${new Date(latestResult.uploadDate).toLocaleString()}`)
+                            ),
+                            e('div', { className: 'text-right' },
+                                e('div', { className: 'text-3xl font-bold' }, Object.keys(latestResult.metrics).length),
+                                e('div', { className: 'text-blue-100' }, 'Metrics Analyzed')
+                            )
+                        )
+                    ),
+                    Object.keys(latestResult.metrics).length > 0 && e('div', null,
+                        e('h3', { className: 'text-xl font-semibold text-gray-900 mb-4' }, '📊 Health Metrics'),
+                        e('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6' },
+                            ...Object.entries(latestResult.metrics).map(([metric, data]) =>
+                                e('div', { key: metric, className: 'bg-white rounded-lg border p-4 hover:shadow-md transition-shadow' },
+                                    e('div', { className: 'flex items-center justify-between mb-2' },
+                                        e('h4', { className: 'font-semibold text-gray-900 text-sm' }, metric),
+                                        (metric.toLowerCase().includes('cholesterol') && e(Heart, { className: 'h-4 w-4 text-red-500' })) ||
+                                        (metric.toLowerCase().includes('glucose') && e(Zap, { className: 'h-4 w-4 text-yellow-500' }))
+                                    ),
+                                    e('div', { className: 'text-2xl font-bold text-gray-900 mb-1' },
+                                        `${data.value} `,
+                                        e('span', { className: 'text-sm font-normal text-gray-500' }, data.unit)
+                                    ),
+                                    e('div', { className: 'text-xs text-gray-500' }, `Normal: ${data.normal_range}`)
+                                )
+                            )
+                        )
+                    ),
+                    e('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
+                        e('div', { className: 'bg-white rounded-lg border p-6' },
+                            e('div', { className: 'flex items-center mb-4' },
+                                e(Brain, { className: 'h-6 w-6 text-purple-600 mr-2' }),
+                                e('h3', { className: 'text-xl font-semibold text-gray-900' }, 'AI Insights')
+                            ),
+                            e('div', { className: 'space-y-3' },
+                                ...latestResult.insights.map((insight, index) =>
+                                    e('div', { key: index, className: 'flex items-start' },
+                                        e(CheckCircle, { className: 'h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0' }),
+                                        e('p', { className: 'text-gray-700' }, insight)
+                                    )
+                                )
+                            )
+                        ),
+                        e('div', { className: 'bg-white rounded-lg border p-6' },
+                            e('div', { className: 'flex items-center mb-4' },
+                                e(AlertTriangle, { className: 'h-6 w-6 text-orange-600 mr-2' }),
+                                e('h3', { className: 'text-xl font-semibold text-gray-900' }, 'Recommendations')
+                            ),
+                            e('div', { className: 'space-y-3' },
+                                latestResult.recommendations.length > 0 ?
+                                    ...latestResult.recommendations.map((rec, index) =>
+                                        e('div', { key: index, className: 'flex items-start' },
+                                            e(ArrowUpRight, { className: 'h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0' }),
+                                            e('p', { className: 'text-gray-700' }, rec)
+                                        )
+                                    ) :
+                                    e('p', { className: 'text-gray-500 italic' }, 'No specific recommendations at this time. Continue monitoring your health metrics.')
+                            )
+                        )
+                    ),
+                    e('div', { className: 'bg-gray-50 rounded-lg p-4' },
+                        e('div', { className: 'flex items-center justify-between text-sm text-gray-600' },
+                            e('div', { className: 'flex items-center' },
+                                e(Clock, { className: 'h-4 w-4 mr-1' }),
+                                `Processing Time: ${latestResult.processingTime?.toFixed(2)}s`
+                            ),
+                            e('div', { className: 'flex items-center' },
+                                e(Shield, { className: 'h-4 w-4 mr-1' }),
+                                'Privacy Protected'
+                            ),
+                            e('div', { className: 'flex items-center' },
+                                e(Eye, { className: 'h-4 w-4 mr-1' }),
+                                `${Object.keys(latestResult.metrics).length} Metrics Found`
+                            )
+                        )
+                    )
                 );
             };
 
             const renderTrends = () => {
                 if (healthData.length < 2) {
-                    return (
-                        <div className="text-center py-8">
-                            <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="text-gray-500 mt-2">Upload at least 2 documents to see trends</p>
-                        </div>
+                    return e('div', { className: 'text-center py-8' },
+                        e(TrendingUp, { className: 'mx-auto h-12 w-12 text-gray-400' }),
+                        e('p', { className: 'text-gray-500 mt-2' }, 'Upload at least 2 documents to see trends')
                     );
                 }
 
-                const allMetrics = new Set();
-                healthData.forEach(doc => {
-                    if (doc.metrics && typeof doc.metrics === 'object') {
-                        Object.keys(doc.metrics).forEach(metric => allMetrics.add(metric));
-                    }
-                });
+                return e('div', { className: 'space-y-6' },
+                    e('h2', { className: 'text-2xl font-bold text-gray-900' }, 'Health Trends Analysis'),
+                    e('p', { className: 'text-gray-600' }, 'Track your health metrics over time to identify patterns and improvements.')
+                );
+            };
 
-                if (allMetrics.size === 0) {
-                    return (
-                        <div className="text-center py-8">
-                            <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="text-gray-500 mt-2">No health metrics found in uploaded documents</p>
-                        </div>
+            const renderRisk = () => {
+                if (healthData.length === 0) {
+                    return e('div', { className: 'text-center py-8' },
+                        e(AlertTriangle, { className: 'mx-auto h-12 w-12 text-gray-400' }),
+                        e('p', { className: 'text-gray-500 mt-2' }, 'Upload health documents to see risk assessment')
                     );
                 }
 
-                return (
-                    <div className="space-y-6">
-                        {Array.from(allMetrics).map(metric => {
-                            const metricData = healthData
-                                .map(doc => ({
-                                    date: doc.uploadDate,
-                                    value: doc.metrics?.[metric]?.value || doc.metrics?.[metric],
-                                    name: doc.fileName
-                                }))
-                                .filter(d => d.value !== undefined && d.value !== null && !isNaN(parseFloat(d.value)))
-                                .map(d => ({
-                                    ...d,
-                                    value: parseFloat(d.value),
-                                    date: new Date(d.date).getTime()
-                                }))
-                                .sort((a, b) => a.date - b.date);
+                const latestDoc = healthData[healthData.length - 1];
+                const riskFactors = [];
 
-                            if (metricData.length < 2) return null;
+                if (latestDoc.metrics['Triglycerides']?.value) {
+                    const risk = assessTriglyceridesRisk(latestDoc.metrics['Triglycerides'].value);
+                    riskFactors.push({
+                        metric: 'Triglycerides',
+                        value: latestDoc.metrics['Triglycerides'].value,
+                        unit: latestDoc.metrics['Triglycerides'].unit,
+                        risk: risk
+                    });
+                }
 
-                            const latestValue = metricData[metricData.length - 1].value;
-                            const previousValue = metricData[metricData.length - 2].value;
-                            const change = latestValue - previousValue;
-                            const percentChange = previousValue !== 0 ? ((change / previousValue) * 100).toFixed(1) : '0.0';
+                if (latestDoc.metrics['Glucose']?.value) {
+                    const risk = assessGlucoseRisk(latestDoc.metrics['Glucose'].value);
+                    riskFactors.push({
+                        metric: 'Blood Glucose',
+                        value: latestDoc.metrics['Glucose'].value,
+                        unit: latestDoc.metrics['Glucose'].unit,
+                        risk: risk
+                    });
+                }
 
-                            const chartData = metricData.map(d => ({
-                                ...d,
-                                date: new Date(d.date).toLocaleDateString()
-                            }));
+                if (riskFactors.length === 0) {
+                    return e('div', { className: 'text-center py-8' },
+                        e(AlertTriangle, { className: 'mx-auto h-12 w-12 text-gray-400' }),
+                        e('p', { className: 'text-gray-500 mt-2' }, 'No risk factors could be assessed from your health data')
+                    );
+                }
 
-                            return (
-                                <div key={metric} className="bg-white rounded-lg border p-4">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg font-semibold text-gray-900">{metric}</h3>
-                                        <div className="flex items-center">
-                                            {Math.abs(change) > 0.01 && (
-                                                <div>
-                                                    {change > 0 ? (
-                                                        <ArrowUpRight className="h-4 w-4 text-red-500 mr-1" />
-                                                    ) : (
-                                                        <ArrowDownRight className="h-4 w-4 text-green-500 mr-1" />
-                                                    )}
-                                                    <span className={`text-sm font-medium ${
-                                                        change > 0 ? 'text-red-600' : 'text-green-600'
-                                                    }`}>
-                                                        {change > 0 ? '+' : ''}{percentChange}%
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <ResponsiveContainer width="100%" height={200}>
-                                        <LineChart data={chartData}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="date" />
-                                            <YAxis />
-                                            <Tooltip formatter={(value) => [value, metric]} />
-                                            <Line 
-                                                type="monotone" 
-                                                dataKey="value" 
-                                                stroke="#3B82F6" 
-                                                strokeWidth={2}
-                                                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                                            />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                    <div className="mt-2 text-sm text-gray-600">
-                                        Latest: <span className="font-semibold">{latestValue}</span> | 
-                                        Previous: <span className="font-semibold">{previousValue}</span> | 
-                                        Change: <span className={`font-semibold ${change >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                            {change > 0 ? '+' : ''}{change.toFixed(2)}
-                                        </span>
+                return e('div', { className: 'space-y-6' },
+                    e('div', { className: 'gradient-orange rounded-lg text-white p-6' },
+                        e('h2', { className: 'text-2xl font-bold mb-2' }, 'Health Risk Assessment'),
+                        e('p', { className: 'text-orange-100' }, 'Based on your latest health metrics')
+                    ),
+                    e('div', { className: 'grid gap-6' },
+                        ...riskFactors.map((factor, index) =>
+                            e('div', { key: index, className: 'bg-white rounded-lg border p-6' },
+                                e('div', { className: 'flex justify-between items-start mb-4' },
+                                    e('div', null,
+                                        e('h3', { className: 'text-lg font-semibold text-gray-900' }, factor.metric),
+                                        e('p', { className: 'text-2xl font-bold text-gray-700' },
+                                            `${factor.value} `,
+                                            e('span', { className: 'text-sm font-normal text-gray-500' }, factor.unit)
+                                        )
+                                    ),
+                                    e('span', { 
+                                        className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                            factor.risk.level === 'Normal' ? 'bg-green-100 text-green-800' :
+                                            factor.risk.level === 'Borderline High' || factor.risk.level === 'Prediabetes' ? 'bg-yellow-100 text-yellow-800' :
+                                            'bg-red-100 text-red-800'
+                                        }`
+                                    }, factor.risk.level)
+                                ),
+                                e('p', { className: `text-sm ${factor.risk.color}` }, factor.risk.description)
+                            )
+                        )
+                    )
+                );
+            };
+
+            const renderHistory = () => {
+                if (healthData.length === 0) {
+                    return e('div', { className: 'text-center py-8' },
+                        e(FileText, { className: 'mx-auto h-12 w-12 text-gray-400' }),
+                        e('p', { className: 'text-gray-500 mt-2' }, 'No documents uploaded yet')
+                    );
+                }
+
+                return e('div', { className: 'space-y-4' },
+                    e('div', { className: 'flex justify-between items-center' },
+                        e('h2', { className: 'text-2xl font-bold text-gray-900' }, 'Document History'),
+                        e('div', { className: 'text-sm text-gray-500' },
+                            `${healthData.length} document${healthData.length !== 1 ? 's' : ''} processed`
+                        )
+                    ),
+                    ...healthData.map((doc, index) =>
+                        e('div', { key: index, className: 'bg-white rounded-lg border hover:shadow-md transition-shadow' },
+                            e('div', { className: 'p-6' },
+                                e('div', { className: 'flex justify-between items-start mb-4' },
+                                    e('div', { className: 'flex items-center' },
+                                        e(FileText, { className: 'h-6 w-6 text-blue-600 mr-3' }),
+                                        e('div', null,
+                                            e('h3', { className: 'text-lg font-semibold text-gray-900' }, doc.fileName),
+                                            e('p', { className: 'text-sm text-gray-500' }, new Date(doc.uploadDate).toLocaleString())
+                                        )
+                                    ),
+                                    e('span', { className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800' }, 'Processed')
+                                ),
+                                e('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4 mb-4' },
+                                    e('div', { className: 'text-center p-3 bg-gray-50 rounded' },
+                                        e('div', { className: 'text-2xl font-bold text-gray-900' }, Object.keys(doc.metrics).length),
+                                        e('div', { className: 'text-xs text-gray-500' }, 'Metrics')
+                                    ),
+                                    e('div', { className: 'text-center p-3 bg-gray-50 rounded' },
+                                        e('div', { className: 'text-2xl font-bold text-gray-900' }, doc.insights.length),
+                                        e('div', { className: 'text-xs text-gray-500' }, 'Insights')
+                                    ),
+                                    e('div', { className: 'text-center p-3 bg-gray-50 rounded' },
+                                        e('div', { className: 'text-2xl font-bold text-gray-900' }, doc.recommendations.length),
+                                        e('div', { className: 'text-xs text-gray-500' }, 'Recommendations')
+                                    )
+                                ),
+                                Object.keys(doc.metrics).length > 0 && e('div', null,
+                                    e('h4', { className: 'font-semibold text-gray-900 mb-2' }, 'Key Metrics:'),
+                                    e('div', { className: 'flex flex-wrap gap-2' },
+                                        ...Object.entries(doc.metrics).slice(0, 6).map(([metric, data]) =>
+                                            e('span', { 
+                                                key: metric, 
+                                                className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800' 
+                                            }, `${metric}: ${data.value} ${data.unit}`)
+                                        ),
+                                        Object.keys(doc.metrics).length > 6 && e('span', { 
+                                            className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800' 
+                                        }, `+${Object.keys(doc.metrics).length - 6} more`)
+                                    )
+                                )
+                            )
+                        )
+                    )
+                );
+            };
+
+            return e('div', { className: 'min-h-screen bg-gray-50' },
+                e('header', { className: 'bg-white shadow-sm border-b' },
+                    e('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' },
+                        e('div', { className: 'flex justify-between items-center py-4' },
+                            e('div', { className: 'flex items-center' },
+                                e('div', { className: 'w-10 h-10 gradient-bg rounded-lg flex items-center justify-center mr-3' },
+                                    e(Brain, { className: 'h-6 w-6 text-white' })
+                                ),
+                                e('h1', { className: 'text-2xl font-bold text-gray-900' }, 'HealthAI')
+                            ),
+                            e('div', { className: 'flex items-center space-x-4' },
+                                e('div', { className: 'flex items-center text-sm text-gray-500' },
+                                    e(Shield, { className: 'h-4 w-4 mr-1' }),
+                                    'Privacy Protected'
+                                ),
+                                e('div', { className: 'flex items-center text-sm text-gray-500' },
+                                    e(Users, { className: 'h-4 w-4 mr-1' }),
+                                    `${healthData.length} Documents`
+                                )
+                            )
+                        )
+                    )
+                ),
+                e('nav', { className: 'bg-white border-b' },
+                    e('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' },
+                        e('div', { className: 'flex space-x-8' },
+                            ...[
+                                { id: 'upload', label: 'Upload', icon: Upload },
+                                { id: 'results', label: 'Results', icon: Brain },
+                                { id: 'trends', label: 'Trends', icon: TrendingUp },
+                                { id: 'risk', label: 'Risk Assessment', icon: AlertTriangle },
+                                { id: 'history', label: 'History', icon: FileText }
+                            ].map(({ id, label, icon: Icon }) =>
+                                e('button', {
+                                    key: id,
+                                    onClick: () => setActiveTab(id),
+                                    className: `flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
+                                        activeTab === id
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`
+                                },
+                                    e(Icon, { className: 'h-4 w-4 mr-2' }),
+                                    label
+                                )
+                            )
+                        )
+                    )
+                ),
+                e('main', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8' },
+                    activeTab === 'upload' && renderUpload(),
+                    activeTab === 'results' && renderResults(),
+                    activeTab === 'trends' && renderTrends(),
+                    activeTab === 'risk' && renderRisk(),
+                    activeTab === 'history' && renderHistory()
+                ),
+                e('footer', { className: 'bg-white border-t mt-auto' },
+                    e('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6' },
+                        e('div', { className: 'flex justify-between items-center text-sm text-gray-500' },
+                            e('div', { className: 'flex items-center space-x-6' },
+                                e('div', { className: 'flex items-center' },
+                                    e(Clock, { className: 'h-4 w-4 mr-1' }),
+                                    'Sub-3s Analysis'
+                                ),
+                                e('div', { className: 'flex items-center' },
+                                    e(Shield, { className: 'h-4 w-4 mr-1' }),
+                                    '100% Private'
+                                ),
+                                e('div', { className: 'flex items-center' },
+                                    e(Brain, { className: 'h-4 w-4 mr-1' }),
+                                    'AI-Powered'
+                                )
+                            ),
+                            e('div', null, '© 2024 HealthAI. Privacy-first health analysis.')
+                        )
+                    )
+                )
+            );
+        };
+
+        ReactDOM.render(React.createElement(HealthAIDashboard), document.getElementById('root'));
+    </script>
+</body>
+</html>
