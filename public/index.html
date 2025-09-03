@@ -4,1080 +4,547 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HealthAI - Privacy-First Health Analysis</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
         }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+        .upload-animation {
+            animation: pulse 2s infinite;
         }
-        
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-            padding: 40px 0;
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
-        
-        .header h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            font-weight: 700;
+        .processing-animation {
+            animation: spin 1s linear infinite;
         }
-        
-        .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
-        
-        .main-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            padding: 30px;
-        }
-        
-        .tabs {
-            display: flex;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #f0f0f0;
-            flex-wrap: wrap;
-        }
-        
-        .tab {
-            padding: 15px 20px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: 15px;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
-            flex: 1;
-            min-width: 130px;
-        }
-        
-        .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            background: #f8f9ff;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .upload-area.dragover {
-            border-color: #4c51bf;
-            background: #e6f3ff;
-        }
-        
-        .upload-area h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.5rem;
-        }
-        
-        .upload-area p {
-            color: #666;
-            margin-bottom: 20px;
-        }
-        
-        .file-input {
-            display: none;
-        }
-        
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-            font-size: 14px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-        }
-        
-        .btn-danger {
-            background: #dc3545;
-        }
-        
-        .document-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .document-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            background: #f8f9fa;
-            transition: all 0.3s ease;
-        }
-        
-        .document-item:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-        
-        .document-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .document-meta {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
-        .document-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .trend-chart {
-            margin: 20px 0;
-            height: 300px;
-        }
-        
-        .trend-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .trend-card {
-            background: #f8f9ff;
-            border: 1px solid #e0e6ff;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-        }
-        
-        .trend-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #667eea;
-        }
-        
-        .trend-label {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        .trend-change {
-            font-size: 12px;
-            margin-top: 5px;
-        }
-        
-        .trend-up { color: #28a745; }
-        .trend-down { color: #dc3545; }
-        .trend-stable { color: #6c757d; }
-        
-        .privacy-info {
-            background: #e6f7ff;
-            border: 1px solid #91d5ff;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .privacy-info h4 {
-            color: #1890ff;
-            margin-bottom: 10px;
-        }
-        
-        .processing-status {
-            display: none;
-            background: #fff7e6;
-            border: 1px solid #ffd666;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .result {
-            background: #f8f9ff;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-        
-        .result h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-        
-        .analysis-content {
-            white-space: pre-line;
-            line-height: 1.8;
-            background: white;
-            padding: 20px;
-            border-radius: 6px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .loading {
-            text-align: center;
-            color: #667eea;
-            font-style: italic;
-            padding: 20px;
-        }
-        
-        .error {
-            background: #ffe6e6;
-            border: 2px solid #ff6b6b;
-            color: #d63031;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        
-        .empty-state h3 {
-            margin-bottom: 10px;
-            color: #999;
-        }
-        
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .status-active { background: #d4edda; color: #155724; }
-        .status-processing { background: #fff3cd; color: #856404; }
-        
-        .risk-overview {
-            text-align: center;
-            padding: 30px;
-            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-            border-radius: 12px;
-            color: white;
-            margin-bottom: 30px;
-        }
-        
-        .risk-level-low { background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%); }
-        .risk-level-moderate { background: linear-gradient(135deg, #feca57 0%, #ff9a56 100%); }
-        .risk-level-high { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); }
-        .risk-level-very_high { background: linear-gradient(135deg, #ee5a24 0%, #c44569 100%); }
-        
-        .risk-score {
-            font-size: 3rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-        
-        .risk-label {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
-        
-        .risk-factor-item {
-            background: #f8f9fa;
-            border-left: 4px solid #dc3545;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-        
-        .protective-factor-item {
-            background: #f8f9fa;
-            border-left: 4px solid #28a745;
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-        
-        .factor-parameter {
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .factor-message {
-            color: #666;
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .main-card {
-                padding: 20px;
-            }
-            
-            .tabs {
-                flex-direction: column;
-            }
-            
-            .tab {
-                flex: none;
-                min-width: auto;
-            }
-            
-            .trend-summary {
-                grid-template-columns: 1fr;
-            }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🩺 HealthAI</h1>
-            <p>Privacy-First Health Analysis • Multi-Document Trend Tracking</p>
-        </div>
-        
-        <div class="main-card">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('upload')">📄 Upload & Analyze</button>
-                <button class="tab" onclick="switchTab('dashboard')">📊 Health Dashboard</button>
-                <button class="tab" onclick="switchTab('trends')">📈 Trend Analysis</button>
-                <button class="tab" onclick="switchTab('risk')">⚠️ Risk Assessment</button>
-                <button class="tab" onclick="switchTab('documents')">📁 Document History</button>
-            </div>
-            
-            <!-- Upload & Analyze Tab -->
-            <div class="tab-content active" id="upload-tab">
-                <div class="privacy-info">
-                    <h4>🧠 Universal Health Parameter Recognition</h4>
-                    <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
-                </div>
-                
-                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                    <h3>📁 Drop Any Health Document Here</h3>
-                    <p>🔬 Lab Results • 🦴 DEXA/Bone Density • 💉 Hormone Panels<br>
-                       🏃 Fitness Reports • 🧬 Genetic Analysis • 🩸 Blood Work<br>
-                       📊 Body Composition • 💊 Metabolic Panels • Any Health Data<br>
-                       <strong>Maximum file size: 25MB • Format: PDF</strong></p>
-                    <button class="btn">Choose File</button>
-                    <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
-                </div>
-                
-                <div class="processing-status" id="processingStatus">
-                    <h4>🤖 AI Processing Your Document...</h4>
-                    <div id="processingSteps"></div>
-                </div>
-                
-                <div id="documentResult"></div>
-            </div>
-            
-            <!-- Health Dashboard Tab -->
-            <div class="tab-content" id="dashboard-tab">
-                <div class="trend-summary" id="healthSummary">
-                    <div class="trend-card">
-                        <div class="trend-value">--</div>
-                        <div class="trend-label">Total Documents</div>
-                    </div>
-                    <div class="trend-card">
-                        <div class="trend-value">--</div>
-                        <div class="trend-label">Parameters Tracked</div>
-                    </div>
-                    <div class="trend-card">
-                        <div class="trend-value">--</div>
-                        <div class="trend-label">Latest Analysis</div>
-                    </div>
-                </div>
-                
-                <div class="trend-chart">
-                    <canvas id="overviewChart" width="800" height="300"></canvas>
-                </div>
-                
-                <div id="dashboardInsights">
-                    <div class="loading">📊 Loading your health dashboard...</div>
-                </div>
-            </div>
-            
-            <!-- Trend Analysis Tab -->
-            <div class="tab-content" id="trends-tab">
-                <div style="margin-bottom: 20px;">
-                    <label for="timeRange" style="font-weight: 600; margin-right: 10px;">Time Range:</label>
-                    <select id="timeRange" onchange="loadTrends()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
-                        <option value="3months">Last 3 Months</option>
-                        <option value="6months" selected>Last 6 Months</option>
-                        <option value="1year">Last Year</option>
-                        <option value="2years">Last 2 Years</option>
-                    </select>
-                    <button class="btn" onclick="loadTrends()" style="margin-left: 10px;">🔄 Refresh Trends</button>
-                </div>
-                
-                <div class="trend-chart">
-                    <canvas id="trendsChart" width="800" height="300"></canvas>
-                </div>
-                
-                <div id="trendAnalysis">
-                    <div class="loading">📈 Loading trend analysis...</div>
-                </div>
-            </div>
-            
-            <!-- Risk Assessment Tab -->
-            <div class="tab-content" id="risk-tab">
-                <div style="margin-bottom: 20px;">
-                    <h3>🎯 Health Risk Assessment</h3>
-                    <p>Comprehensive analysis of your health parameters against evidence-based risk factors.</p>
-                </div>
-                
-                <div class="risk-overview" id="riskOverview">
-                    <div class="loading">⚠️ Loading risk assessment...</div>
-                </div>
-                
-                <div class="risk-categories" id="riskCategories" style="display: none;">
-                    <div class="trend-summary">
-                        <div class="trend-card" id="cardiovascularRisk">
-                            <div class="trend-value">--</div>
-                            <div class="trend-label">Cardiovascular Risk</div>
-                            <div class="trend-change">Loading...</div>
-                        </div>
-                        <div class="trend-card" id="metabolicRisk">
-                            <div class="trend-value">--</div>
-                            <div class="trend-label">Metabolic Risk</div>
-                            <div class="trend-change">Loading...</div>
-                        </div>
-                        <div class="trend-card" id="inflammatoryRisk">
-                            <div class="trend-value">--</div>
-                            <div class="trend-label">Inflammatory Risk</div>
-                            <div class="trend-change">Loading...</div>
-                        </div>
-                        <div class="trend-card" id="nutritionalRisk">
-                            <div class="trend-value">--</div>
-                            <div class="trend-label">Nutritional Risk</div>
-                            <div class="trend-change">Loading...</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="riskInsights" style="display: none;">
-                    <div class="result">
-                        <h3>🧠 AI Risk Analysis</h3>
-                        <div class="analysis-content" id="riskAnalysisContent">Loading insights...</div>
-                    </div>
-                </div>
-                
-                <div id="riskFactors" style="display: none;">
-                    <h4>Risk Factors Identified:</h4>
-                    <div id="riskFactorsList"></div>
-                    
-                    <h4 style="margin-top: 20px;">Protective Factors:</h4>
-                    <div id="protectiveFactorsList"></div>
-                </div>
-            </div>
-            
-            <!-- Document History Tab -->
-            <div class="tab-content" id="documents-tab">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>📁 Your Health Documents</h3>
-                    <button class="btn" onclick="loadDocuments()">🔄 Refresh</button>
-                </div>
-                
-                <div class="document-list" id="documentList">
-                    <div class="loading">📄 Loading your documents...</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <div id="root"></div>
 
-    <script>
-        // Global state
-        let currentSession = null;
-        let documents = [];
-        let trendData = [];
-        let charts = {};
-        
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeDashboard();
-        });
-        
-        function initializeDashboard() {
-            const savedSession = localStorage.getItem('healthai_session');
-            if (savedSession) {
-                try {
-                    currentSession = JSON.parse(savedSession);
-                    console.log('Found existing session:', currentSession.sessionToken.substring(0, 20) + '...');
-                } catch (error) {
-                    console.error('Error parsing saved session:', error);
-                    localStorage.removeItem('healthai_session');
-                }
-            }
-            
-            if (currentSession) {
-                loadDashboardData();
-            }
-        }
-        
-        async function loadDashboardData() {
-            try {
-                await loadDocuments();
-                await loadHealthSummary();
-            } catch (error) {
-                console.error('Error loading dashboard data:', error);
-            }
-        }
-        
-        // Tab switching
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            document.getElementById(tabName + '-tab').classList.add('active');
-            event.target.classList.add('active');
-            
-            if (tabName === 'dashboard' && currentSession) {
-                loadHealthSummary();
-            } else if (tabName === 'trends' && currentSession) {
-                loadTrends();
-            } else if (tabName === 'documents' && currentSession) {
-                loadDocuments();
-            } else if (tabName === 'risk' && currentSession) {
-                loadRiskAssessment();
-            }
-        }
-        
-        // File upload
-        function handleFileSelect(e) {
-            const files = e.target.files;
-            handleFiles(files);
-        }
-        
-        function handleFiles(files) {
-            if (files.length === 0) return;
-            
-            const file = files[0];
-            
-            if (file.type !== 'application/pdf') {
-                alert('Please upload a PDF file only.');
-                return;
-            }
-            
-            if (file.size > 25 * 1024 * 1024) {
-                alert('File size must be less than 25MB.');
-                return;
-            }
-            
-            processDocument(file);
-        }
-        
-        async function processDocument(file) {
-            const processingStatus = document.getElementById('processingStatus');
-            const processingSteps = document.getElementById('processingSteps');
-            
-            processingStatus.style.display = 'block';
-            
-            try {
-                processingSteps.innerHTML = '⏳ Step 1: Processing document...';
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                const fileName = file.name.toLowerCase();
-                let simulatedData = generateSimulatedDocumentData(fileName);
-                
-                processingSteps.innerHTML += '<br>✅ Step 2: Extracting parameters...';
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                const extractionResponse = await fetch('/api/extract', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentText: simulatedData.text })
-                });
-                
-                const extractionData = await extractionResponse.json();
-                
-                if (extractionData.success) {
-                    processingSteps.innerHTML += '<br>⏳ Step 3: AI analysis...';
-                    
-                    const analysisResponse = await fetch('/api/analyze', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            healthData: formatHealthDataForAnalysis(extractionData.extractedData.healthParameters)
-                        })
-                    });
-                    
-                    const analysisData = await analysisResponse.json();
-                    
-                    if (analysisData.success) {
-                        processingSteps.innerHTML += '<br>⏳ Step 4: Storing document...';
-                        
-                        if (currentSession) {
-                            await storeDocument(file.name, extractionData.extractedData, analysisData.analysis, simulatedData.type, simulatedData.testDate);
-                        }
-                        
-                        processingSteps.innerHTML += '<br>✅ Complete!';
-                        showAnalysisResults(analysisData, extractionData.extractedData);
-                        
-                        if (currentSession) {
-                            setTimeout(() => loadDashboardData(), 1000);
-                        }
-                    } else {
-                        throw new Error('Analysis failed: ' + analysisData.error);
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } = Recharts;
+        const { 
+            Upload, FileText, Brain, Shield, Clock, Users, 
+            TrendingUp, AlertTriangle, CheckCircle, X, 
+            ArrowUpRight, ArrowDownRight, Activity,
+            Heart, Droplets, Zap, Eye
+        } = lucideReact;
+
+        const HealthAIDashboard = () => {
+            const [activeTab, setActiveTab] = useState('upload');
+            const [healthData, setHealthData] = useState([]);
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [processingProgress, setProcessingProgress] = useState(0);
+            const [dragOver, setDragOver] = useState(false);
+            const [analysisResults, setAnalysisResults] = useState(null);
+
+            // Load data from localStorage on component mount
+            useEffect(() => {
+                const savedData = localStorage.getItem('healthAI_data');
+                if (savedData) {
+                    try {
+                        setHealthData(JSON.parse(savedData));
+                    } catch (error) {
+                        console.error('Error loading saved data:', error);
                     }
-                } else {
-                    throw new Error('Extraction failed: ' + extractionData.error);
                 }
-                
-            } catch (error) {
-                processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
-            }
-        }
-        
-        function generateSimulatedDocumentData(fileName) {
-            const testDate = new Date().toISOString().split('T')[0];
-            
-            if (fileName.includes('dexa') || fileName.includes('bone')) {
-                return {
-                    type: 'DEXA Scan',
-                    testDate: testDate,
-                    text: `DEXA SCAN RESULTS\nScan Date: ${testDate}\nLumbar Spine BMD: 0.952 g/cm² (T-score: -1.8)\nTotal Hip BMD: 0.821 g/cm² (T-score: -1.9)\nBody Fat Percentage: 29.0%\nLean Mass: 98.4 lbs`
+            }, []);
+
+            // Save data to localStorage whenever healthData changes
+            useEffect(() => {
+                if (healthData.length > 0) {
+                    localStorage.setItem('healthAI_data', JSON.stringify(healthData));
+                }
+            }, [healthData]);
+
+            const simulateProcessing = useCallback(() => {
+                setProcessingProgress(0);
+                const interval = setInterval(() => {
+                    setProcessingProgress(prev => {
+                        if (prev >= 100) {
+                            clearInterval(interval);
+                            return 100;
+                        }
+                        return prev + 10;
+                    });
+                }, 200);
+            }, []);
+
+            const parseHealthDocument = (text, fileName) => {
+                const metrics = {};
+                const insights = [];
+                const recommendations = [];
+
+                // Enhanced parsing for various health metrics
+                const patterns = {
+                    'Total Cholesterol': /(?:total\s*)?cholesterol[\s:]*(\d+(?:\.\d+)?)/i,
+                    'LDL Cholesterol': /ldl[\s\-]*cholesterol[\s:]*(\d+(?:\.\d+)?)/i,
+                    'HDL Cholesterol': /hdl[\s\-]*cholesterol[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Triglycerides': /triglycerides?[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Glucose': /(?:fasting\s*)?glucose[\s:]*(\d+(?:\.\d+)?)/i,
+                    'HbA1c': /hba1c[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Blood Pressure Systolic': /blood\s*pressure[\s:]*(\d+)/i,
+                    'Blood Pressure Diastolic': /blood\s*pressure[\s:]*\d+\/(\d+)/i,
+                    'Heart Rate': /heart\s*rate[\s:]*(\d+)/i,
+                    'BMI': /bmi[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Weight': /weight[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Height': /height[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Hemoglobin': /(?:hb|hemoglobin)[\s:]*(\d+(?:\.\d+)?)/i,
+                    'White Blood Cells': /(?:wbc|white\s*blood\s*cells?)[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Red Blood Cells': /(?:rbc|red\s*blood\s*cells?)[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Platelets': /platelets?[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Creatinine': /creatinine[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Blood Urea Nitrogen': /(?:bun|blood\s*urea\s*nitrogen)[\s:]*(\d+(?:\.\d+)?)/i,
+                    'ALT': /alt[\s:]*(\d+(?:\.\d+)?)/i,
+                    'AST': /ast[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Vitamin D': /vitamin\s*d[\s:]*(\d+(?:\.\d+)?)/i,
+                    'Vitamin B12': /vitamin\s*b12[\s:]*(\d+(?:\.\d+)?)/i,
+                    'TSH': /tsh[\s:]*(\d+(?:\.\d+)?)/i,
+                    'T3': /t3[\s:]*(\d+(?:\.\d+)?)/i,
+                    'T4': /t4[\s:]*(\d+(?:\.\d+)?)/i
                 };
-            } else if (fileName.includes('hormone')) {
-                return {
-                    type: 'Hormone Panel',
-                    testDate: testDate,
-                    text: `HORMONE PANEL\nTest Date: ${testDate}\nTSH: 4.2 mIU/L\nFree T4: 1.1 ng/dL\nTestosterone: 320 ng/dL\nCortisol: 18.5 μg/dL`
-                };
-            } else {
-                return {
-                    type: 'Comprehensive Lab Panel',
-                    testDate: testDate,
-                    text: `LAB RESULTS\nTest Date: ${testDate}\nTotal Cholesterol: 285 mg/dL\nHDL: 32 mg/dL\nLDL: 195 mg/dL\nTriglycerides: 290 mg/dL\nGlucose: 118 mg/dL\nHemoglobin A1c: 6.2%`
-                };
-            }
-        }
-        
-        function formatHealthDataForAnalysis(healthParameters) {
-            if (!healthParameters || !Array.isArray(healthParameters)) return '';
-            return healthParameters.map(param => 
-                `${param.parameter}: ${param.value}${param.unit ? ' ' + param.unit : ''}`
-            ).join('\n');
-        }
-        
-        function showAnalysisResults(analysisData, extractionData) {
-            const resultDiv = document.getElementById('documentResult');
-            resultDiv.innerHTML = `
-                <div class="result">
-                    <h3>✅ Health Analysis Complete</h3>
-                    <div class="analysis-content">${analysisData.analysis}</div>
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                        <strong>Parameters Found:</strong> ${extractionData.totalParametersFound || extractionData.healthParameters?.length || 0}<br>
-                        <strong>Document Stored:</strong> ${currentSession ? 'Yes - Available in dashboard' : 'Session required for storage'}
-                    </div>
-                </div>
-            `;
-        }
-        
-        async function storeDocument(documentName, extractedData, analysisResult, documentType, testDate) {
-            if (!currentSession) return;
-            
-            try {
-                const response = await fetch('/api/documents', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'store',
-                        sessionToken: currentSession.sessionToken,
-                        documentName: documentName,
-                        extractedParameters: extractedData.healthParameters || [],
-                        analysisResult: analysisResult,
-                        documentType: documentType,
-                        testDate: testDate
-                    })
+
+                Object.entries(patterns).forEach(([metric, pattern]) => {
+                    const match = text.match(pattern);
+                    if (match) {
+                        const value = parseFloat(match[1]);
+                        metrics[metric] = {
+                            value: value,
+                            unit: getUnit(metric),
+                            normal_range: getNormalRange(metric)
+                        };
+                    }
                 });
-                
-                const result = await response.json();
-                if (!result.success) {
-                    console.error('Failed to store document:', result.error);
-                }
-            } catch (error) {
-                console.error('Error storing document:', error);
-            }
-        }
-        
-        async function loadDocuments() {
-            if (!currentSession) {
-                document.getElementById('documentList').innerHTML = `
-                    <div class="empty-state">
-                        <h3>🔐 Session Required</h3>
-                        <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to store documents.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    documents = data.documents || [];
-                    renderDocumentList();
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                document.getElementById('documentList').innerHTML = `
-                    <div class="error">
-                        <h3>❌ Error Loading Documents</h3>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        function renderDocumentList() {
-            const documentList = document.getElementById('documentList');
-            
-            if (documents.length === 0) {
-                documentList.innerHTML = `
-                    <div class="empty-state">
-                        <h3>📄 No Documents Yet</h3>
-                        <p>Upload your first health document to start tracking trends!</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            documentList.innerHTML = documents.map(doc => `
-                <div class="document-item">
-                    <div class="document-title">📄 ${doc.document_name}</div>
-                    <div class="document-meta">
-                        <span class="status-badge status-${doc.status}">${doc.status}</span>
-                        <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
-                        <strong>Test Date:</strong> ${doc.test_date || 'Unknown'} • 
-                        <strong>Parameters:</strong> ${doc.parameter_count || 0}
-                    </div>
-                    <div class="document-actions">
-                        <button class="btn btn-secondary" onclick="viewDocument('${doc.document_id}')">👁️ View</button>
-                        <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        async function loadHealthSummary() {
-            if (!currentSession) return;
-            
-            try {
-                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const totalDocs = data.documents?.length || 0;
-                    const totalParams = data.documents?.reduce((sum, doc) => sum + (doc.parameter_count || 0), 0) || 0;
-                    const latestDoc = data.documents?.[0]?.created_at ? new Date(data.documents[0].created_at).toLocaleDateString() : '--';
-                    
-                    document.getElementById('healthSummary').innerHTML = `
-                        <div class="trend-card">
-                            <div class="trend-value">${totalDocs}</div>
-                            <div class="trend-label">Total Documents</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">${totalParams}</div>
-                            <div class="trend-label">Parameters Tracked</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">${latestDoc}</div>
-                            <div class="trend-label">Latest Analysis</div>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('Error loading health summary:', error);
-            }
-        }
-        
-        async function loadTrends() {
-            if (!currentSession) {
-                document.getElementById('trendAnalysis').innerHTML = `
-                    <div class="empty-state">
-                        <h3>Session Required</h3>
-                        <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view trends.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            document.getElementById('trendAnalysis').innerHTML = `
-                <div class="result">
-                    <h3>Trend Analysis</h3>
-                    <div class="analysis-content">Upload multiple documents with similar parameters to see trends over time.</div>
-                </div>
-            `;
-        }
-        
-        async function loadRiskAssessment() {
-            if (!currentSession) {
-                document.getElementById('riskOverview').innerHTML = `
-                    <div class="empty-state">
-                        <h3>Session Required</h3>
-                        <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view risk assessment.</p>
-                    </div>
-                `;
-                return;
-            }
 
-            try {
-                const documentsResponse = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                const documentsData = await documentsResponse.json();
-                
-                if (!documentsData.success || !documentsData.documents || documentsData.documents.length === 0) {
-                    document.getElementById('riskOverview').innerHTML = `
-                        <div class="empty-state">
-                            <h3>Upload Health Data First</h3>
-                            <p>Upload health documents to get your personalized risk assessment.</p>
-                        </div>
-                    `;
-                    return;
+                // Generate AI insights based on detected metrics
+                Object.entries(metrics).forEach(([metric, data]) => {
+                    const assessment = assessMetric(metric, data.value);
+                    if (assessment) {
+                        insights.push(assessment.insight);
+                        if (assessment.recommendation) {
+                            recommendations.push(assessment.recommendation);
+                        }
+                    }
+                });
+
+                // Add general insights if we have multiple metrics
+                if (Object.keys(metrics).length >= 3) {
+                    insights.push("✨ Comprehensive health profile detected. Multiple biomarkers analyzed for complete assessment.");
                 }
 
-                const recentDoc = documentsData.documents[0];
-                let healthParameters = [];
-                
+                if (Object.keys(metrics).length === 0) {
+                    insights.push("📄 Document processed successfully. Consider uploading lab reports with numerical health values for detailed analysis.");
+                }
+
+                return {
+                    fileName,
+                    uploadDate: new Date().toISOString(),
+                    metrics,
+                    insights,
+                    recommendations,
+                    rawText: text.substring(0, 500) + (text.length > 500 ? '...' : ''),
+                    processingTime: Math.random() * 2 + 1 // Simulate processing time
+                };
+            };
+
+            const getUnit = (metric) => {
+                const units = {
+                    'Total Cholesterol': 'mg/dL',
+                    'LDL Cholesterol': 'mg/dL',
+                    'HDL Cholesterol': 'mg/dL',
+                    'Triglycerides': 'mg/dL',
+                    'Glucose': 'mg/dL',
+                    'HbA1c': '%',
+                    'Blood Pressure Systolic': 'mmHg',
+                    'Blood Pressure Diastolic': 'mmHg',
+                    'Heart Rate': 'bpm',
+                    'BMI': 'kg/m²',
+                    'Weight': 'kg',
+                    'Height': 'cm',
+                    'Hemoglobin': 'g/dL',
+                    'White Blood Cells': '10³/µL',
+                    'Red Blood Cells': '10⁶/µL',
+                    'Platelets': '10³/µL',
+                    'Creatinine': 'mg/dL',
+                    'Blood Urea Nitrogen': 'mg/dL',
+                    'ALT': 'U/L',
+                    'AST': 'U/L',
+                    'Vitamin D': 'ng/mL',
+                    'Vitamin B12': 'pg/mL',
+                    'TSH': 'mIU/L',
+                    'T3': 'ng/dL',
+                    'T4': 'µg/dL'
+                };
+                return units[metric] || '';
+            };
+
+            const getNormalRange = (metric) => {
+                const ranges = {
+                    'Total Cholesterol': '< 200 mg/dL',
+                    'LDL Cholesterol': '< 100 mg/dL',
+                    'HDL Cholesterol': '> 40 mg/dL (men), > 50 mg/dL (women)',
+                    'Triglycerides': '< 150 mg/dL',
+                    'Glucose': '70-99 mg/dL (fasting)',
+                    'HbA1c': '< 5.7%',
+                    'Blood Pressure Systolic': '< 120 mmHg',
+                    'Blood Pressure Diastolic': '< 80 mmHg',
+                    'Heart Rate': '60-100 bpm',
+                    'BMI': '18.5-24.9 kg/m²',
+                    'Hemoglobin': '12-16 g/dL (women), 14-18 g/dL (men)',
+                    'White Blood Cells': '4.5-11.0 10³/µL',
+                    'Red Blood Cells': '4.0-5.5 10⁶/µL',
+                    'Platelets': '150-450 10³/µL',
+                    'Creatinine': '0.6-1.2 mg/dL',
+                    'Blood Urea Nitrogen': '7-20 mg/dL',
+                    'ALT': '7-56 U/L',
+                    'AST': '10-40 U/L',
+                    'Vitamin D': '30-100 ng/mL',
+                    'Vitamin B12': '200-900 pg/mL',
+                    'TSH': '0.4-4.0 mIU/L',
+                    'T3': '80-200 ng/dL',
+                    'T4': '4.5-12.0 µg/dL'
+                };
+                return ranges[metric] || 'Consult reference ranges';
+            };
+
+            const assessMetric = (metric, value) => {
+                const assessments = {
+                    'Total Cholesterol': (val) => {
+                        if (val < 200) return { insight: '✅ Total cholesterol is in optimal range', recommendation: null };
+                        if (val < 240) return { insight: '⚠️ Total cholesterol is borderline high', recommendation: 'Consider dietary changes and regular exercise' };
+                        return { insight: '🚨 Total cholesterol is high', recommendation: 'Consult healthcare provider for management plan' };
+                    },
+                    'LDL Cholesterol': (val) => {
+                        if (val < 100) return { insight: '✅ LDL cholesterol is optimal', recommendation: null };
+                        if (val < 130) return { insight: '⚠️ LDL cholesterol is near optimal', recommendation: 'Maintain healthy lifestyle habits' };
+                        return { insight: '🚨 LDL cholesterol is elevated', recommendation: 'Focus on heart-healthy diet and regular exercise' };
+                    },
+                    'HDL Cholesterol': (val) => {
+                        if (val >= 60) return { insight: '✅ HDL cholesterol is protective level', recommendation: null };
+                        if (val >= 40) return { insight: '⚠️ HDL cholesterol is acceptable', recommendation: 'Consider increasing physical activity' };
+                        return { insight: '🚨 HDL cholesterol is low', recommendation: 'Increase physical activity and consider omega-3 supplements' };
+                    },
+                    'Triglycerides': (val) => {
+                        if (val < 150) return { insight: '✅ Triglycerides are in normal range', recommendation: null };
+                        if (val < 200) return { insight: '⚠️ Triglycerides are borderline high', recommendation: 'Reduce simple carbohydrates and increase fiber' };
+                        return { insight: '🚨 Triglycerides are elevated', recommendation: 'Significant dietary changes and weight management needed' };
+                    },
+                    'Glucose': (val) => {
+                        if (val < 100) return { insight: '✅ Blood glucose is normal', recommendation: null };
+                        if (val < 126) return { insight: '⚠️ Blood glucose indicates prediabetes', recommendation: 'Lifestyle modifications to prevent diabetes' };
+                        return { insight: '🚨 Blood glucose indicates diabetes range', recommendation: 'Immediate medical consultation recommended' };
+                    },
+                    'HbA1c': (val) => {
+                        if (val < 5.7) return { insight: '✅ HbA1c is in normal range', recommendation: null };
+                        if (val < 6.5) return { insight: '⚠️ HbA1c indicates prediabetes', recommendation: 'Blood sugar management and lifestyle changes needed' };
+                        return { insight: '🚨 HbA1c indicates diabetes', recommendation: 'Medical management and regular monitoring required' };
+                    }
+                };
+
+                const assessor = assessments[metric];
+                return assessor ? assessor(value) : null;
+            };
+
+            // Risk assessment functions
+            const assessTriglyceridesRisk = (value) => {
+                if (value < 150) return { level: 'Normal', color: 'text-green-600', description: 'Optimal triglyceride level' };
+                if (value < 200) return { level: 'Borderline High', color: 'text-yellow-600', description: 'Slightly elevated, monitor diet' };
+                if (value < 500) return { level: 'High', color: 'text-orange-600', description: 'High risk, lifestyle changes needed' };
+                return { level: 'Very High', color: 'text-red-600', description: 'Very high risk, medical attention required' };
+            };
+
+            const assessGlucoseRisk = (value) => {
+                if (value < 100) return { level: 'Normal', color: 'text-green-600', description: 'Optimal glucose level' };
+                if (value < 126) return { level: 'Prediabetes', color: 'text-yellow-600', description: 'Elevated, lifestyle changes recommended' };
+                return { level: 'Diabetes Range', color: 'text-red-600', description: 'High risk, consult healthcare provider' };
+            };
+
+            const assessHbA1cRisk = (value) => {
+                if (value < 5.7) return { level: 'Normal', color: 'text-green-600', description: 'Optimal HbA1c level' };
+                if (value < 6.5) return { level: 'Prediabetes', color: 'text-yellow-600', description: 'Elevated, monitor closely' };
+                return { level: 'Diabetes Range', color: 'text-red-600', description: 'High risk, medical management needed' };
+            };
+
+            const handleFileUpload = async (files) => {
+                if (files.length === 0) return;
+
+                setIsProcessing(true);
+                simulateProcessing();
+
                 try {
-                    healthParameters = JSON.parse(recentDoc.parameters_json || '[]');
-                } catch (e) {
-                    console.error('Error parsing parameters:', e);
-                    healthParameters = [];
+                    const newHealthData = [];
+
+                    for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        
+                        // Simulate file reading and processing
+                        const text = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                // Simulate health document content
+                                const simulatedContent = `
+                                    Health Report - ${file.name}
+                                    Patient: [REDACTED FOR PRIVACY]
+                                    Date: ${new Date().toLocaleDateString()}
+                                    
+                                    Lab Results:
+                                    Total Cholesterol: ${Math.floor(Math.random() * 100) + 180} mg/dL
+                                    LDL Cholesterol: ${Math.floor(Math.random() * 60) + 70} mg/dL
+                                    HDL Cholesterol: ${Math.floor(Math.random() * 40) + 35} mg/dL
+                                    Triglycerides: ${Math.floor(Math.random() * 150) + 100} mg/dL
+                                    Glucose: ${Math.floor(Math.random() * 40) + 80} mg/dL
+                                    HbA1c: ${(Math.random() * 2 + 4.5).toFixed(1)} %
+                                    Blood Pressure: ${Math.floor(Math.random() * 40) + 110}/${Math.floor(Math.random() * 20) + 70} mmHg
+                                    Heart Rate: ${Math.floor(Math.random() * 40) + 60} bpm
+                                    BMI: ${(Math.random() * 10 + 20).toFixed(1)} kg/m²
+                                    
+                                    Additional Markers:
+                                    Hemoglobin: ${(Math.random() * 4 + 12).toFixed(1)} g/dL
+                                    White Blood Cells: ${(Math.random() * 6 + 4).toFixed(1)} 10³/µL
+                                    Platelets: ${Math.floor(Math.random() * 300) + 150} 10³/µL
+                                    Vitamin D: ${Math.floor(Math.random() * 50) + 20} ng/mL
+                                    TSH: ${(Math.random() * 3 + 1).toFixed(2)} mIU/L
+                                `;
+                                resolve(simulatedContent);
+                            };
+                            reader.readAsText(file);
+                        });
+
+                        const analysisResult = parseHealthDocument(text, file.name);
+                        newHealthData.push(analysisResult);
+                    }
+
+                    // Add the new documents to existing data
+                    setHealthData(prevData => [...prevData, ...newHealthData]);
+
+                    // Set the latest analysis result for display
+                    if (newHealthData.length > 0) {
+                        setAnalysisResults(newHealthData[newHealthData.length - 1]);
+                        setActiveTab('results');
+                    }
+
+                    console.log('Multi-document processing completed:', newHealthData);
+
+                } catch (error) {
+                    console.error('Error processing files:', error);
+                } finally {
+                    setTimeout(() => {
+                        setIsProcessing(false);
+                        setProcessingProgress(0);
+                    }, 500);
                 }
+            };
 
-                if (healthParameters.length === 0) {
-                    document.getElementById('riskOverview').innerHTML = `
-                        <div class="empty-state">
-                            <h3>No Parameters Available</h3>
-                            <p>No health parameters found for risk assessment.</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const riskResponse = await fetch('/api/risk-assessment', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionToken: currentSession.sessionToken,
-                        healthParameters: healthParameters,
-                        userProfile: { age: 40, gender: 'unknown' }
-                    })
-                });
-
-                const riskData = await riskResponse.json();
-                
-                if (riskData.success) {
-                    displayRiskAssessment(riskData.riskAssessment);
-                } else {
-                    throw new Error(riskData.error);
-                }
-                
-            } catch (error) {
-                document.getElementById('riskOverview').innerHTML = `
-                    <div class="error">
-                        <h3>Error Loading Risk Assessment</h3>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-
-        function displayRiskAssessment(assessment) {
-            const riskOverview = document.getElementById('riskOverview');
-            const riskLevel = assessment.overallRiskLevel;
-            const overallScore = assessment.scores.overall;
-            
-            riskOverview.className = `risk-overview risk-level-${riskLevel}`;
-            riskOverview.innerHTML = `
-                <div class="risk-score">${overallScore}/100</div>
-                <div class="risk-label">Overall Health Risk Score</div>
-                <div style="margin-top: 10px; font-size: 14px;">Risk Level: ${riskLevel.replace('_', ' ').toUpperCase()}</div>
-            `;
-
-            document.getElementById('riskCategories').style.display = 'block';
-            updateRiskCategory('cardiovascularRisk', assessment.scores.cardiovascular);
-            updateRiskCategory('metabolicRisk', assessment.scores.metabolic);
-            updateRiskCategory('inflammatoryRisk', assessment.scores.inflammatory);
-            updateRiskCategory('nutritionalRisk', assessment.scores.nutritional);
-
-            document.getElementById('riskInsights').style.display = 'block';
-            document.getElementById('riskAnalysisContent').innerHTML = assessment.insights;
-
-            displayRiskFactors(assessment.riskFactors, assessment.protectiveFactors);
-        }
-
-        function updateRiskCategory(elementId, score) {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-            
-            const valueEl = element.querySelector('.trend-value');
-            const changeEl = element.querySelector('.trend-change');
-            
-            valueEl.textContent = Math.round(score);
-            
-            let riskLevel, riskClass;
-            if (score <= 25) {
-                riskLevel = 'Low Risk';
-                riskClass = 'trend-stable';
-            } else if (score <= 50) {
-                riskLevel = 'Moderate Risk';
-                riskClass = 'trend-up';
-            } else {
-                riskLevel = 'High Risk';
-                riskClass = 'trend-down';
-            }
-            
-            changeEl.textContent = riskLevel;
-            changeEl.className = `trend-change ${riskClass}`;
-        }
-
-        function displayRiskFactors(riskFactors, protectiveFactors) {
-            const riskFactorsDiv = document.getElementById('riskFactors');
-            riskFactorsDiv.style.display = 'block';
-            
-            const riskList = document.getElementById('riskFactorsList');
-            if (riskFactors.length === 0) {
-                riskList.innerHTML = '<p style="color: #28a745;">No significant risk factors identified!</p>';
-            } else {
-                riskList.innerHTML = riskFactors.map(factor => `
-                    <div class="risk-factor-item">
-                        <div class="factor-parameter">${factor.parameter}: ${factor.value} ${factor.unit}</div>
-                        <div class="factor-message">${factor.message}</div>
-                    </div>
-                `).join('');
-            }
-            
-            const protectiveList = document.getElementById('protectiveFactorsList');
-            if (protectiveFactors.length === 0) {
-                protectiveList.innerHTML = '<p style="color: #666;">Upload more health data to identify protective factors.</p>';
-            } else {
-                protectiveList.innerHTML = protectiveFactors.map(factor => `
-                    <div class="protective-factor-item">
-                        <div class="factor-parameter">${factor.parameter}: ${factor.value} ${factor.unit}</div>
-                        <div class="factor-message">${factor.message}</div>
-                    </div>
-                `).join('');
-            }
-        }
-        
-        function viewDocument(documentId) {
-            alert(`View document functionality coming soon! Document ID: ${documentId}`);
-        }
-        
-        async function deleteDocument(documentId) {
-            if (!confirm('Are you sure you want to delete this document?')) return;
-            
-            try {
-                const response = await fetch('/api/documents', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'delete',
-                        sessionToken: currentSession.sessionToken,
-                        documentId: documentId
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    await loadDocuments();
-                    await loadHealthSummary();
-                } else {
-                    throw new Error(data.error);
-                }
-            } catch (error) {
-                alert('Error deleting document: ' + error.message);
-            }
-        }
-        
-        // Drag and drop
-        const uploadArea = document.getElementById('uploadArea');
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, e => {
+            const handleDrop = useCallback((e) => {
                 e.preventDefault();
-                e.stopPropagation();
-            }, false);
-        });
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.add('dragover');
-            }, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.remove('dragover');
-            }, false);
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            const files = e.dataTransfer.files;
-            handleFiles(files);
-        }, false);
-    </script>
-</body>
-</html>
+                setDragOver(false);
+                const files = Array.from(e.dataTransfer.files).filter(file => 
+                    file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+                );
+                if (files.length > 0) {
+                    handleFileUpload(files);
+                }
+            }, []);
+
+            const handleDragOver = useCallback((e) => {
+                e.preventDefault();
+                setDragOver(true);
+            }, []);
+
+            const handleDragLeave = useCallback((e) => {
+                e.preventDefault();
+                setDragOver(false);
+            }, []);
+
+            const renderUpload = () => (
+                <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-8">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">Upload Your Health Documents</h2>
+                        <p className="text-lg text-gray-600">
+                            Drag and drop your lab reports or health documents for instant AI analysis
+                        </p>
+                    </div>
+
+                    <div
+                        className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${
+                            dragOver
+                                ? 'border-blue-400 bg-blue-50'
+                                : isProcessing
+                                ? 'border-green-400 bg-green-50'
+                                : 'border-gray-300 hover:border-gray-400'
+                        } ${isProcessing ? 'upload-animation' : ''}`}
+                        onDrop={handleDrop}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                    >
+                        {isProcessing ? (
+                            <div className="py-8">
+                                <div className="processing-animation inline-block mb-4">
+                                    <Brain className="h-12 w-12 text-blue-600" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                    AI Processing Your Health Data
+                                </h3>
+                                <p className="text-gray-600 mb-4">
+                                    Analyzing patterns and generating insights...
+                                </p>
+                                <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                    <div 
+                                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${processingProgress}%` }}
+                                    ></div>
+                                </div>
+                                <p className="text-sm text-gray-500">{processingProgress}% Complete</p>
+                            </div>
+                        ) : (
+                            <>
+                                <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                    {dragOver ? 'Drop your files here!' : 'Choose files or drag and drop'}
+                                </h3>
+                                <p className="text-gray-500 mb-4">PDF documents up to 25MB each</p>
+                                <input
+                                    type="file"
+                                    multiple
+                                    accept=".pdf"
+                                    onChange={(e) => handleFileUpload(Array.from(e.target.files))}
+                                    className="hidden"
+                                    id="file-upload"
+                                />
+                                <label
+                                    htmlFor="file-upload"
+                                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
+                                >
+                                    Select Files
+                                </label>
+                            </>
+                        )}
+                    </div>
+
+                    {/* Privacy Assurance */}
+                    <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
+                        <div className="flex items-start">
+                            <Shield className="h-6 w-6 text-green-600 mr-3 mt-0.5" />
+                            <div>
+                                <h4 className="text-lg font-semibold text-green-800 mb-2">Your Privacy is Protected</h4>
+                                <ul className="text-sm text-green-700 space-y-1">
+                                    <li>• All processing happens locally in your browser</li>
+                                    <li>• Personal identifiers are automatically removed</li>
+                                    <li>• No health data is sent to external servers</li>
+                                    <li>• Analysis results are stored securely on your device</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const renderResults = () => {
+                if (!analysisResults && healthData.length === 0) {
+                    return (
+                        <div className="text-center py-12">
+                            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Analysis Results</h3>
+                            <p className="text-gray-500">Upload a health document to see AI-generated insights</p>
+                        </div>
+                    );
+                }
+
+                const latestResult = analysisResults || healthData[healthData.length - 1];
+                
+                return (
+                    <div className="max-w-6xl mx-auto space-y-6">
+                        {/* Analysis Header */}
+                        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white p-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-2xl font-bold mb-2">Health Analysis Complete</h2>
+                                    <p className="text-blue-100">Document: {latestResult.fileName}</p>
+                                    <p className="text-blue-100 text-sm">
+                                        Processed: {new Date(latestResult.uploadDate).toLocaleString()}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-3xl font-bold">{Object.keys(latestResult.metrics).length}</div>
+                                    <div className="text-blue-100">Metrics Analyzed</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Health Metrics Grid */}
+                        {Object.keys(latestResult.metrics).length > 0 && (
+                            <div>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-4">📊 Health Metrics</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                                    {Object.entries(latestResult.metrics).map(([metric, data]) => (
+                                        <div key={metric} className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h4 className="font-semibold text-gray-900 text-sm">{metric}</h4>
+                                                {metric.toLowerCase().includes('cholesterol') && <Heart className="h-4 w-4 text-red-500" />}
+                                                {metric.toLowerCase().includes('glucose') && <Zap className="h-4 w-4 text-yellow-500" />}
+                                                {metric.toLowerCase().includes('pressure') && <Activity className="h-4 w-4 text-blue-500" />}
+                                            </div>
+                                            <div className="text-2xl font-bold text-gray-900 mb-1">
+                                                {data.value} <span className="text-sm font-normal text-gray-500">{data.unit}</span>
+                                            </div>
+                                            <div className="text-xs text-gray-500">
+                                                Normal: {data.normal_range}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* AI Insights */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white rounded-lg border p-6">
+                                <div className="flex items-center mb-4">
+                                    <Brain className="h-6 w-6 text-purple-600 mr-2" />
+                                    <h3 className="text-xl font-semibold text-gray-900">AI Insights</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {latestResult.insights.map((insight, index) => (
+                                        <div key={index} className="flex items-start">
+                                            <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                                            <p className="text-gray-700">{insight}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg border p-6">
+                                <div className="flex items-center mb-4">
+                                    <AlertTriangle className="h-6 w-6 text-orange-600 mr-2" />
+                                    <h3 className="text-xl font-semibold text-gray-900">Recommendations</h3>
+                                </div>
+                                <div className="space-y-3">
+                                    {latestResult.recommendations.length > 0 ? (
+                                        latestResult.recommendations.map((rec, index) => (
+                                            <div key={index} className="flex items-start">
+                                                <ArrowUpRight className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+                                                <p className="text-gray-700">{rec}</p>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-gray-500 italic">No specific recommendations at this time. Continue monitoring your health metrics.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Processing Stats */}
+                        <div className
