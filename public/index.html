@@ -13,6 +13,8 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            margin: 0;
+            padding: 0;
         }
         .upload-animation {
             animation: pulse 2s infinite;
@@ -28,6 +30,16 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+        .gradient-blue-purple {
+            background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -35,7 +47,7 @@
 
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
-        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } = Recharts;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
         const { 
             Upload, FileText, Brain, Shield, Clock, Users, 
             TrendingUp, AlertTriangle, CheckCircle, X, 
@@ -468,7 +480,7 @@
                 return (
                     <div className="max-w-6xl mx-auto space-y-6">
                         {/* Analysis Header */}
-                        <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg text-white p-6">
+                        <div className="gradient-blue-purple rounded-lg text-white p-6">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h2 className="text-2xl font-bold mb-2">Health Analysis Complete</h2>
@@ -490,7 +502,7 @@
                                 <h3 className="text-xl font-semibold text-gray-900 mb-4">📊 Health Metrics</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                                     {Object.entries(latestResult.metrics).map(([metric, data]) => (
-                                        <div key={metric} className="bg-white rounded-lg border p-4 hover:shadow-md transition-shadow">
+                                        <div key={metric} className="bg-white rounded-lg border p-4 card-hover">
                                             <div className="flex items-center justify-between mb-2">
                                                 <h4 className="font-semibold text-gray-900 text-sm">{metric}</h4>
                                                 {metric.toLowerCase().includes('cholesterol') && <Heart className="h-4 w-4 text-red-500" />}
@@ -520,7 +532,448 @@
                                     {latestResult.insights.map((insight, index) => (
                                         <div key={index} className="flex items-start">
                                             <CheckCircle className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-                                            <p className="text-gray-700">{insight}</p>
+                                            <p className="text-gray-500 italic">No specific recommendations at this time. Continue monitoring your health metrics.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Processing Stats */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                            <div className="flex items-center justify-between text-sm text-gray-600">
+                                <div className="flex items-center">
+                                    <Clock className="h-4 w-4 mr-1" />
+                                    Processing Time: {latestResult.processingTime?.toFixed(2)}s
+                                </div>
+                                <div className="flex items-center">
+                                    <Shield className="h-4 w-4 mr-1" />
+                                    Privacy Protected
+                                </div>
+                                <div className="flex items-center">
+                                    <Eye className="h-4 w-4 mr-1" />
+                                    {Object.keys(latestResult.metrics).length} Metrics Found
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderTrends = () => {
+                if (healthData.length < 2) {
+                    return (
+                        <div className="text-center py-8">
+                            <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="text-gray-500 mt-2">Upload at least 2 documents to see trends</p>
+                        </div>
+                    );
+                }
+
+                // Get unique metrics across all documents
+                const allMetrics = new Set();
+                healthData.forEach(doc => {
+                    if (doc.metrics && typeof doc.metrics === 'object') {
+                        Object.keys(doc.metrics).forEach(metric => allMetrics.add(metric));
+                    }
+                });
+
+                if (allMetrics.size === 0) {
+                    return (
+                        <div className="text-center py-8">
+                            <TrendingUp className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="text-gray-500 mt-2">No health metrics found in uploaded documents</p>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="space-y-6">
+                        {Array.from(allMetrics).map(metric => {
+                            const metricData = healthData
+                                .map(doc => ({
+                                    date: doc.uploadDate,
+                                    value: doc.metrics?.[metric]?.value || doc.metrics?.[metric],
+                                    name: doc.fileName
+                                }))
+                                .filter(d => d.value !== undefined && d.value !== null && !isNaN(parseFloat(d.value)))
+                                .map(d => ({
+                                    ...d,
+                                    value: parseFloat(d.value),
+                                    date: new Date(d.date).getTime()
+                                }))
+                                .sort((a, b) => a.date - b.date);
+
+                            if (metricData.length < 2) return null;
+
+                            const latestValue = metricData[metricData.length - 1].value;
+                            const previousValue = metricData[metricData.length - 2].value;
+                            const change = latestValue - previousValue;
+                            const percentChange = previousValue !== 0 ? ((change / previousValue) * 100).toFixed(1) : '0.0';
+
+                            // Format data for chart
+                            const chartData = metricData.map(d => ({
+                                ...d,
+                                date: new Date(d.date).toLocaleDateString()
+                            }));
+
+                            return (
+                                <div key={metric} className="bg-white rounded-lg border p-4">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-semibold text-gray-900">{metric}</h3>
+                                        <div className="flex items-center">
+                                            {Math.abs(change) > 0.01 && (
+                                                <>
+                                                    {change > 0 ? (
+                                                        <ArrowUpRight className="h-4 w-4 text-red-500 mr-1" />
+                                                    ) : (
+                                                        <ArrowDownRight className="h-4 w-4 text-green-500 mr-1" />
+                                                    )}
+                                                    <span className={`text-sm font-medium ${
+                                                        change > 0 ? 'text-red-600' : 'text-green-600'
+                                                    }`}>
+                                                        {change > 0 ? '+' : ''}{percentChange}%
+                                                    </span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <ResponsiveContainer width="100%" height={200}>
+                                        <LineChart data={chartData}>
+                                            <CartesianGrid strokeDasharray="3 3" />
+                                            <XAxis dataKey="date" />
+                                            <YAxis />
+                                            <Tooltip 
+                                                formatter={(value) => [value, metric]}
+                                            />
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="value" 
+                                                stroke="#3B82F6" 
+                                                strokeWidth={2}
+                                                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                                            />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                    <div className="mt-2 text-sm text-gray-600">
+                                        Latest: <span className="font-semibold">{latestValue}</span> | 
+                                        Previous: <span className="font-semibold">{previousValue}</span> | 
+                                        Change: <span className={`font-semibold ${change >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            {change > 0 ? '+' : ''}{change.toFixed(2)}
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                );
+            };
+
+            const renderRisk = () => {
+                if (healthData.length === 0) {
+                    return (
+                        <div className="text-center py-8">
+                            <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="text-gray-500 mt-2">Upload health documents to see risk assessment</p>
+                        </div>
+                    );
+                }
+
+                // Get the latest document's metrics for risk assessment
+                const latestDoc = healthData[healthData.length - 1];
+                const riskFactors = [];
+
+                // Assess various risk factors based on available metrics
+                if (latestDoc.metrics['Triglycerides']?.value) {
+                    const risk = assessTriglyceridesRisk(latestDoc.metrics['Triglycerides'].value);
+                    riskFactors.push({
+                        metric: 'Triglycerides',
+                        value: latestDoc.metrics['Triglycerides'].value,
+                        unit: latestDoc.metrics['Triglycerides'].unit,
+                        risk: risk
+                    });
+                }
+
+                if (latestDoc.metrics['Glucose']?.value) {
+                    const risk = assessGlucoseRisk(latestDoc.metrics['Glucose'].value);
+                    riskFactors.push({
+                        metric: 'Blood Glucose',
+                        value: latestDoc.metrics['Glucose'].value,
+                        unit: latestDoc.metrics['Glucose'].unit,
+                        risk: risk
+                    });
+                }
+
+                if (latestDoc.metrics['HbA1c']?.value) {
+                    const risk = assessHbA1cRisk(latestDoc.metrics['HbA1c'].value);
+                    riskFactors.push({
+                        metric: 'HbA1c',
+                        value: latestDoc.metrics['HbA1c'].value,
+                        unit: latestDoc.metrics['HbA1c'].unit,
+                        risk: risk
+                    });
+                }
+
+                // Add cholesterol assessments
+                if (latestDoc.metrics['Total Cholesterol']?.value) {
+                    const value = latestDoc.metrics['Total Cholesterol'].value;
+                    let risk;
+                    if (value < 200) risk = { level: 'Normal', color: 'text-green-600', description: 'Optimal cholesterol level' };
+                    else if (value < 240) risk = { level: 'Borderline High', color: 'text-yellow-600', description: 'Monitor and improve diet' };
+                    else risk = { level: 'High', color: 'text-red-600', description: 'High risk, seek medical advice' };
+                    
+                    riskFactors.push({
+                        metric: 'Total Cholesterol',
+                        value: value,
+                        unit: latestDoc.metrics['Total Cholesterol'].unit,
+                        risk: risk
+                    });
+                }
+
+                if (latestDoc.metrics['LDL Cholesterol']?.value) {
+                    const value = latestDoc.metrics['LDL Cholesterol'].value;
+                    let risk;
+                    if (value < 100) risk = { level: 'Optimal', color: 'text-green-600', description: 'Excellent LDL level' };
+                    else if (value < 130) risk = { level: 'Near Optimal', color: 'text-yellow-600', description: 'Good, maintain current habits' };
+                    else if (value < 160) risk = { level: 'Borderline High', color: 'text-orange-600', description: 'Lifestyle changes recommended' };
+                    else risk = { level: 'High', color: 'text-red-600', description: 'High risk, medical consultation needed' };
+                    
+                    riskFactors.push({
+                        metric: 'LDL Cholesterol',
+                        value: value,
+                        unit: latestDoc.metrics['LDL Cholesterol'].unit,
+                        risk: risk
+                    });
+                }
+
+                if (riskFactors.length === 0) {
+                    return (
+                        <div className="text-center py-8">
+                            <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="text-gray-500 mt-2">No risk factors could be assessed from your health data</p>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="space-y-6">
+                        <div className="bg-gradient-to-r from-orange-500 to-red-600 rounded-lg text-white p-6">
+                            <h2 className="text-2xl font-bold mb-2">Health Risk Assessment</h2>
+                            <p className="text-orange-100">Based on your latest health metrics</p>
+                        </div>
+
+                        <div className="grid gap-6">
+                            {riskFactors.map((factor, index) => (
+                                <div key={index} className="bg-white rounded-lg border p-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900">{factor.metric}</h3>
+                                            <p className="text-2xl font-bold text-gray-700">
+                                                {factor.value} <span className="text-sm font-normal text-gray-500">{factor.unit}</span>
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                                                factor.risk.level === 'Normal' || factor.risk.level === 'Optimal' ? 'bg-green-100 text-green-800' :
+                                                factor.risk.level === 'Borderline High' || factor.risk.level === 'Near Optimal' || factor.risk.level === 'Prediabetes' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
+                                            }`}>
+                                                {factor.risk.level}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p className={`text-sm ${factor.risk.color}`}>{factor.risk.description}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Overall Risk Summary */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-blue-900 mb-3">💡 Risk Management Tips</h3>
+                            <ul className="text-sm text-blue-800 space-y-2">
+                                <li>• Regular exercise (150 minutes moderate activity per week)</li>
+                                <li>• Heart-healthy diet rich in fruits, vegetables, and whole grains</li>
+                                <li>• Maintain healthy weight and limit processed foods</li>
+                                <li>• Regular health screenings and follow-up with healthcare providers</li>
+                                <li>• Stress management and adequate sleep (7-9 hours nightly)</li>
+                            </ul>
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderHistory = () => {
+                if (healthData.length === 0) {
+                    return (
+                        <div className="text-center py-8">
+                            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                            <p className="text-gray-500 mt-2">No documents uploaded yet</p>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold text-gray-900">Document History</h2>
+                            <div className="text-sm text-gray-500">
+                                {healthData.length} document{healthData.length !== 1 ? 's' : ''} processed
+                            </div>
+                        </div>
+
+                        {healthData.map((doc, index) => (
+                            <div key={index} className="bg-white rounded-lg border card-hover">
+                                <div className="p-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center">
+                                            <FileText className="h-6 w-6 text-blue-600 mr-3" />
+                                            <div>
+                                                <h3 className="text-lg font-semibold text-gray-900">{doc.fileName}</h3>
+                                                <p className="text-sm text-gray-500">
+                                                    {new Date(doc.uploadDate).toLocaleString()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Processed
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                        <div className="text-center p-3 bg-gray-50 rounded">
+                                            <div className="text-2xl font-bold text-gray-900">{Object.keys(doc.metrics).length}</div>
+                                            <div className="text-xs text-gray-500">Metrics</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-gray-50 rounded">
+                                            <div className="text-2xl font-bold text-gray-900">{doc.insights.length}</div>
+                                            <div className="text-xs text-gray-500">Insights</div>
+                                        </div>
+                                        <div className="text-center p-3 bg-gray-50 rounded">
+                                            <div className="text-2xl font-bold text-gray-900">{doc.recommendations.length}</div>
+                                            <div className="text-xs text-gray-500">Recommendations</div>
+                                        </div>
+                                    </div>
+
+                                    {Object.keys(doc.metrics).length > 0 && (
+                                        <div>
+                                            <h4 className="font-semibold text-gray-900 mb-2">Key Metrics:</h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {Object.entries(doc.metrics).slice(0, 6).map(([metric, data]) => (
+                                                    <span key={metric} className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        {metric}: {data.value} {data.unit}
+                                                    </span>
+                                                ))}
+                                                {Object.keys(doc.metrics).length > 6 && (
+                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                        +{Object.keys(doc.metrics).length - 6} more
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    {/* Header */}
+                    <header className="bg-white shadow-sm border-b">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex justify-between items-center py-4">
+                                <div className="flex items-center">
+                                    <div className="flex items-center">
+                                        <div className="w-10 h-10 gradient-blue-purple rounded-lg flex items-center justify-center mr-3">
+                                            <Brain className="h-6 w-6 text-white" />
+                                        </div>
+                                        <h1 className="text-2xl font-bold text-gray-900">HealthAI</h1>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    <div className="flex items-center text-sm text-gray-500">
+                                        <Shield className="h-4 w-4 mr-1" />
+                                        Privacy Protected
+                                    </div>
+                                    <div className="flex items-center text-sm text-gray-500">
+                                        <Users className="h-4 w-4 mr-1" />
+                                        {healthData.length} Documents
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Navigation */}
+                    <nav className="bg-white border-b">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex space-x-8">
+                                {[
+                                    { id: 'upload', label: 'Upload', icon: Upload },
+                                    { id: 'results', label: 'Results', icon: Brain },
+                                    { id: 'trends', label: 'Trends', icon: TrendingUp },
+                                    { id: 'risk', label: 'Risk Assessment', icon: AlertTriangle },
+                                    { id: 'history', label: 'History', icon: FileText }
+                                ].map(({ id, label, icon: Icon }) => (
+                                    <button
+                                        key={id}
+                                        onClick={() => setActiveTab(id)}
+                                        className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
+                                            activeTab === id
+                                                ? 'border-blue-500 text-blue-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <Icon className="h-4 w-4 mr-2" />
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </nav>
+
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {activeTab === 'upload' && renderUpload()}
+                        {activeTab === 'results' && renderResults()}
+                        {activeTab === 'trends' && renderTrends()}
+                        {activeTab === 'risk' && renderRisk()}
+                        {activeTab === 'history' && renderHistory()}
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-white border-t mt-auto">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                            <div className="flex justify-between items-center text-sm text-gray-500">
+                                <div className="flex items-center space-x-6">
+                                    <div className="flex items-center">
+                                        <Clock className="h-4 w-4 mr-1" />
+                                        Sub-3s Analysis
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Shield className="h-4 w-4 mr-1" />
+                                        100% Private
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Brain className="h-4 w-4 mr-1" />
+                                        AI-Powered
+                                    </div>
+                                </div>
+                                <div>
+                                    © 2024 HealthAI. Privacy-first health analysis.
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<HealthAIDashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>text-gray-700">{insight}</p>
                                         </div>
                                     ))}
                                 </div>
@@ -540,11 +993,4 @@
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-gray-500 italic">No specific recommendations at this time. Continue monitoring your health metrics.</p>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Processing Stats */}
-                        <div className
+                                        <p className="
