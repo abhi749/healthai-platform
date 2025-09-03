@@ -9,9 +9,9 @@ export async function onRequestPost(context) {
   };
 
   try {
-    const { action, sessionToken, ...data } = await request.json();
+    const requestBody = await request.json();
+    const { action, sessionToken, ...data } = requestBody;
     
-    // Verify session token
     if (!sessionToken) {
       throw new Error('Session token required');
     }
@@ -31,7 +31,7 @@ export async function onRequestPost(context) {
       case 'delete':
         return await deleteDocument(data, session, env, corsHeaders);
       default:
-        throw new Error('Invalid action');
+        throw new Error('Invalid action: ' + action);
     }
 
   } catch (error) {
@@ -39,7 +39,8 @@ export async function onRequestPost(context) {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error.message,
+      details: error.stack || 'No additional details'
     }), {
       status: 500,
       headers: corsHeaders
@@ -51,12 +52,29 @@ export async function onRequestPost(context) {
 async function storeHealthDocument(data, session, env, corsHeaders) {
   const { documentName, extractedParameters, analysisResult, documentType, testDate } = data;
   
+  console.log('Storing document with parameters:', extractedParameters);
+  
   if (!documentName || !extractedParameters) {
     throw new Error('Document name and extracted parameters required');
   }
 
-  // Generate document ID
   const documentId = generateDocumentId();
+  
+  // Handle different parameter formats - extract the actual health parameters
+  let parametersToStore = [];
+  
+  if (Array.isArray(extractedParameters)) {
+    parametersToStore = extractedParameters;
+  } else if (extractedParameters.healthParameters && Array.isArray(extractedParameters.healthParameters)) {
+    parametersToStore = extractedParameters.healthParameters;
+  } else if (typeof extractedParameters === 'object' && extractedParameters.healthParameters) {
+    parametersToStore = extractedParameters.healthParameters;
+  } else {
+    console.log('Unexpected parameter format:', extractedParameters);
+    parametersToStore = [];
+  }
+  
+  console.log('Final parameters to store:', parametersToStore);
   
   // Store document metadata in D1
   await env.DB.prepare(`
@@ -71,16 +89,16 @@ async function storeHealthDocument(data, session, env, corsHeaders) {
     documentName,
     documentType || 'Health Report',
     testDate || new Date().toISOString().split('T')[0],
-    JSON.stringify(extractedParameters),
+    JSON.stringify(parametersToStore),
     analysisResult || '',
     new Date().toISOString(),
-    Array.isArray(extractedParameters) ? extractedParameters.length : 0,
+    parametersToStore.length || 0,
     'active'
   ).run();
 
   // Store individual parameters for trend analysis
-  if (Array.isArray(extractedParameters)) {
-    for (const param of extractedParameters) {
+  if (parametersToStore.length > 0) {
+    for (const param of parametersToStore) {
       await storeHealthParameter(documentId, param, session.session_token, testDate, env);
     }
   }
@@ -96,7 +114,11 @@ async function storeHealthDocument(data, session, env, corsHeaders) {
     success: true,
     documentId: documentId,
     message: 'Document stored successfully',
-    parametersStored: Array.isArray(extractedParameters) ? extractedParameters.length : 0
+    parametersStored: parametersToStore.length,
+    debug: {
+      originalData: extractedParameters,
+      storedParameters: parametersToStore
+    }
   }), {
     headers: corsHeaders
   });
@@ -105,7 +127,13 @@ async function storeHealthDocument(data, session, env, corsHeaders) {
 // Store individual health parameter for trend tracking
 async function storeHealthParameter(documentId, parameter, sessionToken, testDate, env) {
   try {
-    const paramValue = extractNumericValue(parameter.value || parameter.parameter);
+    const paramName = parameter.parameter || parameter.name || 'Unknown Parameter';
+    const paramValue = extractNumericValue(parameter.value);
+    const paramUnit = parameter.unit || '';
+    const refRange = parameter.referenceRange || parameter.reference_range || '';
+    const category = parameter.category || 'General';
+    
+    console.log('Storing parameter:', { paramName, paramValue, paramUnit });
     
     await env.DB.prepare(`
       INSERT INTO health_parameters (
@@ -117,12 +145,12 @@ async function storeHealthParameter(documentId, parameter, sessionToken, testDat
       generateParameterId(),
       documentId,
       sessionToken,
-      parameter.parameter || parameter.name,
+      paramName,
       paramValue,
-      parameter.unit || '',
-      parameter.referenceRange || '',
+      paramUnit,
+      refRange,
       testDate || new Date().toISOString().split('T')[0],
-      parameter.category || 'General',
+      category,
       new Date().toISOString()
     ).run();
     
@@ -133,20 +161,24 @@ async function storeHealthParameter(documentId, parameter, sessionToken, testDat
 
 // List user's documents
 async function listUserDocuments(session, env, corsHeaders) {
+  console.log('Listing documents for session:', session.session_token.substring(0, 10) + '...');
+  
   const documents = await env.DB.prepare(`
     SELECT document_id, document_name, document_type, test_date,
-           parameter_count, created_at, status
+           parameter_count, created_at, status, parameters_json
     FROM health_documents 
     WHERE session_token = ? AND status = 'active'
     ORDER BY test_date DESC, created_at DESC
   `).bind(session.session_token).all();
+
+  console.log('Documents found:', documents.results?.length || 0);
 
   return new Response(JSON.stringify({
     success: true,
     documents: documents.results || [],
     totalDocuments: documents.results?.length || 0,
     userSession: {
-      documentCount: session.document_count,
+      documentCount: session.document_count || 0,
       memberSince: session.created_at
     }
   }), {
@@ -156,7 +188,7 @@ async function listUserDocuments(session, env, corsHeaders) {
 
 // Analyze health trends across documents
 async function analyzeTrends(data, session, env, corsHeaders) {
-  const { parameters, timeRange = '1year' } = data;
+  const { parameters, timeRange = '6months' } = data;
   
   // Calculate date range
   const endDate = new Date();
@@ -176,43 +208,27 @@ async function analyzeTrends(data, session, env, corsHeaders) {
       break;
   }
 
-  // Get trend data for specified parameters
-  let trendData = [];
-  
-  if (parameters && parameters.length > 0) {
-    // Specific parameters requested
-    for (const paramName of parameters) {
-      const paramData = await getParameterTrend(paramName, session.session_token, startDate, endDate, env);
-      if (paramData.length > 0) {
-        trendData.push({
-          parameter: paramName,
-          data: paramData,
-          trend: calculateTrend(paramData)
-        });
-      }
-    }
-  } else {
-    // Get all available parameters
-    const allParams = await env.DB.prepare(`
-      SELECT DISTINCT parameter_name
-      FROM health_parameters 
-      WHERE session_token = ? AND test_date >= ? AND test_date <= ?
-      ORDER BY parameter_name
-    `).bind(
-      session.session_token,
-      startDate.toISOString().split('T')[0],
-      endDate.toISOString().split('T')[0]
-    ).all();
+  // Get trend data for all available parameters
+  const allParams = await env.DB.prepare(`
+    SELECT DISTINCT parameter_name
+    FROM health_parameters 
+    WHERE session_token = ? AND test_date >= ? AND test_date <= ?
+    ORDER BY parameter_name
+  `).bind(
+    session.session_token,
+    startDate.toISOString().split('T')[0],
+    endDate.toISOString().split('T')[0]
+  ).all();
 
-    for (const param of (allParams.results || [])) {
-      const paramData = await getParameterTrend(param.parameter_name, session.session_token, startDate, endDate, env);
-      if (paramData.length > 1) { // Only include if there are multiple data points
-        trendData.push({
-          parameter: param.parameter_name,
-          data: paramData,
-          trend: calculateTrend(paramData)
-        });
-      }
+  let trendData = [];
+  for (const param of (allParams.results || [])) {
+    const paramData = await getParameterTrend(param.parameter_name, session.session_token, startDate, endDate, env);
+    if (paramData.length > 1) {
+      trendData.push({
+        parameter: param.parameter_name,
+        data: paramData,
+        trend: calculateTrend(paramData)
+      });
     }
   }
 
@@ -264,16 +280,14 @@ function calculateTrend(data) {
   const lastValue = values[values.length - 1];
   const percentChange = ((lastValue - firstValue) / firstValue) * 100;
 
-  // Calculate if trend is significant (>5% change)
   if (Math.abs(percentChange) < 5) return 'stable';
-  
   return percentChange > 0 ? 'increasing' : 'decreasing';
 }
 
 // Generate AI-powered trend analysis
 async function generateTrendAnalysis(trendData, env) {
   if (trendData.length === 0) {
-    return 'No trend data available for analysis.';
+    return 'Upload more documents with similar health parameters to see trend analysis. The system needs at least 2 data points per parameter to identify patterns.';
   }
 
   const trendSummary = trendData.map(trend => {
@@ -301,10 +315,10 @@ Keep response concise (under 300 words) and encouraging.`;
       temperature: 0.7
     });
 
-    return aiResponse.response || 'Trend analysis unavailable. Please consult your healthcare provider for interpretation.';
+    return aiResponse.response || 'Trend analysis shows your health parameters over time. Continue monitoring with regular uploads to track your progress.';
   } catch (error) {
     console.error('AI trend analysis error:', error);
-    return 'Trend analysis unavailable. Please consult your healthcare provider for interpretation.';
+    return 'Trend analysis available. Continue uploading health documents to see patterns over time. Consult your healthcare provider for professional interpretation.';
   }
 }
 
@@ -350,10 +364,17 @@ async function deleteDocument(data, session, env, corsHeaders) {
 
 // Utility functions
 async function verifySessionToken(sessionToken, env) {
-  return await env.DB.prepare(`
-    SELECT * FROM anonymous_sessions 
-    WHERE session_token = ? AND expires_at > datetime('now')
-  `).bind(sessionToken).first();
+  try {
+    const session = await env.DB.prepare(`
+      SELECT * FROM anonymous_sessions 
+      WHERE session_token = ? AND expires_at > datetime('now')
+    `).bind(sessionToken).first();
+    
+    return session;
+  } catch (error) {
+    console.error('Database error in verifySessionToken:', error);
+    throw error;
+  }
 }
 
 function generateDocumentId() {
@@ -366,29 +387,63 @@ function generateParameterId() {
 
 function extractNumericValue(value) {
   if (typeof value === 'number') return value;
-  const match = String(value).match(/[\d.]+/);
-  return match ? parseFloat(match[0]) : null;
+  if (typeof value === 'string') {
+    const match = value.match(/[\d.]+/);
+    return match ? parseFloat(match[0]) : null;
+  }
+  return null;
 }
 
-// Handle other HTTP methods
+// Handle GET requests
 export async function onRequestGet(context) {
   const { request, env } = context;
-  const url = new URL(request.url);
-  const sessionToken = url.searchParams.get('session');
   
-  if (!sessionToken) {
-    return new Response(JSON.stringify({ error: 'Session token required' }), { status: 401 });
-  }
-
-  const session = await verifySessionToken(sessionToken, env);
-  if (!session) {
-    return new Response(JSON.stringify({ error: 'Invalid session' }), { status: 401 });
-  }
-
-  return await listUserDocuments(session, env, {
+  const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, GET, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Content-Type': 'application/json'
-  });
+  };
+  
+  try {
+    const url = new URL(request.url);
+    const sessionToken = url.searchParams.get('session');
+    
+    if (!sessionToken) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Session token required in query parameter' 
+      }), { 
+        status: 401,
+        headers: corsHeaders
+      });
+    }
+
+    const session = await verifySessionToken(sessionToken, env);
+    if (!session) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        error: 'Invalid or expired session token' 
+      }), { 
+        status: 401,
+        headers: corsHeaders
+      });
+    }
+
+    return await listUserDocuments(session, env, corsHeaders);
+
+  } catch (error) {
+    console.error('GET request error:', error);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      details: 'Error in GET request processing'
+    }), {
+      status: 500,
+      headers: corsHeaders
+    });
+  }
 }
 
 export async function onRequestOptions() {
