@@ -35,7 +35,7 @@ export async function onRequestPost(context) {
   }
 }
 
-// Create anonymous session with duplicate email handling
+// Create anonymous session with security questions
 async function createAnonymousSession(data, env, corsHeaders) {
   const { userEmailHash, securityAnswers, deviceFingerprint } = data;
   
@@ -43,41 +43,13 @@ async function createAnonymousSession(data, env, corsHeaders) {
     throw new Error('Missing required session data');
   }
 
-  // Check if session already exists for this email hash
-  const existingSession = await env.DB.prepare(`
-    SELECT session_token, user_salt, expires_at FROM anonymous_sessions 
-    WHERE user_email_hash = ?
-  `).bind(userEmailHash).first();
-
-  if (existingSession) {
-    // Update last activity for existing session
-    await env.DB.prepare(`
-      UPDATE anonymous_sessions 
-      SET last_activity = ?, device_fingerprint = ?
-      WHERE user_email_hash = ?
-    `).bind(
-      new Date().toISOString(),
-      deviceFingerprint,
-      userEmailHash
-    ).run();
-
-    return new Response(JSON.stringify({
-      success: true,
-      sessionToken: existingSession.session_token,
-      userSalt: existingSession.user_salt,
-      message: 'Using existing session for this email',
-      existing: true,
-      expiresAt: existingSession.expires_at
-    }), {
-      headers: corsHeaders
-    });
-  }
-
-  // Generate new session
+  // Generate anonymous session token
   const sessionToken = generateAnonymousToken();
+  
+  // Create user salt for cross-device key regeneration
   const userSalt = generateSalt();
   
-  // Hash security answers for verification
+  // Hash security answers for verification (but don't store the answers)
   const answerHashes = await Promise.all(
     securityAnswers.map(answer => hashSecurityAnswer(answer.toLowerCase().trim(), userSalt))
   );
@@ -159,6 +131,7 @@ async function verifySession(data, env, corsHeaders) {
     answerHashes[2] === session.answer_hash_3;
 
   if (!answersMatch) {
+    // Log failed attempt
     console.warn('Failed session verification attempt', { userEmailHash, deviceFingerprint });
     throw new Error('Security verification failed');
   }
@@ -265,6 +238,7 @@ function generateSalt() {
 }
 
 async function hashSecurityAnswer(answer, salt) {
+  // Simple hash function for demo - in production would use stronger hashing
   const encoder = new TextEncoder();
   const data = encoder.encode(answer + salt);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
