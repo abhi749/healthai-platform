@@ -52,11 +52,14 @@ export async function onRequestPost(context) {
   }
 }
 
-// Store health document with extracted parameters
+// FIXED: Store health document with proper test date handling
 async function storeHealthDocument(data, session, env, corsHeaders) {
   const { documentName, extractedParameters, analysisResult, documentType, testDate } = data;
   
-  console.log('Storing document:', documentName, 'Parameters:', extractedParameters?.length || 0);
+  console.log('=== STORING HEALTH DOCUMENT ===');
+  console.log('Document name:', documentName);
+  console.log('Test date provided:', testDate);
+  console.log('Parameters count:', extractedParameters?.length || 0);
   
   if (!documentName || !extractedParameters) {
     throw new Error('Document name and extracted parameters required');
@@ -66,6 +69,39 @@ async function storeHealthDocument(data, session, env, corsHeaders) {
   const documentId = generateDocumentId();
   const currentTime = new Date().toISOString();
   
+  // Extract the best possible test date
+  let finalTestDate = testDate;
+  
+  // Try to extract test date from the first parameter if not provided
+  if (!finalTestDate && Array.isArray(extractedParameters) && extractedParameters.length > 0) {
+    for (const param of extractedParameters) {
+      if (param.date && param.date !== 'null' && param.date !== '') {
+        finalTestDate = param.date;
+        console.log('Using test date from parameter:', finalTestDate);
+        break;
+      }
+    }
+  }
+  
+  // Fall back to current date if still no test date
+  if (!finalTestDate || finalTestDate === 'null' || finalTestDate === '') {
+    finalTestDate = new Date().toISOString().split('T')[0];
+    console.log('Using current date as fallback test date:', finalTestDate);
+  }
+  
+  // Ensure test date is in YYYY-MM-DD format
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(finalTestDate)) {
+    console.warn(`Invalid test date format: ${finalTestDate}, converting...`);
+    try {
+      finalTestDate = new Date(finalTestDate).toISOString().split('T')[0];
+    } catch (dateError) {
+      console.error('Could not parse test date, using current date');
+      finalTestDate = new Date().toISOString().split('T')[0];
+    }
+  }
+  
+  console.log('Final test date to be used:', finalTestDate);
+
   try {
     // Store document metadata in D1
     const insertResult = await env.DB.prepare(`
@@ -79,7 +115,7 @@ async function storeHealthDocument(data, session, env, corsHeaders) {
       session.session_token,
       documentName,
       documentType || 'Health Report',
-      testDate || new Date().toISOString().split('T')[0],
+      finalTestDate, // Use the validated test date
       JSON.stringify(extractedParameters),
       analysisResult || '',
       currentTime,
@@ -87,14 +123,15 @@ async function storeHealthDocument(data, session, env, corsHeaders) {
       'active'
     ).run();
 
-    console.log('Document stored with ID:', documentId, 'Insert result:', insertResult);
+    console.log('Document stored with ID:', documentId);
+    console.log('Document test_date stored as:', finalTestDate);
 
     // Store individual parameters for detailed records
     if (Array.isArray(extractedParameters)) {
       for (const param of extractedParameters) {
-        await storeHealthParameter(documentId, param, session.session_token, testDate, env);
+        await storeHealthParameter(documentId, param, session.session_token, finalTestDate, env);
       }
-      console.log('Stored', extractedParameters.length, 'individual parameters');
+      console.log('Stored', extractedParameters.length, 'individual parameters with test_date:', finalTestDate);
     }
 
     // Update document count in session
@@ -104,13 +141,14 @@ async function storeHealthDocument(data, session, env, corsHeaders) {
       WHERE session_token = ?
     `).bind(currentTime, session.session_token).run();
 
-    console.log('Document storage complete');
+    console.log('=== DOCUMENT STORAGE COMPLETE ===');
 
     return new Response(JSON.stringify({
       success: true,
       documentId: documentId,
       message: 'Document stored successfully',
       parametersStored: Array.isArray(extractedParameters) ? extractedParameters.length : 0,
+      testDate: finalTestDate,
       timestamp: currentTime
     }), {
       headers: corsHeaders
@@ -122,11 +160,27 @@ async function storeHealthDocument(data, session, env, corsHeaders) {
   }
 }
 
-// Store individual health parameter for detailed records
+// FIXED: Store individual health parameter with proper test date
 async function storeHealthParameter(documentId, parameter, sessionToken, testDate, env) {
   try {
     const paramValue = extractNumericValue(parameter.value || parameter.parameter);
     const currentTime = new Date().toISOString();
+    
+    // Ensure we have a valid test date
+    let finalTestDate = testDate;
+    if (!finalTestDate || finalTestDate === 'null' || finalTestDate === '') {
+      // If no test date provided, use document creation date
+      finalTestDate = new Date().toISOString().split('T')[0];
+      console.log(`Using current date as test_date for parameter:`, parameter.parameter || parameter.name);
+    }
+    
+    // Validate the test date format
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(finalTestDate)) {
+      console.warn(`Invalid test_date format: ${finalTestDate}, using current date`);
+      finalTestDate = new Date().toISOString().split('T')[0];
+    }
+    
+    console.log(`Storing parameter: ${parameter.parameter || parameter.name} = ${paramValue} on ${finalTestDate}`);
     
     await env.DB.prepare(`
       INSERT INTO health_parameters (
@@ -142,10 +196,12 @@ async function storeHealthParameter(documentId, parameter, sessionToken, testDat
       paramValue,
       parameter.unit || '',
       parameter.referenceRange || parameter.reference_range || '',
-      testDate || new Date().toISOString().split('T')[0],
+      finalTestDate, // Use the validated test date
       parameter.category || 'General',
       currentTime
     ).run();
+    
+    console.log(`✅ Successfully stored parameter: ${parameter.parameter || parameter.name}`);
     
   } catch (error) {
     console.error('Error storing parameter:', parameter, error);
@@ -217,7 +273,7 @@ async function listUserDocuments(session, env, corsHeaders) {
   }
 }
 
-// Analyze health trends across documents - ENHANCED DEBUG VERSION
+// FIXED: Analyze health trends with proper test date handling
 async function analyzeTrends(data, session, env, corsHeaders) {
   const { parameters, timeRange = '1year' } = data;
   
@@ -336,7 +392,6 @@ async function analyzeTrends(data, session, env, corsHeaders) {
     };
 
     console.log('=== TREND ANALYSIS COMPLETE ===');
-    console.log('Result:', result);
 
     return new Response(JSON.stringify(result), {
       headers: corsHeaders
@@ -345,7 +400,6 @@ async function analyzeTrends(data, session, env, corsHeaders) {
   } catch (error) {
     console.error('=== TREND ANALYSIS ERROR ===');
     console.error('Error details:', error);
-    console.error('Stack trace:', error.stack);
     
     return new Response(JSON.stringify({
       success: false,
@@ -364,17 +418,25 @@ async function analyzeTrends(data, session, env, corsHeaders) {
   }
 }
 
-// Enhanced parameter trend retrieval with better logging
+// FIXED: Enhanced parameter trend retrieval with proper test date handling
 async function getParameterTrend(parameterName, sessionToken, startDate, endDate, env) {
   console.log(`Getting trend for parameter: ${parameterName}`);
+  console.log(`Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
   
   try {
     const query = `
-      SELECT parameter_value, parameter_unit, test_date, reference_range, created_at
+      SELECT 
+        parameter_value, 
+        parameter_unit, 
+        test_date, 
+        reference_range, 
+        created_at,
+        parameter_name
       FROM health_parameters 
       WHERE session_token = ? AND parameter_name = ? 
       AND test_date >= ? AND test_date <= ?
       AND parameter_value IS NOT NULL
+      AND parameter_value != ''
       ORDER BY test_date ASC, created_at ASC
     `;
     
@@ -389,20 +451,44 @@ async function getParameterTrend(parameterName, sessionToken, startDate, endDate
     
     if (results.results && results.results.length > 0) {
       console.log('Sample data:', results.results[0]);
+      console.log('All test dates:', results.results.map(r => r.test_date));
     }
 
     const trendData = (results.results || []).map(row => {
       const numValue = parseFloat(row.parameter_value);
+      
+      // Use test_date as primary, fall back to created_at if needed
+      let dateToUse = row.test_date;
+      if (!dateToUse || dateToUse === 'null' || dateToUse === '') {
+        dateToUse = row.created_at?.split('T')[0]; // Extract date part from timestamp
+        console.log(`Using created_at date for ${parameterName}:`, dateToUse);
+      }
+      
       return {
         value: isNaN(numValue) ? 0 : numValue,
         unit: row.parameter_unit || '',
-        date: row.test_date,
+        date: dateToUse,
         referenceRange: row.reference_range || '',
-        createdAt: row.created_at
+        createdAt: row.created_at,
+        testDate: row.test_date // Keep original for debugging
       };
-    }).filter(item => item.value > 0); // Filter out zero values
+    }).filter(item => {
+      // Filter out invalid data
+      const hasValidValue = item.value > 0;
+      const hasValidDate = item.date && item.date !== 'null' && item.date !== '';
+      
+      if (!hasValidValue) {
+        console.log(`Filtered out ${parameterName} - invalid value:`, item.value);
+      }
+      if (!hasValidDate) {
+        console.log(`Filtered out ${parameterName} - invalid date:`, item.date);
+      }
+      
+      return hasValidValue && hasValidDate;
+    });
 
     console.log(`Processed trend data for ${parameterName}:`, trendData.length, 'valid points');
+    console.log('Final data points:', trendData.map(d => `${d.date}: ${d.value}`));
     
     return trendData;
     
