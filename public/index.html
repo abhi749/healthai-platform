@@ -22,6 +22,42 @@
             min-height: 100vh;
         }
         
+        // Session management
+        function checkSession() {
+            if (!currentSession) {
+                const shouldCreateSession = confirm('You need to create a session to store documents and track trends. Would you like to create one now?');
+                if (shouldCreateSession) {
+                    window.location.href = '/setup.html';
+                }
+                return false;
+            }
+            return true;
+        }
+        
+        // Initialize charts on tab switch
+        function initializeChart(chartId, type = 'line') {
+            const ctx = document.getElementById(chartId);
+            if (!ctx) return null;
+            
+            return new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: [],
+                    datasets: []
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+        
         .container {
             max-width: 1200px;
             margin: 0 auto;
