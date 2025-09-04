@@ -571,12 +571,15 @@
                 processingSteps.innerHTML += '<br>✅ Step 2: Extracting health parameters...';
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // Extract parameters using our smart API
-                const extractionResponse = await fetch('/api/extract', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentText: simulatedData.text })
-                });
+                // Create FormData with the actual file
+const formData = new FormData();
+formData.append('pdfFile', file);
+
+// Extract parameters using our smart API with real file
+const extractionResponse = await fetch('/api/extract', {
+    method: 'POST',
+    body: formData  // Send as FormData, no Content-Type header needed
+});
                 
                 const extractionData = await extractionResponse.json();
                 
