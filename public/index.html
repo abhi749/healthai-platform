@@ -474,26 +474,124 @@ function updateUI() {
 
 // Update results tab
 function updateResults() {
-    if (healthData.length === 0) return;
+    console.log('Updating results tab...');
+    
+    if (healthData.length === 0) {
+        console.log('No health data available');
+        return;
+    }
     
     const latest = healthData[healthData.length - 1];
+    console.log('Latest result:', latest.fileName, 'with', Object.keys(latest.metrics).length, 'metrics');
+    
     document.getElementById('no-results').classList.add('hidden');
     document.getElementById('results-content').classList.remove('hidden');
     document.getElementById('results-content').innerHTML = `
-        <div class="gradient-bg rounded-lg text-white p-6 mb-6">
-            <h2 class="text-2xl font-bold mb-2">Health Analysis Complete</h2>
-            <p>Document: ${latest.fileName}</p>
-            <p class="text-sm opacity-75">Processed: ${new Date(latest.uploadDate).toLocaleString()}</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            ${Object.entries(latest.metrics).map(([name, data]) => `
-                <div class="bg-white p-4 rounded-lg border metric-card">
-                    <h4 class="font-semibold text-gray-900">${name}</h4>
-                    <p class="text-2xl font-bold">${data.value} ${data.unit}</p>
+        <div class="max-w-6xl mx-auto space-y-6">
+            <div class="gradient-bg rounded-lg text-white p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-2">🩺 Health Analysis Complete</h2>
+                        <p class="text-blue-100">Document: ${latest.fileName}</p>
+                        <p class="text-blue-100 text-sm">Processed: ${new Date(latest.uploadDate).toLocaleString()}</p>
+                        ${latest.medlineIntegration ? '<p class="text-blue-100 text-xs">✓ MedlinePlus integration active</p>' : ''}
+                    </div>
+                    <div class="text-right">
+                        <div class="text-3xl font-bold">${Object.keys(latest.metrics).length}</div>
+                        <div class="text-blue-100">Metrics Analyzed</div>
+                    </div>
                 </div>
-            `).join('')}
+            </div>
+
+            <div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-4">📊 Health Metrics</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    ${Object.entries(latest.metrics).map(([name, data]) => `
+                        <div class="bg-white p-4 rounded-lg border metric-card">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="font-semibold text-gray-900 text-sm">${name}</h4>
+                                ${name.toLowerCase().includes('cholesterol') ? 
+                                    '<svg class="h-4 w-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>' : 
+                                  name.toLowerCase().includes('glucose') ? 
+                                    '<svg class="h-4 w-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>' : ''
+                                }
+                            </div>
+                            <div class="text-2xl font-bold text-gray-900 mb-1">
+                                ${data.value} <span class="text-sm font-normal text-gray-500">${data.unit}</span>
+                            </div>
+                            <div class="text-xs text-gray-500">Normal: ${data.normal_range || 'See reference'}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg border p-6">
+                    <div class="flex items-center mb-4">
+                        <svg class="h-6 w-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        <h3 class="text-xl font-semibold text-gray-900">🧠 AI Insights</h3>
+                    </div>
+                    <div class="space-y-3">
+                        ${latest.insights.map((insight, index) => `
+                            <div class="flex items-start">
+                                <svg class="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="text-gray-700">${insight}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg border p-6">
+                    <div class="flex items-center mb-4">
+                        <svg class="h-6 w-6 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <h3 class="text-xl font-semibold text-gray-900">💡 Recommendations</h3>
+                    </div>
+                    <div class="space-y-3">
+                        ${latest.recommendations.map((rec, index) => `
+                            <div class="flex items-start">
+                                <svg class="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
+                                </svg>
+                                <p class="text-gray-700">${rec}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-center justify-between text-sm text-gray-600">
+                    <div class="flex items-center">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Processing Time: ${latest.processingTime?.toFixed(2)}s
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        Privacy Protected
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        ${Object.keys(latest.metrics).length} Metrics Found
+                    </div>
+                </div>
+            </div>
         </div>
     `;
+    
+    console.log('Results tab updated successfully');
 }
 
 // Update history tab
