@@ -600,7 +600,7 @@
         };
         
         function showVersionInfo() {
-            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔥 Latest Changes (Build 4):\n• FIXED: File upload processing workflow\n• FIXED: Removed code visibility from frontend\n• FIXED: Build number now properly updates\n• FIXED: Enhanced error handling and debugging\n• IMPROVED: Clean analysis results display`);
+            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔥 Latest Changes (Build 5):\n• FIXED: Chart.js library loading issues\n• FIXED: Health Records tab now populating correctly\n• FIXED: Better error handling for trends\n• IMPROVED: CDN library loading from jsDelivr\n• IMPROVED: Chart error handling and fallbacks`);
         }
         
         // Global state
@@ -1173,7 +1173,7 @@
             `).join('');
         }
         
-        // Load trends
+        // Load trends - ENHANCED DEBUG VERSION
         async function loadTrends() {
             if (!currentSession) {
                 document.getElementById('trendAnalysis').innerHTML = `
@@ -1187,6 +1187,13 @@
             
             try {
                 const timeRange = document.getElementById('timeRange')?.value || '6months';
+                console.log('=== LOADING TRENDS ===');
+                console.log('Time range:', timeRange);
+                console.log('Session token:', currentSession.sessionToken.substring(0, 20) + '...');
+                
+                document.getElementById('trendAnalysis').innerHTML = `
+                    <div class="loading">📈 Loading trend analysis...</div>
+                `;
                 
                 const response = await fetch('/api/documents', {
                     method: 'POST',
@@ -1198,32 +1205,54 @@
                     })
                 });
                 
+                console.log('Trends API response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('Trends API response:', data);
                 
                 if (data.success) {
                     trendData = data.trendData || [];
+                    console.log('Trend data received:', trendData.length, 'parameters');
+                    
                     renderTrendChart();
                     
                     document.getElementById('trendAnalysis').innerHTML = `
                         <div class="result">
                             <h3>📈 Trend Analysis (${timeRange})</h3>
-                            <div class="analysis-content">${data.analysis || 'No trend analysis available yet. Upload more documents to see patterns over time.'}</div>
+                            <div class="analysis-content">${data.analysis || 'No trend analysis available yet.'}</div>
                             <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                                <strong>Trends Found:</strong> ${data.trendsFound || 0}<br>
-                                <strong>Time Range:</strong> ${timeRange}<br>
-                                <strong>Generated:</strong> ${new Date(data.generatedAt || Date.now()).toLocaleString()}
+                                <strong>📊 Analysis Summary:</strong><br>
+                                • Parameters with Trends: ${data.trendsFound || 0}<br>
+                                • Time Range: ${timeRange}<br>
+                                • Generated: ${new Date(data.generatedAt || Date.now()).toLocaleString()}<br>
+                                ${data.debugInfo ? `• Total Parameters Available: ${data.debugInfo.totalParametersAvailable}<br>• Date Range: ${data.debugInfo.dateRange?.start} to ${data.debugInfo.dateRange?.end}` : ''}
                             </div>
                         </div>
                     `;
                 } else {
-                    throw new Error(data.error);
+                    console.error('Trends API returned error:', data);
+                    throw new Error(data.error || 'Unknown API error');
                 }
                 
             } catch (error) {
+                console.error('=== TRENDS LOADING ERROR ===');
+                console.error('Error details:', error);
+                
                 document.getElementById('trendAnalysis').innerHTML = `
                     <div class="error">
                         <h3>❌ Error Loading Trends</h3>
-                        <p>${error.message}</p>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
+                            <strong>Debugging Info:</strong><br>
+                            • Check browser console (F12) for detailed logs<br>
+                            • Ensure you have uploaded multiple documents<br>
+                            • Try refreshing the page and checking again<br>
+                            • Current session: ${currentSession ? 'Active' : 'None'}
+                        </div>
                     </div>
                 `;
             }
