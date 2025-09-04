@@ -100,6 +100,13 @@
             display: block;
         }
         
+        /* Upload section styles */
+        .upload-section {
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
         .upload-area {
             border: 3px dashed #667eea;
             border-radius: 12px;
@@ -160,53 +167,9 @@
             background: #dc3545;
         }
         
-        .document-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .document-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            background: #f8f9fa;
-            transition: all 0.3s ease;
-        }
-        
-        .document-item:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-        
-        .document-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .document-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .document-meta {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
-        .document-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .trend-chart {
-            margin: 20px 0;
-            height: 300px;
+        /* Dashboard section styles */
+        .dashboard-section {
+            margin-top: 30px;
         }
         
         .trend-summary {
@@ -236,14 +199,101 @@
             margin-top: 5px;
         }
         
-        .trend-change {
-            font-size: 12px;
-            margin-top: 5px;
+        .trend-chart {
+            margin: 20px 0;
+            height: 300px;
         }
         
-        .trend-up { color: #28a745; }
-        .trend-down { color: #dc3545; }
-        .trend-stable { color: #6c757d; }
+        /* Records table styles */
+        .records-table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            min-width: 800px;
+        }
+        
+        .records-table th,
+        .records-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .records-table th {
+            background: #f8f9ff;
+            font-weight: 600;
+            color: #667eea;
+            border-bottom: 2px solid #e0e6ff;
+        }
+        
+        .records-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .parameter-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .parameter-value {
+            font-weight: 500;
+        }
+        
+        .status-normal { color: #28a745; }
+        .status-high { color: #dc3545; }
+        .status-low { color: #ffc107; }
+        .status-unknown { color: #6c757d; }
+        
+        .document-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .document-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        
+        .document-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .document-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .document-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .document-meta {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .document-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
         
         .privacy-info {
             background: #e6f7ff;
@@ -326,14 +376,28 @@
         .status-active { background: #d4edda; color: #155724; }
         .status-processing { background: #fff3cd; color: #856404; }
         
-        .smart-badge {
-            background: linear-gradient(135deg, #ff6b6b 0%, #feca57 100%);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
+        .filters-section {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            min-width: 150px;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
             font-weight: 600;
-            margin-left: 8px;
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
         }
         
         @media (max-width: 768px) {
@@ -364,6 +428,15 @@
             .trend-summary {
                 grid-template-columns: 1fr;
             }
+            
+            .records-table-container {
+                font-size: 14px;
+            }
+            
+            .filters-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
@@ -371,70 +444,150 @@
     <div class="container">
         <div class="header">
             <h1>🩺 HealthAI</h1>
-            <p>Privacy-First Health Analysis • Multi-Document Trend Tracking</p>
+            <p>Privacy-First Health Analysis • Smart Document Processing • Trend Tracking</p>
         </div>
         
         <div class="main-card">
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('upload')">📄 Upload & Analyze</button>
-                <button class="tab" onclick="switchTab('dashboard')">📊 Health Dashboard</button>
+                <button class="tab active" onclick="switchTab('dashboard')">📊 Health Dashboard</button>
+                <button class="tab" onclick="switchTab('records')">📋 Health Records</button>
                 <button class="tab" onclick="switchTab('trends')">📈 Trend Analysis</button>
                 <button class="tab" onclick="switchTab('documents')">📁 Document History</button>
             </div>
             
-            <!-- Upload & Analyze Tab -->
-            <div class="tab-content active" id="upload-tab">
-                <div class="privacy-info">
-                    <h4>🧠 Universal Health Parameter Recognition</h4>
-                    <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
+            <!-- Combined Dashboard Tab (Upload + Dashboard) -->
+            <div class="tab-content active" id="dashboard-tab">
+                <!-- Upload Section -->
+                <div class="upload-section">
+                    <div class="section-title">📄 Upload & Analyze Health Documents</div>
+                    
+                    <div class="privacy-info">
+                        <h4>🧠 Universal Health Parameter Recognition</h4>
+                        <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
+                    </div>
+                    
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                        <h3>📁 Drop Any Health Document Here</h3>
+                        <p>🔬 Lab Results • 🦴 DEXA/Bone Density • 💉 Hormone Panels<br>
+                           🏃 Fitness Reports • 🧬 Genetic Analysis • 🩸 Blood Work<br>
+                           📊 Body Composition • 💊 Metabolic Panels • Any Health Data<br>
+                           <strong>Maximum file size: 25MB • Format: PDF</strong></p>
+                        <button class="btn">Choose File</button>
+                        <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
+                    </div>
+                    
+                    <div class="processing-status" id="processingStatus">
+                        <h4>🤖 AI Processing Your Document...</h4>
+                        <div id="processingSteps"></div>
+                    </div>
+                    
+                    <div id="documentResult"></div>
                 </div>
                 
-                <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                    <h3>📁 Drop Any Health Document Here</h3>
-                    <p>🔬 Lab Results • 🦴 DEXA/Bone Density • 💉 Hormone Panels<br>
-                       🏃 Fitness Reports • 🧬 Genetic Analysis • 🩸 Blood Work<br>
-                       📊 Body Composition • 💊 Metabolic Panels • Any Health Data<br>
-                       <strong>Maximum file size: 25MB • Format: PDF</strong></p>
-                    <button class="btn">Choose File</button>
-                    <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
+                <!-- Dashboard Section -->
+                <div class="dashboard-section">
+                    <div class="section-title">📊 Your Health Overview</div>
+                    
+                    <div class="trend-summary" id="healthSummary">
+                        <div class="trend-card">
+                            <div class="trend-value">--</div>
+                            <div class="trend-label">Total Documents</div>
+                        </div>
+                        <div class="trend-card">
+                            <div class="trend-value">--</div>
+                            <div class="trend-label">Parameters Tracked</div>
+                        </div>
+                        <div class="trend-card">
+                            <div class="trend-value">--</div>
+                            <div class="trend-label">Latest Analysis</div>
+                        </div>
+                        <div class="trend-card">
+                            <div class="trend-value">--</div>
+                            <div class="trend-label">Session Active</div>
+                        </div>
+                    </div>
+                    
+                    <div class="trend-chart">
+                        <canvas id="overviewChart" width="800" height="300"></canvas>
+                    </div>
+                    
+                    <div id="dashboardInsights">
+                        <div class="loading">📊 Loading your health dashboard...</div>
+                    </div>
                 </div>
-                
-                <div class="processing-status" id="processingStatus">
-                    <h4>🤖 AI Processing Your Document...</h4>
-                    <div id="processingSteps"></div>
-                </div>
-                
-                <div id="documentResult"></div>
             </div>
             
-            <!-- Health Dashboard Tab -->
-            <div class="tab-content" id="dashboard-tab">
-                <div class="trend-summary" id="healthSummary">
-                    <div class="trend-card">
-                        <div class="trend-value">--</div>
-                        <div class="trend-label">Total Documents</div>
-                    </div>
-                    <div class="trend-card">
-                        <div class="trend-value">--</div>
-                        <div class="trend-label">Parameters Tracked</div>
-                    </div>
-                    <div class="trend-card">
-                        <div class="trend-value">--</div>
-                        <div class="trend-label">Latest Analysis</div>
-                    </div>
+            <!-- Health Records Table Tab -->
+            <div class="tab-content" id="records-tab">
+                <div class="section-title">📋 Detailed Health Records</div>
+                
+                <div class="filters-section">
+                    <input type="text" id="parameterFilter" placeholder="Filter by parameter name..." class="filter-input" oninput="filterRecords()">
+                    <input type="date" id="dateFromFilter" class="filter-input" onchange="filterRecords()">
+                    <span style="color: #666;">to</span>
+                    <input type="date" id="dateToFilter" class="filter-input" onchange="filterRecords()">
+                    <select id="categoryFilter" class="filter-input" onchange="filterRecords()">
+                        <option value="">All Categories</option>
+                        <option value="Cardiovascular">Cardiovascular</option>
+                        <option value="Metabolic">Metabolic</option>
+                        <option value="Hormonal">Hormonal</option>
+                        <option value="Nutritional">Nutritional</option>
+                        <option value="Inflammatory">Inflammatory</option>
+                        <option value="General">General</option>
+                    </select>
+                    <button class="btn" onclick="loadHealthRecords()">🔄 Refresh</button>
+                    <button class="btn btn-secondary" onclick="exportRecords()">📋 Export CSV</button>
                 </div>
                 
-                <div class="trend-chart">
-                    <canvas id="overviewChart" width="800" height="300"></canvas>
+                <div class="records-table-container">
+                    <table class="records-table" id="recordsTable">
+                        <thead>
+                            <tr>
+                                <th>Test Date</th>
+                                <th>Upload Date</th>
+                                <th>Parameter Name</th>
+                                <th>Value</th>
+                                <th>Unit</th>
+                                <th>Reference Range</th>
+                                <th>Status</th>
+                                <th>Category</th>
+                                <th>Document</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsTableBody">
+                            <tr>
+                                <td colspan="9" class="loading">📋 Loading health records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
                 
-                <div id="dashboardInsights">
-                    <div class="loading">📊 Loading your health dashboard...</div>
+                <div id="recordsStats" style="margin-top: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: 600; color: #667eea;" id="totalRecords">--</div>
+                            <div style="font-size: 14px; color: #666;">Total Records</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: 600; color: #667eea;" id="uniqueParameters">--</div>
+                            <div style="font-size: 14px; color: #666;">Unique Parameters</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: 600; color: #667eea;" id="dateRange">--</div>
+                            <div style="font-size: 14px; color: #666;">Date Range</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 20px; font-weight: 600; color: #667eea;" id="filteredCount">--</div>
+                            <div style="font-size: 14px; color: #666;">Filtered Results</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             
             <!-- Trend Analysis Tab -->
             <div class="tab-content" id="trends-tab">
+                <div class="section-title">📈 Health Trend Analysis</div>
+                
                 <div style="margin-bottom: 20px;">
                     <label for="timeRange" style="font-weight: 600; margin-right: 10px;">Time Range:</label>
                     <select id="timeRange" onchange="loadTrends()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
@@ -457,8 +610,10 @@
             
             <!-- Document History Tab -->
             <div class="tab-content" id="documents-tab">
+                <div class="section-title">📁 Document History</div>
+                
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>📁 Your Health Documents</h3>
+                    <h3>Your Health Documents</h3>
                     <button class="btn" onclick="loadDocuments()">🔄 Refresh</button>
                 </div>
                 
@@ -473,6 +628,8 @@
         // Global state
         let currentSession = null;
         let documents = [];
+        let healthRecords = [];
+        let filteredRecords = [];
         let trendData = [];
         let charts = {};
         
@@ -504,6 +661,7 @@
             await Promise.all([
                 loadDocuments(),
                 loadHealthSummary(),
+                loadHealthRecords(),
                 loadTrends()
             ]);
         }
@@ -523,6 +681,8 @@
             // Load data for specific tabs
             if (tabName === 'dashboard' && currentSession) {
                 loadHealthSummary();
+            } else if (tabName === 'records' && currentSession) {
+                loadHealthRecords();
             } else if (tabName === 'trends' && currentSession) {
                 loadTrends();
             } else if (tabName === 'documents' && currentSession) {
@@ -530,7 +690,7 @@
             }
         }
         
-        // Document upload functionality (enhanced from previous version)
+        // Document upload functionality (same as before)
         function handleFileSelect(e) {
             const files = e.target.files;
             handleFiles(files);
@@ -703,6 +863,212 @@
             }
         }
         
+        // Load health records for the table
+        async function loadHealthRecords() {
+            if (!currentSession) {
+                document.getElementById('recordsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="9" class="empty-state">
+                            <h3>🔐 Session Required</h3>
+                            <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view health records.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    documents = data.documents || [];
+                    
+                    // Extract all parameters from all documents to create detailed records
+                    healthRecords = [];
+                    for (const doc of documents) {
+                        if (doc.parameters_json) {
+                            try {
+                                const parameters = JSON.parse(doc.parameters_json);
+                                if (Array.isArray(parameters)) {
+                                    parameters.forEach(param => {
+                                        healthRecords.push({
+                                            testDate: param.date || doc.test_date || doc.created_at,
+                                            uploadDate: doc.created_at,
+                                            parameterName: param.parameter || param.name,
+                                            value: param.value,
+                                            unit: param.unit || '',
+                                            referenceRange: param.referenceRange || param.reference_range || '',
+                                            status: param.status || 'Unknown',
+                                            category: param.category || 'General',
+                                            documentName: doc.document_name,
+                                            documentId: doc.document_id,
+                                            documentType: doc.document_type
+                                        });
+                                    });
+                                }
+                            } catch (parseError) {
+                                console.error('Error parsing parameters for document:', doc.document_id, parseError);
+                            }
+                        }
+                    }
+                    
+                    // Sort by test date (newest first)
+                    healthRecords.sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
+                    
+                    filteredRecords = [...healthRecords];
+                    renderRecordsTable();
+                    updateRecordsStats();
+                    
+                } else {
+                    throw new Error(data.error);
+                }
+                
+            } catch (error) {
+                document.getElementById('recordsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="9" class="error">
+                            <h3>❌ Error Loading Records</h3>
+                            <p>${error.message}</p>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // Render records table
+        function renderRecordsTable() {
+            const tableBody = document.getElementById('recordsTableBody');
+            
+            if (filteredRecords.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="empty-state">
+                            <h3>📋 No Records Found</h3>
+                            <p>Upload your first health document to start building your record history!</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tableBody.innerHTML = filteredRecords.map(record => {
+                const testDate = new Date(record.testDate).toLocaleDateString();
+                const uploadDate = new Date(record.uploadDate).toLocaleDateString();
+                const statusClass = getStatusClass(record.status);
+                
+                return `
+                    <tr>
+                        <td>${testDate}</td>
+                        <td>${uploadDate}</td>
+                        <td class="parameter-name">${record.parameterName}</td>
+                        <td class="parameter-value">${record.value}</td>
+                        <td>${record.unit}</td>
+                        <td>${record.referenceRange || 'Not specified'}</td>
+                        <td class="status-${statusClass}">${record.status}</td>
+                        <td>${record.category}</td>
+                        <td title="${record.documentType}">${record.documentName.length > 20 ? record.documentName.substring(0, 20) + '...' : record.documentName}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function getStatusClass(status) {
+            switch (status?.toLowerCase()) {
+                case 'normal': case 'optimal': return 'normal';
+                case 'high': case 'elevated': return 'high';
+                case 'low': case 'below': return 'low';
+                default: return 'unknown';
+            }
+        }
+        
+        // Filter records
+        function filterRecords() {
+            const parameterFilter = document.getElementById('parameterFilter').value.toLowerCase();
+            const dateFromFilter = document.getElementById('dateFromFilter').value;
+            const dateToFilter = document.getElementById('dateToFilter').value;
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            
+            filteredRecords = healthRecords.filter(record => {
+                // Parameter name filter
+                if (parameterFilter && !record.parameterName.toLowerCase().includes(parameterFilter)) {
+                    return false;
+                }
+                
+                // Date range filter
+                if (dateFromFilter && new Date(record.testDate) < new Date(dateFromFilter)) {
+                    return false;
+                }
+                if (dateToFilter && new Date(record.testDate) > new Date(dateToFilter)) {
+                    return false;
+                }
+                
+                // Category filter
+                if (categoryFilter && record.category !== categoryFilter) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            renderRecordsTable();
+            updateRecordsStats();
+        }
+        
+        // Update records statistics
+        function updateRecordsStats() {
+            const totalRecords = healthRecords.length;
+            const uniqueParameters = new Set(healthRecords.map(r => r.parameterName)).size;
+            const filteredCount = filteredRecords.length;
+            
+            let dateRange = '--';
+            if (healthRecords.length > 0) {
+                const dates = healthRecords.map(r => new Date(r.testDate)).sort();
+                const minDate = dates[0].toLocaleDateString();
+                const maxDate = dates[dates.length - 1].toLocaleDateString();
+                dateRange = `${minDate} - ${maxDate}`;
+            }
+            
+            document.getElementById('totalRecords').textContent = totalRecords;
+            document.getElementById('uniqueParameters').textContent = uniqueParameters;
+            document.getElementById('dateRange').textContent = dateRange;
+            document.getElementById('filteredCount').textContent = filteredCount;
+        }
+        
+        // Export records to CSV
+        function exportRecords() {
+            if (filteredRecords.length === 0) {
+                alert('No records to export');
+                return;
+            }
+            
+            const headers = ['Test Date', 'Upload Date', 'Parameter Name', 'Value', 'Unit', 'Reference Range', 'Status', 'Category', 'Document Name'];
+            const csvContent = [
+                headers.join(','),
+                ...filteredRecords.map(record => [
+                    record.testDate,
+                    record.uploadDate,
+                    `"${record.parameterName}"`,
+                    record.value,
+                    `"${record.unit}"`,
+                    `"${record.referenceRange}"`,
+                    record.status,
+                    record.category,
+                    `"${record.documentName}"`
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `healthai_records_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+        
         // Load documents
         async function loadDocuments() {
             if (!currentSession) {
@@ -786,6 +1152,7 @@
                     const totalDocs = data.documents?.length || 0;
                     const totalParams = data.documents?.reduce((sum, doc) => sum + (doc.parameter_count || 0), 0) || 0;
                     const latestDoc = data.documents?.[0]?.created_at ? new Date(data.documents[0].created_at).toLocaleDateString() : '--';
+                    const sessionActive = currentSession ? 'Active' : 'None';
                     
                     document.getElementById('healthSummary').innerHTML = `
                         <div class="trend-card">
@@ -800,6 +1167,10 @@
                             <div class="trend-value">${latestDoc}</div>
                             <div class="trend-label">Latest Analysis</div>
                         </div>
+                        <div class="trend-card">
+                            <div class="trend-value">${sessionActive}</div>
+                            <div class="trend-label">Session Active</div>
+                        </div>
                     `;
                 }
                 
@@ -808,7 +1179,7 @@
             }
         }
         
-        // Load trends
+        // Load trends (same as before)
         async function loadTrends() {
             if (!currentSession) {
                 document.getElementById('trendAnalysis').innerHTML = `
@@ -960,9 +1331,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Refresh document list
-                    await loadDocuments();
-                    await loadHealthSummary();
+                    // Refresh all data
+                    await loadDashboardData();
                 } else {
                     throw new Error(data.error);
                 }
@@ -1012,30 +1382,6 @@
                 return false;
             }
             return true;
-        }
-        
-        // Initialize charts on tab switch
-        function initializeChart(chartId, type = 'line') {
-            const ctx = document.getElementById(chartId);
-            if (!ctx) return null;
-            
-            return new Chart(ctx, {
-                type: type,
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    }
-                }
-            });
         }
     </script>
 </body>
