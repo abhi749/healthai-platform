@@ -732,6 +732,27 @@
             } catch (error) {
                 processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
                 console.error('Document processing error:', error);
+                
+                // Show detailed error information
+                const resultDiv = document.getElementById('documentResult');
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Document Processing Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
+                            <strong>Troubleshooting:</strong><br>
+                            • Check if the PDF contains readable text (not just images)<br>
+                            • Ensure the document has clear health parameters with values<br>
+                            • Try a different health document format<br>
+                            • Check browser console (F12) for detailed error logs
+                        </div>
+                    </div>
+                `;
+                
+                // Hide processing status after showing error
+                setTimeout(() => {
+                    processingStatus.style.display = 'none';
+                }, 5000);
             }
         }
         
