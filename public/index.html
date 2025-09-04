@@ -336,6 +336,24 @@
             margin-left: 8px;
         }
         
+        .debug-info {
+            background: #f0f8ff;
+            border: 1px solid #4169e1;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .debug-info h4 {
+            color: #4169e1;
+            margin-bottom: 10px;
+            font-family: sans-serif;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -385,8 +403,8 @@
             <!-- Upload & Analyze Tab -->
             <div class="tab-content active" id="upload-tab">
                 <div class="privacy-info">
-                    <h4>🧠 Universal Health Parameter Recognition</h4>
-                    <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
+                    <h4>🧠 Real PDF Processing with AI Extraction</h4>
+                    <p><strong>Upload real PDF documents</strong> and our AI will extract health parameters directly from your files. Personal identifiers are automatically removed before processing.</p>
                 </div>
                 
                 <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
@@ -395,8 +413,8 @@
                        🏃 Fitness Reports • 🧬 Genetic Analysis • 🩸 Blood Work<br>
                        📊 Body Composition • 💊 Metabolic Panels • Any Health Data<br>
                        <strong>Maximum file size: 25MB • Format: PDF</strong></p>
-                    <button class="btn">Choose File</button>
-                    <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
+                    <button class="btn" type="button">Choose File</button>
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf">
                 </div>
                 
                 <div class="processing-status" id="processingStatus">
@@ -479,7 +497,53 @@
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
             initializeDashboard();
+            
+            // Add file input event listener
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    handleFileSelect(e);
+                });
+            }
+            
+            // Initialize drag and drop
+            initializeDragAndDrop();
         });
+        
+        // Initialize drag and drop functionality
+        function initializeDragAndDrop() {
+            const uploadArea = document.getElementById('uploadArea');
+            if (!uploadArea) return;
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.add('dragover');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.remove('dragover');
+                }, false);
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    handleFiles(files);
+                }
+            }, false);
+        }
         
         function initializeDashboard() {
             // Check for existing session
@@ -530,10 +594,12 @@
             }
         }
         
-        // Document upload functionality (enhanced from previous version)
+        // Document upload functionality - FIXED VERSION
         function handleFileSelect(e) {
             const files = e.target.files;
-            handleFiles(files);
+            if (files && files.length > 0) {
+                handleFiles(files);
+            }
         }
         
         function handleFiles(files) {
@@ -561,30 +627,58 @@
             processingStatus.style.display = 'block';
             
             try {
-                processingSteps.innerHTML = '⏳ Step 1: Processing document with AI extraction...';
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // Simulate different document types
-                const fileName = file.name.toLowerCase();
-                let simulatedData = generateSimulatedDocumentData(fileName);
-                
-                processingSteps.innerHTML += '<br>✅ Step 2: Extracting health parameters...';
+                processingSteps.innerHTML = '⏳ Step 1: Reading PDF and extracting text...';
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
                 // Create FormData with the actual file
-const formData = new FormData();
-formData.append('pdfFile', file);
-
-// Extract parameters using our smart API with real file
-const extractionResponse = await fetch('/api/extract', {
-    method: 'POST',
-    body: formData  // Send as FormData, no Content-Type header needed
-});
+                const formData = new FormData();
+                formData.append('pdfFile', file);
+                
+                processingSteps.innerHTML += '<br>⏳ Step 2: AI extracting health parameters from real PDF...';
+                
+                // Extract parameters using our enhanced API with real PDF processing
+                const extractionResponse = await fetch('/api/extract', {
+                    method: 'POST',
+                    body: formData  // Send as FormData, no Content-Type header needed
+                });
                 
                 const extractionData = await extractionResponse.json();
                 
+                // Debug logging
+                console.log('Extraction response:', extractionData);
                 if (extractionData.success) {
-                    processingSteps.innerHTML += '<br>⏳ Step 3: Analyzing with AI + Medical Context...';
+                    console.log('Health parameters found:', extractionData.extractedData.healthParameters);
+                    console.log('Total parameters:', extractionData.extractedData.totalParametersFound);
+                    console.log('Extracted text preview:', extractionData.processingInfo?.extractedTextPreview);
+                }
+                
+                if (extractionData.success) {
+                    const paramCount = extractionData.extractedData.totalParametersFound || 0;
+                    processingSteps.innerHTML += '<br>✅ Step 3: Extracted ' + paramCount + ' health parameters!';
+                    
+                    // Show debug info if no parameters found
+                    if (paramCount === 0) {
+                        const debugInfo = `
+                            <div class="debug-info">
+                                <h4>🔍 Debug Information</h4>
+                                <strong>Text extracted from PDF:</strong><br>
+                                ${extractionData.processingInfo?.extractedTextPreview || 'No text preview available'}<br><br>
+                                <strong>Document type detected:</strong> ${extractionData.extractedData.documentType || 'Unknown'}<br>
+                                <strong>Processing method:</strong> ${extractionData.processingInfo?.extractionMethod || 'Unknown'}
+                            </div>
+                        `;
+                        processingSteps.innerHTML += debugInfo;
+                        throw new Error('No health parameters found in this PDF. Please ensure it contains lab results or health data with numerical values (e.g., "Cholesterol: 200 mg/dL").');
+                    }
+                    
+                    // Check if we have valid health parameters
+                    if (!extractionData.extractedData.healthParameters || extractionData.extractedData.healthParameters.length === 0) {
+                        throw new Error('No health parameters found in this PDF. Please ensure it contains lab results or health data with numerical values.');
+                    }
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    processingSteps.innerHTML += '<br>⏳ Step 4: Analyzing with AI + Medical Context...';
                     
                     // Analyze with enhanced AI
                     const analysisResponse = await fetch('/api/analyze', {
@@ -598,17 +692,23 @@ const extractionResponse = await fetch('/api/extract', {
                     const analysisData = await analysisResponse.json();
                     
                     if (analysisData.success) {
-                        processingSteps.innerHTML += '<br>⏳ Step 4: Storing document for trend tracking...';
+                        processingSteps.innerHTML += '<br>⏳ Step 5: Storing document for trend tracking...';
                         
                         // Store document if we have a session
                         if (currentSession) {
-                            await storeDocument(file.name, extractionData.extractedData, analysisData.analysis, simulatedData.type, simulatedData.testDate);
+                            await storeDocument(
+                                file.name, 
+                                extractionData.extractedData, 
+                                analysisData.analysis, 
+                                extractionData.extractedData.documentType || 'Health Report',
+                                extractionData.extractedData.testDate
+                            );
                         }
                         
-                        processingSteps.innerHTML += '<br>✅ Step 5: Complete! Document processed and stored.';
+                        processingSteps.innerHTML += '<br>✅ Step 6: Complete! Real PDF processed and analyzed.';
                         
                         // Show results
-                        showAnalysisResults(analysisData, extractionData.extractedData);
+                        showAnalysisResults(analysisData, extractionData.extractedData, true);
                         
                         // Refresh dashboard data
                         if (currentSession) {
@@ -620,35 +720,22 @@ const extractionResponse = await fetch('/api/extract', {
                         throw new Error('Analysis failed: ' + analysisData.error);
                     }
                 } else {
-                    throw new Error('Extraction failed: ' + extractionData.error);
+                    throw new Error('PDF extraction failed: ' + extractionData.error + (extractionData.details ? ' - ' + extractionData.details : ''));
                 }
                 
             } catch (error) {
+                console.error('Document processing error:', error);
                 processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
-            }
-        }
-        
-        function generateSimulatedDocumentData(fileName) {
-            const testDate = new Date().toISOString().split('T')[0];
-            
-            if (fileName.includes('dexa') || fileName.includes('bone')) {
-                return {
-                    type: 'DEXA Scan',
-                    testDate: testDate,
-                    text: `DEXA SCAN RESULTS\nScan Date: ${testDate}\nLumbar Spine BMD: 0.952 g/cm² (T-score: -1.8)\nTotal Hip BMD: 0.821 g/cm² (T-score: -1.9)\nBody Fat Percentage: 29.0%\nLean Mass: 98.4 lbs`
-                };
-            } else if (fileName.includes('hormone')) {
-                return {
-                    type: 'Hormone Panel',
-                    testDate: testDate,
-                    text: `HORMONE PANEL\nTest Date: ${testDate}\nTSH: 4.2 mIU/L\nFree T4: 1.1 ng/dL\nTestosterone: 320 ng/dL\nCortisol: 18.5 μg/dL`
-                };
-            } else {
-                return {
-                    type: 'Comprehensive Lab Panel',
-                    testDate: testDate,
-                    text: `LAB RESULTS\nTest Date: ${testDate}\nTotal Cholesterol: 285 mg/dL\nHDL: 32 mg/dL\nLDL: 195 mg/dL\nTriglycerides: 290 mg/dL\nGlucose: 118 mg/dL\nHemoglobin A1c: 6.2%`
-                };
+                
+                // Show detailed error information
+                if (error.message.includes('text extracted') || error.message.includes('No health parameters')) {
+                    processingSteps.innerHTML += '<br>💡 <strong>Tip:</strong> This PDF might be image-based or may not contain recognizable health data. Try a PDF with selectable text and clear health values like "Cholesterol: 200 mg/dL".';
+                }
+            } finally {
+                // Hide processing status after a delay
+                setTimeout(() => {
+                    processingStatus.style.display = 'none';
+                }, 10000);
             }
         }
         
@@ -660,15 +747,34 @@ const extractionResponse = await fetch('/api/extract', {
             ).join('\n');
         }
         
-        function showAnalysisResults(analysisData, extractionData) {
+        // Updated function to show results with real vs simulated indicator
+        function showAnalysisResults(analysisData, extractionData, isRealPDF = false) {
             const resultDiv = document.getElementById('documentResult');
+            
+            const processingType = isRealPDF ? 
+                '📄 <strong>Real PDF Processed</strong>' : 
+                '🎭 <strong>Simulated Data</strong>';
+            
+            const parametersDisplay = extractionData.healthParameters && extractionData.healthParameters.length > 0 ? 
+                `<div style="margin: 15px 0;">
+                    <strong>📊 Extracted Parameters:</strong><br>
+                    ${extractionData.healthParameters.slice(0, 5).map(param => 
+                        `• ${param.parameter}: ${param.value}${param.unit ? ' ' + param.unit : ''}`
+                    ).join('<br>')}
+                    ${extractionData.healthParameters.length > 5 ? 
+                        `<br>• ...and ${extractionData.healthParameters.length - 5} more parameters` : ''}
+                </div>` : '';
             
             resultDiv.innerHTML = `
                 <div class="result">
                     <h3>✅ Health Analysis Complete</h3>
+                    ${parametersDisplay}
                     <div class="analysis-content">${analysisData.analysis}</div>
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+                        <strong>Processing Type:</strong> ${processingType}<br>
                         <strong>Parameters Found:</strong> ${extractionData.totalParametersFound || extractionData.healthParameters?.length || 0}<br>
+                        <strong>Document Type:</strong> ${extractionData.documentType || 'Health Report'}<br>
+                        <strong>Test Date:</strong> ${extractionData.testDate || 'Unknown'}<br>
                         <strong>Medical Context:</strong> ${analysisData.medicalContextIncluded ? 'Included' : 'Not available'}<br>
                         <strong>Processing Time:</strong> ${analysisData.timestamp ? 'Complete' : 'Unknown'}<br>
                         <strong>Document Stored:</strong> ${currentSession ? 'Yes - Available in dashboard' : 'Session required for storage'}
@@ -974,36 +1080,6 @@ const extractionResponse = await fetch('/api/extract', {
                 alert('Error deleting document: ' + error.message);
             }
         }
-        
-        // Drag and drop functionality
-        const uploadArea = document.getElementById('uploadArea');
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.add('dragover');
-            }, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.remove('dragover');
-            }, false);
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        }, false);
         
         // Session management
         function checkSession() {
