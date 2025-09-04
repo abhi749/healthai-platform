@@ -4,693 +4,897 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HealthAI - Privacy-First Health Analysis</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/recharts@2.8.0/umd/Recharts.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide-react@latest/dist/umd/lucide-react.js"></script>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
             margin: 0;
             padding: 0;
         }
+        
         .upload-animation {
             animation: pulse 2s infinite;
         }
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
+        
         .processing-animation {
             animation: spin 1s linear infinite;
         }
+        
         @keyframes spin {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+        
         .gradient-bg {
             background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
         }
+        
         .gradient-orange {
             background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+        }
+        
+        .tab {
+            display: none;
+        }
+        
+        .tab.active {
+            display: block;
+        }
+        
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+        
+        .nav-button.active {
+            border-bottom: 2px solid #3B82F6;
+            color: #3B82F6;
+        }
+        
+        .nav-button:not(.active) {
+            border-bottom: 2px solid transparent;
+            color: #6B7280;
+        }
+        
+        .nav-button:not(.active):hover {
+            color: #374151;
+            border-bottom-color: #D1D5DB;
+        }
+        
+        .file-drop {
+            border: 2px dashed #D1D5DB;
+            transition: all 0.3s ease;
+        }
+        
+        .file-drop.dragover {
+            border-color: #3B82F6;
+            background-color: #EFF6FF;
+        }
+        
+        .file-drop.processing {
+            border-color: #10B981;
+            background-color: #ECFDF5;
+        }
+        
+        .metric-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .progress-bar {
+            transition: width 0.3s ease;
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="min-h-screen bg-gray-50">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center mr-3">
+                            <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                        </div>
+                        <h1 class="text-2xl font-bold text-gray-900">HealthAI</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                            Privacy Protected
+                        </div>
+                        <div class="flex items-center text-sm text-gray-500">
+                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                            </svg>
+                            <span id="doc-count">0</span> Documents
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="bg-white border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex space-x-8">
+                    <button onclick="switchTab('upload')" id="nav-upload" class="nav-button active flex items-center px-3 py-4 text-sm font-medium">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                        </svg>
+                        Upload
+                    </button>
+                    <button onclick="switchTab('results')" id="nav-results" class="nav-button flex items-center px-3 py-4 text-sm font-medium">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        Results
+                    </button>
+                    <button onclick="switchTab('trends')" id="nav-trends" class="nav-button flex items-center px-3 py-4 text-sm font-medium">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        Trends
+                    </button>
+                    <button onclick="switchTab('risk')" id="nav-risk" class="nav-button flex items-center px-3 py-4 text-sm font-medium">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        Risk Assessment
+                    </button>
+                    <button onclick="switchTab('history')" id="nav-history" class="nav-button flex items-center px-3 py-4 text-sm font-medium">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        History
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Upload Tab -->
+            <div id="tab-upload" class="tab active">
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-gray-900 mb-4">Upload Your Health Documents</h2>
+                        <p class="text-lg text-gray-600">
+                            Drag and drop your lab reports for instant AI analysis
+                        </p>
+                    </div>
+
+                    <div id="file-drop-zone" class="file-drop rounded-lg p-8 text-center">
+                        <div id="upload-content">
+                            <svg class="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">Choose files or drag and drop</h3>
+                            <p class="text-gray-500 mb-4">PDF documents up to 25MB each</p>
+                            <input type="file" multiple accept=".pdf" id="file-input" class="hidden">
+                            <label for="file-input" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer">
+                                Select Files
+                            </label>
+                        </div>
+
+                        <div id="processing-content" class="hidden">
+                            <div class="processing-animation inline-block mb-4">
+                                <svg class="h-12 w-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold text-gray-900 mb-2">AI Processing Your Health Data</h3>
+                            <p class="text-gray-600 mb-4">Analyzing patterns and generating insights...</p>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                <div id="progress-bar" class="bg-blue-600 h-2 rounded-full progress-bar" style="width: 0%"></div>
+                            </div>
+                            <p class="text-sm text-gray-500"><span id="progress-text">0</span>% Complete</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
+                        <div class="flex items-start">
+                            <svg class="h-6 w-6 text-green-600 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                            <div>
+                                <h4 class="text-lg font-semibold text-green-800 mb-2">Your Privacy is Protected</h4>
+                                <ul class="text-sm text-green-700 space-y-1">
+                                    <li>• All processing happens locally in your browser</li>
+                                    <li>• Personal identifiers are automatically removed</li>
+                                    <li>• No health data is sent to external servers</li>
+                                    <li>• Analysis results are stored securely on your device</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Tab -->
+            <div id="tab-results" class="tab">
+                <div id="no-results" class="text-center py-12">
+                    <svg class="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">No Analysis Results</h3>
+                    <p class="text-gray-500">Upload a health document to see AI-generated insights</p>
+                </div>
+
+                <div id="results-content" class="hidden">
+                    <!-- Results will be dynamically populated here -->
+                </div>
+            </div>
+
+            <!-- Trends Tab -->
+            <div id="tab-trends" class="tab">
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <p class="text-gray-500 mt-2">Upload at least 2 documents to see trends</p>
+                </div>
+            </div>
+
+            <!-- Risk Tab -->
+            <div id="tab-risk" class="tab">
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <p class="text-gray-500 mt-2">Upload health documents to see risk assessment</p>
+                </div>
+            </div>
+
+            <!-- History Tab -->
+            <div id="tab-history" class="tab">
+                <div id="no-history" class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <p class="text-gray-500 mt-2">No documents uploaded yet</p>
+                </div>
+
+                <div id="history-content" class="hidden">
+                    <!-- History will be dynamically populated here -->
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white border-t mt-auto">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div class="flex justify-between items-center text-sm text-gray-500">
+                    <div class="flex items-center space-x-6">
+                        <div class="flex items-center">
+                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Sub-3s Analysis
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                            100% Private
+                        </div>
+                        <div class="flex items-center">
+                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                            AI-Powered
+                        </div>
+                    </div>
+                    <div>
+                        © 2024 HealthAI. Privacy-first health analysis.
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
 
     <script>
-        const { useState, useEffect, useCallback, createElement: e } = React;
-        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
-        const { 
-            Upload, FileText, Brain, Shield, Clock, Users, 
-            TrendingUp, AlertTriangle, CheckCircle, 
-            ArrowUpRight, ArrowDownRight, Activity,
-            Heart, Zap, Eye
-        } = lucideReact;
+        // Update progress bar
+        function updateProgress(progress) {
+            document.getElementById('progress-bar').style.width = progress + '%';
+            document.getElementById('progress-text').textContent = progress;
+        }
 
-        const HealthAIDashboard = () => {
-            const [activeTab, setActiveTab] = useState('upload');
-            const [healthData, setHealthData] = useState([]);
-            const [isProcessing, setIsProcessing] = useState(false);
-            const [processingProgress, setProcessingProgress] = useState(0);
-            const [dragOver, setDragOver] = useState(false);
-            const [analysisResults, setAnalysisResults] = useState(null);
+        // Update UI based on current data
+        function updateUI() {
+            updateResults();
+            updateHistory();
+            updateTrends();
+            updateRisk();
+        }
 
-            // Load data from localStorage
-            useEffect(() => {
-                const savedData = localStorage.getItem('healthAI_data');
-                if (savedData) {
-                    try {
-                        setHealthData(JSON.parse(savedData));
-                    } catch (error) {
-                        console.error('Error loading saved data:', error);
-                    }
+        // Update results tab
+        function updateResults() {
+            const noResults = document.getElementById('no-results');
+            const resultsContent = document.getElementById('results-content');
+
+            if (healthData.length === 0) {
+                noResults.classList.remove('hidden');
+                resultsContent.classList.add('hidden');
+                return;
+            }
+
+            noResults.classList.add('hidden');
+            resultsContent.classList.remove('hidden');
+
+            const latestResult = healthData[healthData.length - 1];
+            
+            resultsContent.innerHTML = `
+                <div class="max-w-6xl mx-auto space-y-6">
+                    <div class="gradient-bg rounded-lg text-white p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-2xl font-bold mb-2">Health Analysis Complete</h2>
+                                <p class="text-blue-100">Document: ${latestResult.fileName}</p>
+                                <p class="text-blue-100 text-sm">Processed: ${new Date(latestResult.uploadDate).toLocaleString()}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-3xl font-bold">${Object.keys(latestResult.metrics).length}</div>
+                                <div class="text-blue-100">Metrics Analyzed</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4">📊 Health Metrics</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                            ${Object.entries(latestResult.metrics).map(([metric, data]) => `
+                                <div class="bg-white rounded-lg border p-4 metric-card">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <h4 class="font-semibold text-gray-900 text-sm">${metric}</h4>
+                                        ${metric.toLowerCase().includes('cholesterol') ? 
+                                            '<svg class="h-4 w-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>' : 
+                                          metric.toLowerCase().includes('glucose') ? 
+                                            '<svg class="h-4 w-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>' : ''
+                                        }
+                                    </div>
+                                    <div class="text-2xl font-bold text-gray-900 mb-1">
+                                        ${data.value} <span class="text-sm font-normal text-gray-500">${data.unit}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-500">Normal: ${data.normal_range}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-lg border p-6">
+                            <div class="flex items-center mb-4">
+                                <svg class="h-6 w-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                                </svg>
+                                <h3 class="text-xl font-semibold text-gray-900">AI Insights</h3>
+                            </div>
+                            <div class="space-y-3">
+                                ${latestResult.insights.map(insight => `
+                                    <div class="flex items-start">
+                                        <svg class="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <p class="text-gray-700">${insight}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-lg border p-6">
+                            <div class="flex items-center mb-4">
+                                <svg class="h-6 w-6 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <h3 class="text-xl font-semibold text-gray-900">Recommendations</h3>
+                            </div>
+                            <div class="space-y-3">
+                                ${latestResult.recommendations.length > 0 ? 
+                                    latestResult.recommendations.map(rec => `
+                                        <div class="flex items-start">
+                                            <svg class="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
+                                            </svg>
+                                            <p class="text-gray-700">${rec}</p>
+                                        </div>
+                                    `).join('') :
+                                    '<p class="text-gray-500 italic">No specific recommendations at this time. Continue monitoring your health metrics.</p>'
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between text-sm text-gray-600">
+                            <div class="flex items-center">
+                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Processing Time: ${latestResult.processingTime.toFixed(2)}s
+                            </div>
+                            <div class="flex items-center">
+                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                                </svg>
+                                Privacy Protected
+                            </div>
+                            <div class="flex items-center">
+                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                ${Object.keys(latestResult.metrics).length} Metrics Found
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update history tab
+        function updateHistory() {
+            const noHistory = document.getElementById('no-history');
+            const historyContent = document.getElementById('history-content');
+
+            if (healthData.length === 0) {
+                noHistory.classList.remove('hidden');
+                historyContent.classList.add('hidden');
+                return;
+            }
+
+            noHistory.classList.add('hidden');
+            historyContent.classList.remove('hidden');
+
+            historyContent.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-gray-900">Document History</h2>
+                        <div class="text-sm text-gray-500">
+                            ${healthData.length} document${healthData.length !== 1 ? 's' : ''} processed
+                        </div>
+                    </div>
+
+                    ${healthData.map((doc, index) => `
+                        <div class="bg-white rounded-lg border hover:shadow-md transition-shadow">
+                            <div class="p-6">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex items-center">
+                                        <svg class="h-6 w-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-gray-900">${doc.fileName}</h3>
+                                            <p class="text-sm text-gray-500">${new Date(doc.uploadDate).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Processed
+                                    </span>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                    <div class="text-center p-3 bg-gray-50 rounded">
+                                        <div class="text-2xl font-bold text-gray-900">${Object.keys(doc.metrics).length}</div>
+                                        <div class="text-xs text-gray-500">Metrics</div>
+                                    </div>
+                                    <div class="text-center p-3 bg-gray-50 rounded">
+                                        <div class="text-2xl font-bold text-gray-900">${doc.insights.length}</div>
+                                        <div class="text-xs text-gray-500">Insights</div>
+                                    </div>
+                                    <div class="text-center p-3 bg-gray-50 rounded">
+                                        <div class="text-2xl font-bold text-gray-900">${doc.recommendations.length}</div>
+                                        <div class="text-xs text-gray-500">Recommendations</div>
+                                    </div>
+                                </div>
+
+                                ${Object.keys(doc.metrics).length > 0 ? `
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900 mb-2">Key Metrics:</h4>
+                                        <div class="flex flex-wrap gap-2">
+                                            ${Object.entries(doc.metrics).slice(0, 6).map(([metric, data]) => `
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    ${metric}: ${data.value} ${data.unit}
+                                                </span>
+                                            `).join('')}
+                                            ${Object.keys(doc.metrics).length > 6 ? `
+                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                    +${Object.keys(doc.metrics).length - 6} more
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Update trends tab
+        function updateTrends() {
+            const trendsTab = document.getElementById('tab-trends');
+            
+            if (healthData.length < 2) {
+                trendsTab.innerHTML = `
+                    <div class="text-center py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                        </svg>
+                        <p class="text-gray-500 mt-2">Upload at least 2 documents to see trends</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Basic trends display (without charts for now)
+            trendsTab.innerHTML = `
+                <div class="space-y-6">
+                    <div class="gradient-bg rounded-lg text-white p-6">
+                        <h2 class="text-2xl font-bold mb-2">Health Trends Analysis</h2>
+                        <p class="text-blue-100">Track your health metrics over time</p>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg border p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Trend Summary</h3>
+                        <p class="text-gray-600">
+                            You have ${healthData.length} health documents uploaded. 
+                            Advanced trend charts and analysis will be available with more data points.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update risk tab
+        function updateRisk() {
+            const riskTab = document.getElementById('tab-risk');
+            
+            if (healthData.length === 0) {
+                riskTab.innerHTML = `
+                    <div class="text-center py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <p class="text-gray-500 mt-2">Upload health documents to see risk assessment</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const latestDoc = healthData[healthData.length - 1];
+            const riskFactors = [];
+
+            // Assess cholesterol risk
+            if (latestDoc.metrics['Total Cholesterol']) {
+                const value = latestDoc.metrics['Total Cholesterol'].value;
+                let risk;
+                if (value < 200) {
+                    risk = { level: 'Normal', color: 'text-green-600', description: 'Optimal cholesterol level' };
+                } else if (value < 240) {
+                    risk = { level: 'Borderline High', color: 'text-yellow-600', description: 'Monitor and improve diet' };
+                } else {
+                    risk = { level: 'High', color: 'text-red-600', description: 'High risk, seek medical advice' };
                 }
-            }, []);
-
-            // Save data to localStorage
-            useEffect(() => {
-                if (healthData.length > 0) {
-                    localStorage.setItem('healthAI_data', JSON.stringify(healthData));
-                }
-            }, [healthData]);
-
-            const simulateProcessing = useCallback(() => {
-                setProcessingProgress(0);
-                const interval = setInterval(() => {
-                    setProcessingProgress(prev => {
-                        if (prev >= 100) {
-                            clearInterval(interval);
-                            return 100;
-                        }
-                        return prev + 10;
-                    });
-                }, 200);
-            }, []);
-
-            const parseHealthDocument = (text, fileName) => {
-                const metrics = {};
-                const insights = [];
-                const recommendations = [];
-
-                const patterns = {
-                    'Total Cholesterol': /(?:total\s*)?cholesterol[\s:]*(\d+(?:\.\d+)?)/i,
-                    'LDL Cholesterol': /ldl[\s\-]*cholesterol[\s:]*(\d+(?:\.\d+)?)/i,
-                    'HDL Cholesterol': /hdl[\s\-]*cholesterol[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Triglycerides': /triglycerides?[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Glucose': /(?:fasting\s*)?glucose[\s:]*(\d+(?:\.\d+)?)/i,
-                    'HbA1c': /hba1c[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Heart Rate': /heart\s*rate[\s:]*(\d+)/i,
-                    'BMI': /bmi[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Hemoglobin': /(?:hb|hemoglobin)[\s:]*(\d+(?:\.\d+)?)/i,
-                    'Vitamin D': /vitamin\s*d[\s:]*(\d+(?:\.\d+)?)/i,
-                    'TSH': /tsh[\s:]*(\d+(?:\.\d+)?)/i
-                };
-
-                Object.entries(patterns).forEach(([metric, pattern]) => {
-                    const match = text.match(pattern);
-                    if (match) {
-                        const value = parseFloat(match[1]);
-                        metrics[metric] = {
-                            value: value,
-                            unit: getUnit(metric),
-                            normal_range: getNormalRange(metric)
-                        };
-                    }
-                });
-
-                Object.entries(metrics).forEach(([metric, data]) => {
-                    const assessment = assessMetric(metric, data.value);
-                    if (assessment) {
-                        insights.push(assessment.insight);
-                        if (assessment.recommendation) {
-                            recommendations.push(assessment.recommendation);
-                        }
-                    }
-                });
-
-                if (Object.keys(metrics).length >= 3) {
-                    insights.push("✨ Comprehensive health profile detected. Multiple biomarkers analyzed.");
-                }
-
-                if (Object.keys(metrics).length === 0) {
-                    insights.push("📄 Document processed. Upload lab reports with numerical values for detailed analysis.");
-                }
-
-                return {
-                    fileName,
-                    uploadDate: new Date().toISOString(),
-                    metrics,
-                    insights,
-                    recommendations,
-                    processingTime: Math.random() * 2 + 1
-                };
-            };
-
-            const getUnit = (metric) => {
-                const units = {
-                    'Total Cholesterol': 'mg/dL',
-                    'LDL Cholesterol': 'mg/dL',
-                    'HDL Cholesterol': 'mg/dL',
-                    'Triglycerides': 'mg/dL',
-                    'Glucose': 'mg/dL',
-                    'HbA1c': '%',
-                    'Heart Rate': 'bpm',
-                    'BMI': 'kg/m²',
-                    'Hemoglobin': 'g/dL',
-                    'Vitamin D': 'ng/mL',
-                    'TSH': 'mIU/L'
-                };
-                return units[metric] || '';
-            };
-
-            const getNormalRange = (metric) => {
-                const ranges = {
-                    'Total Cholesterol': '< 200 mg/dL',
-                    'LDL Cholesterol': '< 100 mg/dL',
-                    'HDL Cholesterol': '> 40 mg/dL',
-                    'Triglycerides': '< 150 mg/dL',
-                    'Glucose': '70-99 mg/dL',
-                    'HbA1c': '< 5.7%',
-                    'Heart Rate': '60-100 bpm',
-                    'BMI': '18.5-24.9 kg/m²',
-                    'Hemoglobin': '12-18 g/dL',
-                    'Vitamin D': '30-100 ng/mL',
-                    'TSH': '0.4-4.0 mIU/L'
-                };
-                return ranges[metric] || 'Consult reference';
-            };
-
-            const assessMetric = (metric, value) => {
-                const assessments = {
-                    'Total Cholesterol': (val) => {
-                        if (val < 200) return { insight: '✅ Total cholesterol is optimal', recommendation: null };
-                        if (val < 240) return { insight: '⚠️ Total cholesterol is borderline high', recommendation: 'Consider dietary changes' };
-                        return { insight: '🚨 Total cholesterol is high', recommendation: 'Consult healthcare provider' };
-                    },
-                    'Glucose': (val) => {
-                        if (val < 100) return { insight: '✅ Blood glucose is normal', recommendation: null };
-                        if (val < 126) return { insight: '⚠️ Blood glucose indicates prediabetes', recommendation: 'Lifestyle modifications needed' };
-                        return { insight: '🚨 Blood glucose indicates diabetes range', recommendation: 'Medical consultation recommended' };
-                    },
-                    'HbA1c': (val) => {
-                        if (val < 5.7) return { insight: '✅ HbA1c is normal', recommendation: null };
-                        if (val < 6.5) return { insight: '⚠️ HbA1c indicates prediabetes', recommendation: 'Blood sugar management needed' };
-                        return { insight: '🚨 HbA1c indicates diabetes', recommendation: 'Medical management required' };
-                    }
-                };
-
-                const assessor = assessments[metric];
-                return assessor ? assessor(value) : null;
-            };
-
-            const assessTriglyceridesRisk = (value) => {
-                if (value < 150) return { level: 'Normal', color: 'text-green-600', description: 'Optimal level' };
-                if (value < 200) return { level: 'Borderline High', color: 'text-yellow-600', description: 'Monitor diet' };
-                return { level: 'High', color: 'text-red-600', description: 'Lifestyle changes needed' };
-            };
-
-            const assessGlucoseRisk = (value) => {
-                if (value < 100) return { level: 'Normal', color: 'text-green-600', description: 'Optimal level' };
-                if (value < 126) return { level: 'Prediabetes', color: 'text-yellow-600', description: 'Lifestyle changes recommended' };
-                return { level: 'Diabetes Range', color: 'text-red-600', description: 'Consult healthcare provider' };
-            };
-
-            const assessHbA1cRisk = (value) => {
-                if (value < 5.7) return { level: 'Normal', color: 'text-green-600', description: 'Optimal level' };
-                if (value < 6.5) return { level: 'Prediabetes', color: 'text-yellow-600', description: 'Monitor closely' };
-                return { level: 'Diabetes Range', color: 'text-red-600', description: 'Medical management needed' };
-            };
-
-            const handleFileUpload = async (files) => {
-                if (files.length === 0) return;
-
-                setIsProcessing(true);
-                simulateProcessing();
-
-                try {
-                    const newHealthData = [];
-
-                    for (let i = 0; i < files.length; i++) {
-                        const file = files[i];
-                        
-                        const text = await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onload = (e) => {
-                                const simulatedContent = `
-                                    Health Report - ${file.name}
-                                    Date: ${new Date().toLocaleDateString()}
-                                    
-                                    Total Cholesterol: ${Math.floor(Math.random() * 100) + 180} mg/dL
-                                    LDL Cholesterol: ${Math.floor(Math.random() * 60) + 70} mg/dL
-                                    HDL Cholesterol: ${Math.floor(Math.random() * 40) + 35} mg/dL
-                                    Triglycerides: ${Math.floor(Math.random() * 150) + 100} mg/dL
-                                    Glucose: ${Math.floor(Math.random() * 40) + 80} mg/dL
-                                    HbA1c: ${(Math.random() * 2 + 4.5).toFixed(1)} %
-                                    Heart Rate: ${Math.floor(Math.random() * 40) + 60} bpm
-                                    BMI: ${(Math.random() * 10 + 20).toFixed(1)} kg/m²
-                                    Hemoglobin: ${(Math.random() * 4 + 12).toFixed(1)} g/dL
-                                    Vitamin D: ${Math.floor(Math.random() * 50) + 20} ng/mL
-                                    TSH: ${(Math.random() * 3 + 1).toFixed(2)} mIU/L
-                                `;
-                                resolve(simulatedContent);
-                            };
-                            reader.readAsText(file);
-                        });
-
-                        const analysisResult = parseHealthDocument(text, file.name);
-                        newHealthData.push(analysisResult);
-                    }
-
-                    setHealthData(prevData => [...prevData, ...newHealthData]);
-
-                    if (newHealthData.length > 0) {
-                        setAnalysisResults(newHealthData[newHealthData.length - 1]);
-                        setActiveTab('results');
-                    }
-
-                } catch (error) {
-                    console.error('Error processing files:', error);
-                } finally {
-                    setTimeout(() => {
-                        setIsProcessing(false);
-                        setProcessingProgress(0);
-                    }, 500);
-                }
-            };
-
-            const handleDrop = useCallback((e) => {
-                e.preventDefault();
-                setDragOver(false);
-                const files = Array.from(e.dataTransfer.files).filter(file => 
-                    file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
-                );
-                if (files.length > 0) {
-                    handleFileUpload(files);
-                }
-            }, []);
-
-            const handleDragOver = useCallback((e) => {
-                e.preventDefault();
-                setDragOver(true);
-            }, []);
-
-            const handleDragLeave = useCallback((e) => {
-                e.preventDefault();
-                setDragOver(false);
-            }, []);
-
-            const renderUpload = () => {
-                return e('div', { className: 'max-w-4xl mx-auto' },
-                    e('div', { className: 'text-center mb-8' },
-                        e('h2', { className: 'text-3xl font-bold text-gray-900 mb-4' }, 'Upload Your Health Documents'),
-                        e('p', { className: 'text-lg text-gray-600' }, 'Drag and drop your lab reports for instant AI analysis')
-                    ),
-                    e('div', {
-                        className: `border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${
-                            dragOver ? 'border-blue-400 bg-blue-50' : 
-                            isProcessing ? 'border-green-400 bg-green-50' : 
-                            'border-gray-300 hover:border-gray-400'
-                        } ${isProcessing ? 'upload-animation' : ''}`,
-                        onDrop: handleDrop,
-                        onDragOver: handleDragOver,
-                        onDragLeave: handleDragLeave
-                    },
-                        isProcessing ? 
-                            e('div', { className: 'py-8' },
-                                e('div', { className: 'processing-animation inline-block mb-4' },
-                                    e(Brain, { className: 'h-12 w-12 text-blue-600' })
-                                ),
-                                e('h3', { className: 'text-xl font-semibold text-gray-900 mb-2' }, 'AI Processing Your Health Data'),
-                                e('p', { className: 'text-gray-600 mb-4' }, 'Analyzing patterns and generating insights...'),
-                                e('div', { className: 'w-full bg-gray-200 rounded-full h-2 mb-2' },
-                                    e('div', { 
-                                        className: 'bg-blue-600 h-2 rounded-full transition-all duration-300',
-                                        style: { width: `${processingProgress}%` }
-                                    })
-                                ),
-                                e('p', { className: 'text-sm text-gray-500' }, `${processingProgress}% Complete`)
-                            ) :
-                            e('div', null,
-                                e(Upload, { className: 'h-12 w-12 text-gray-400 mx-auto mb-4' }),
-                                e('h3', { className: 'text-xl font-semibold text-gray-900 mb-2' }, 
-                                    dragOver ? 'Drop your files here!' : 'Choose files or drag and drop'
-                                ),
-                                e('p', { className: 'text-gray-500 mb-4' }, 'PDF documents up to 25MB each'),
-                                e('input', {
-                                    type: 'file',
-                                    multiple: true,
-                                    accept: '.pdf',
-                                    onChange: (e) => handleFileUpload(Array.from(e.target.files)),
-                                    className: 'hidden',
-                                    id: 'file-upload'
-                                }),
-                                e('label', {
-                                    htmlFor: 'file-upload',
-                                    className: 'inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                                }, 'Select Files')
-                            )
-                    ),
-                    e('div', { className: 'mt-8 bg-green-50 border border-green-200 rounded-lg p-6' },
-                        e('div', { className: 'flex items-start' },
-                            e(Shield, { className: 'h-6 w-6 text-green-600 mr-3 mt-0.5' }),
-                            e('div', null,
-                                e('h4', { className: 'text-lg font-semibold text-green-800 mb-2' }, 'Your Privacy is Protected'),
-                                e('ul', { className: 'text-sm text-green-700 space-y-1' },
-                                    e('li', null, '• All processing happens locally in your browser'),
-                                    e('li', null, '• Personal identifiers are automatically removed'),
-                                    e('li', null, '• No health data is sent to external servers'),
-                                    e('li', null, '• Analysis results are stored securely on your device')
-                                )
-                            )
-                        )
-                    )
-                );
-            };
-
-            const renderResults = () => {
-                if (!analysisResults && healthData.length === 0) {
-                    return e('div', { className: 'text-center py-12' },
-                        e(FileText, { className: 'h-12 w-12 text-gray-400 mx-auto mb-4' }),
-                        e('h3', { className: 'text-xl font-semibold text-gray-900 mb-2' }, 'No Analysis Results'),
-                        e('p', { className: 'text-gray-500' }, 'Upload a health document to see AI-generated insights')
-                    );
-                }
-
-                const latestResult = analysisResults || healthData[healthData.length - 1];
                 
-                return e('div', { className: 'max-w-6xl mx-auto space-y-6' },
-                    e('div', { className: 'gradient-bg rounded-lg text-white p-6' },
-                        e('div', { className: 'flex items-center justify-between' },
-                            e('div', null,
-                                e('h2', { className: 'text-2xl font-bold mb-2' }, 'Health Analysis Complete'),
-                                e('p', { className: 'text-blue-100' }, `Document: ${latestResult.fileName}`),
-                                e('p', { className: 'text-blue-100 text-sm' }, `Processed: ${new Date(latestResult.uploadDate).toLocaleString()}`)
-                            ),
-                            e('div', { className: 'text-right' },
-                                e('div', { className: 'text-3xl font-bold' }, Object.keys(latestResult.metrics).length),
-                                e('div', { className: 'text-blue-100' }, 'Metrics Analyzed')
-                            )
-                        )
-                    ),
-                    Object.keys(latestResult.metrics).length > 0 && e('div', null,
-                        e('h3', { className: 'text-xl font-semibold text-gray-900 mb-4' }, '📊 Health Metrics'),
-                        e('div', { className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6' },
-                            ...Object.entries(latestResult.metrics).map(([metric, data]) =>
-                                e('div', { key: metric, className: 'bg-white rounded-lg border p-4 hover:shadow-md transition-shadow' },
-                                    e('div', { className: 'flex items-center justify-between mb-2' },
-                                        e('h4', { className: 'font-semibold text-gray-900 text-sm' }, metric),
-                                        (metric.toLowerCase().includes('cholesterol') && e(Heart, { className: 'h-4 w-4 text-red-500' })) ||
-                                        (metric.toLowerCase().includes('glucose') && e(Zap, { className: 'h-4 w-4 text-yellow-500' }))
-                                    ),
-                                    e('div', { className: 'text-2xl font-bold text-gray-900 mb-1' },
-                                        `${data.value} `,
-                                        e('span', { className: 'text-sm font-normal text-gray-500' }, data.unit)
-                                    ),
-                                    e('div', { className: 'text-xs text-gray-500' }, `Normal: ${data.normal_range}`)
-                                )
-                            )
-                        )
-                    ),
-                    e('div', { className: 'grid grid-cols-1 lg:grid-cols-2 gap-6' },
-                        e('div', { className: 'bg-white rounded-lg border p-6' },
-                            e('div', { className: 'flex items-center mb-4' },
-                                e(Brain, { className: 'h-6 w-6 text-purple-600 mr-2' }),
-                                e('h3', { className: 'text-xl font-semibold text-gray-900' }, 'AI Insights')
-                            ),
-                            e('div', { className: 'space-y-3' },
-                                ...latestResult.insights.map((insight, index) =>
-                                    e('div', { key: index, className: 'flex items-start' },
-                                        e(CheckCircle, { className: 'h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0' }),
-                                        e('p', { className: 'text-gray-700' }, insight)
-                                    )
-                                )
-                            )
-                        ),
-                        e('div', { className: 'bg-white rounded-lg border p-6' },
-                            e('div', { className: 'flex items-center mb-4' },
-                                e(AlertTriangle, { className: 'h-6 w-6 text-orange-600 mr-2' }),
-                                e('h3', { className: 'text-xl font-semibold text-gray-900' }, 'Recommendations')
-                            ),
-                            e('div', { className: 'space-y-3' },
-                                latestResult.recommendations.length > 0 ?
-                                    ...latestResult.recommendations.map((rec, index) =>
-                                        e('div', { key: index, className: 'flex items-start' },
-                                            e(ArrowUpRight, { className: 'h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0' }),
-                                            e('p', { className: 'text-gray-700' }, rec)
-                                        )
-                                    ) :
-                                    e('p', { className: 'text-gray-500 italic' }, 'No specific recommendations at this time. Continue monitoring your health metrics.')
-                            )
-                        )
-                    ),
-                    e('div', { className: 'bg-gray-50 rounded-lg p-4' },
-                        e('div', { className: 'flex items-center justify-between text-sm text-gray-600' },
-                            e('div', { className: 'flex items-center' },
-                                e(Clock, { className: 'h-4 w-4 mr-1' }),
-                                `Processing Time: ${latestResult.processingTime?.toFixed(2)}s`
-                            ),
-                            e('div', { className: 'flex items-center' },
-                                e(Shield, { className: 'h-4 w-4 mr-1' }),
-                                'Privacy Protected'
-                            ),
-                            e('div', { className: 'flex items-center' },
-                                e(Eye, { className: 'h-4 w-4 mr-1' }),
-                                `${Object.keys(latestResult.metrics).length} Metrics Found`
-                            )
-                        )
-                    )
-                );
-            };
+                riskFactors.push({
+                    metric: 'Total Cholesterol',
+                    value: value,
+                    unit: latestDoc.metrics['Total Cholesterol'].unit,
+                    risk: risk
+                });
+            }
 
-            const renderTrends = () => {
-                if (healthData.length < 2) {
-                    return e('div', { className: 'text-center py-8' },
-                        e(TrendingUp, { className: 'mx-auto h-12 w-12 text-gray-400' }),
-                        e('p', { className: 'text-gray-500 mt-2' }, 'Upload at least 2 documents to see trends')
-                    );
+            // Assess glucose risk
+            if (latestDoc.metrics['Glucose']) {
+                const value = latestDoc.metrics['Glucose'].value;
+                let risk;
+                if (value < 100) {
+                    risk = { level: 'Normal', color: 'text-green-600', description: 'Optimal glucose level' };
+                } else if (value < 126) {
+                    risk = { level: 'Prediabetes', color: 'text-yellow-600', description: 'Lifestyle changes recommended' };
+                } else {
+                    risk = { level: 'Diabetes Range', color: 'text-red-600', description: 'Consult healthcare provider' };
                 }
+                
+                riskFactors.push({
+                    metric: 'Blood Glucose',
+                    value: value,
+                    unit: latestDoc.metrics['Glucose'].unit,
+                    risk: risk
+                });
+            }
 
-                return e('div', { className: 'space-y-6' },
-                    e('h2', { className: 'text-2xl font-bold text-gray-900' }, 'Health Trends Analysis'),
-                    e('p', { className: 'text-gray-600' }, 'Track your health metrics over time to identify patterns and improvements.')
-                );
-            };
+            riskTab.innerHTML = `
+                <div class="space-y-6">
+                    <div class="gradient-orange rounded-lg text-white p-6">
+                        <h2 class="text-2xl font-bold mb-2">Health Risk Assessment</h2>
+                        <p class="text-orange-100">Based on your latest health metrics</p>
+                    </div>
 
-            const renderRisk = () => {
-                if (healthData.length === 0) {
-                    return e('div', { className: 'text-center py-8' },
-                        e(AlertTriangle, { className: 'mx-auto h-12 w-12 text-gray-400' }),
-                        e('p', { className: 'text-gray-500 mt-2' }, 'Upload health documents to see risk assessment')
-                    );
-                }
-
-                const latestDoc = healthData[healthData.length - 1];
-                const riskFactors = [];
-
-                if (latestDoc.metrics['Triglycerides']?.value) {
-                    const risk = assessTriglyceridesRisk(latestDoc.metrics['Triglycerides'].value);
-                    riskFactors.push({
-                        metric: 'Triglycerides',
-                        value: latestDoc.metrics['Triglycerides'].value,
-                        unit: latestDoc.metrics['Triglycerides'].unit,
-                        risk: risk
-                    });
-                }
-
-                if (latestDoc.metrics['Glucose']?.value) {
-                    const risk = assessGlucoseRisk(latestDoc.metrics['Glucose'].value);
-                    riskFactors.push({
-                        metric: 'Blood Glucose',
-                        value: latestDoc.metrics['Glucose'].value,
-                        unit: latestDoc.metrics['Glucose'].unit,
-                        risk: risk
-                    });
-                }
-
-                if (riskFactors.length === 0) {
-                    return e('div', { className: 'text-center py-8' },
-                        e(AlertTriangle, { className: 'mx-auto h-12 w-12 text-gray-400' }),
-                        e('p', { className: 'text-gray-500 mt-2' }, 'No risk factors could be assessed from your health data')
-                    );
-                }
-
-                return e('div', { className: 'space-y-6' },
-                    e('div', { className: 'gradient-orange rounded-lg text-white p-6' },
-                        e('h2', { className: 'text-2xl font-bold mb-2' }, 'Health Risk Assessment'),
-                        e('p', { className: 'text-orange-100' }, 'Based on your latest health metrics')
-                    ),
-                    e('div', { className: 'grid gap-6' },
-                        ...riskFactors.map((factor, index) =>
-                            e('div', { key: index, className: 'bg-white rounded-lg border p-6' },
-                                e('div', { className: 'flex justify-between items-start mb-4' },
-                                    e('div', null,
-                                        e('h3', { className: 'text-lg font-semibold text-gray-900' }, factor.metric),
-                                        e('p', { className: 'text-2xl font-bold text-gray-700' },
-                                            `${factor.value} `,
-                                            e('span', { className: 'text-sm font-normal text-gray-500' }, factor.unit)
-                                        )
-                                    ),
-                                    e('span', { 
-                                        className: `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                    ${riskFactors.length > 0 ? `
+                        <div class="grid gap-6">
+                            ${riskFactors.map(factor => `
+                                <div class="bg-white rounded-lg border p-6">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 class="text-lg font-semibold text-gray-900">${factor.metric}</h3>
+                                            <p class="text-2xl font-bold text-gray-700">
+                                                ${factor.value} <span class="text-sm font-normal text-gray-500">${factor.unit}</span>
+                                            </p>
+                                        </div>
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                                             factor.risk.level === 'Normal' ? 'bg-green-100 text-green-800' :
                                             factor.risk.level === 'Borderline High' || factor.risk.level === 'Prediabetes' ? 'bg-yellow-100 text-yellow-800' :
                                             'bg-red-100 text-red-800'
-                                        }`
-                                    }, factor.risk.level)
-                                ),
-                                e('p', { className: `text-sm ${factor.risk.color}` }, factor.risk.description)
-                            )
-                        )
-                    )
-                );
-            };
+                                        }">
+                                            ${factor.risk.level}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm ${factor.risk.color}">${factor.risk.description}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : `
+                        <div class="text-center py-8">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                            <p class="text-gray-500 mt-2">No risk factors could be assessed from your health data</p>
+                        </div>
+                    `}
 
-            const renderHistory = () => {
-                if (healthData.length === 0) {
-                    return e('div', { className: 'text-center py-8' },
-                        e(FileText, { className: 'mx-auto h-12 w-12 text-gray-400' }),
-                        e('p', { className: 'text-gray-500 mt-2' }, 'No documents uploaded yet')
-                    );
-                }
-
-                return e('div', { className: 'space-y-4' },
-                    e('div', { className: 'flex justify-between items-center' },
-                        e('h2', { className: 'text-2xl font-bold text-gray-900' }, 'Document History'),
-                        e('div', { className: 'text-sm text-gray-500' },
-                            `${healthData.length} document${healthData.length !== 1 ? 's' : ''} processed`
-                        )
-                    ),
-                    ...healthData.map((doc, index) =>
-                        e('div', { key: index, className: 'bg-white rounded-lg border hover:shadow-md transition-shadow' },
-                            e('div', { className: 'p-6' },
-                                e('div', { className: 'flex justify-between items-start mb-4' },
-                                    e('div', { className: 'flex items-center' },
-                                        e(FileText, { className: 'h-6 w-6 text-blue-600 mr-3' }),
-                                        e('div', null,
-                                            e('h3', { className: 'text-lg font-semibold text-gray-900' }, doc.fileName),
-                                            e('p', { className: 'text-sm text-gray-500' }, new Date(doc.uploadDate).toLocaleString())
-                                        )
-                                    ),
-                                    e('span', { className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800' }, 'Processed')
-                                ),
-                                e('div', { className: 'grid grid-cols-1 md:grid-cols-3 gap-4 mb-4' },
-                                    e('div', { className: 'text-center p-3 bg-gray-50 rounded' },
-                                        e('div', { className: 'text-2xl font-bold text-gray-900' }, Object.keys(doc.metrics).length),
-                                        e('div', { className: 'text-xs text-gray-500' }, 'Metrics')
-                                    ),
-                                    e('div', { className: 'text-center p-3 bg-gray-50 rounded' },
-                                        e('div', { className: 'text-2xl font-bold text-gray-900' }, doc.insights.length),
-                                        e('div', { className: 'text-xs text-gray-500' }, 'Insights')
-                                    ),
-                                    e('div', { className: 'text-center p-3 bg-gray-50 rounded' },
-                                        e('div', { className: 'text-2xl font-bold text-gray-900' }, doc.recommendations.length),
-                                        e('div', { className: 'text-xs text-gray-500' }, 'Recommendations')
-                                    )
-                                ),
-                                Object.keys(doc.metrics).length > 0 && e('div', null,
-                                    e('h4', { className: 'font-semibold text-gray-900 mb-2' }, 'Key Metrics:'),
-                                    e('div', { className: 'flex flex-wrap gap-2' },
-                                        ...Object.entries(doc.metrics).slice(0, 6).map(([metric, data]) =>
-                                            e('span', { 
-                                                key: metric, 
-                                                className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800' 
-                                            }, `${metric}: ${data.value} ${data.unit}`)
-                                        ),
-                                        Object.keys(doc.metrics).length > 6 && e('span', { 
-                                            className: 'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800' 
-                                        }, `+${Object.keys(doc.metrics).length - 6} more`)
-                                    )
-                                )
-                            )
-                        )
-                    )
-                );
-            };
-
-            return e('div', { className: 'min-h-screen bg-gray-50' },
-                e('header', { className: 'bg-white shadow-sm border-b' },
-                    e('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' },
-                        e('div', { className: 'flex justify-between items-center py-4' },
-                            e('div', { className: 'flex items-center' },
-                                e('div', { className: 'w-10 h-10 gradient-bg rounded-lg flex items-center justify-center mr-3' },
-                                    e(Brain, { className: 'h-6 w-6 text-white' })
-                                ),
-                                e('h1', { className: 'text-2xl font-bold text-gray-900' }, 'HealthAI')
-                            ),
-                            e('div', { className: 'flex items-center space-x-4' },
-                                e('div', { className: 'flex items-center text-sm text-gray-500' },
-                                    e(Shield, { className: 'h-4 w-4 mr-1' }),
-                                    'Privacy Protected'
-                                ),
-                                e('div', { className: 'flex items-center text-sm text-gray-500' },
-                                    e(Users, { className: 'h-4 w-4 mr-1' }),
-                                    `${healthData.length} Documents`
-                                )
-                            )
-                        )
-                    )
-                ),
-                e('nav', { className: 'bg-white border-b' },
-                    e('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8' },
-                        e('div', { className: 'flex space-x-8' },
-                            ...[
-                                { id: 'upload', label: 'Upload', icon: Upload },
-                                { id: 'results', label: 'Results', icon: Brain },
-                                { id: 'trends', label: 'Trends', icon: TrendingUp },
-                                { id: 'risk', label: 'Risk Assessment', icon: AlertTriangle },
-                                { id: 'history', label: 'History', icon: FileText }
-                            ].map(({ id, label, icon: Icon }) =>
-                                e('button', {
-                                    key: id,
-                                    onClick: () => setActiveTab(id),
-                                    className: `flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
-                                        activeTab === id
-                                            ? 'border-blue-500 text-blue-600'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`
-                                },
-                                    e(Icon, { className: 'h-4 w-4 mr-2' }),
-                                    label
-                                )
-                            )
-                        )
-                    )
-                ),
-                e('main', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8' },
-                    activeTab === 'upload' && renderUpload(),
-                    activeTab === 'results' && renderResults(),
-                    activeTab === 'trends' && renderTrends(),
-                    activeTab === 'risk' && renderRisk(),
-                    activeTab === 'history' && renderHistory()
-                ),
-                e('footer', { className: 'bg-white border-t mt-auto' },
-                    e('div', { className: 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6' },
-                        e('div', { className: 'flex justify-between items-center text-sm text-gray-500' },
-                            e('div', { className: 'flex items-center space-x-6' },
-                                e('div', { className: 'flex items-center' },
-                                    e(Clock, { className: 'h-4 w-4 mr-1' }),
-                                    'Sub-3s Analysis'
-                                ),
-                                e('div', { className: 'flex items-center' },
-                                    e(Shield, { className: 'h-4 w-4 mr-1' }),
-                                    '100% Private'
-                                ),
-                                e('div', { className: 'flex items-center' },
-                                    e(Brain, { className: 'h-4 w-4 mr-1' }),
-                                    'AI-Powered'
-                                )
-                            ),
-                            e('div', null, '© 2024 HealthAI. Privacy-first health analysis.')
-                        )
-                    )
-                )
-            );
-        };
-
-        ReactDOM.render(React.createElement(HealthAIDashboard), document.getElementById('root'));
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-3">💡 Risk Management Tips</h3>
+                        <ul class="text-sm text-blue-800 space-y-2">
+                            <li>• Regular exercise (150 minutes moderate activity per week)</li>
+                            <li>• Heart-healthy diet rich in fruits, vegetables, and whole grains</li>
+                            <li>• Maintain healthy weight and limit processed foods</li>
+                            <li>• Regular health screenings and follow-up with healthcare providers</li>
+                            <li>• Stress management and adequate sleep (7-9 hours nightly)</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
     </script>
 </body>
-</html>
+</html> Global variables
+        let healthData = [];
+        let isProcessing = false;
+        let currentTab = 'upload';
+
+        // Load data from localStorage on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHealthData();
+            updateDocumentCount();
+        });
+
+        // Tab switching function
+        function switchTab(tabName) {
+            // Hide all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Remove active class from all nav buttons
+            const navButtons = document.querySelectorAll('.nav-button');
+            navButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById('tab-' + tabName).classList.add('active');
+            document.getElementById('nav-' + tabName).classList.add('active');
+
+            currentTab = tabName;
+        }
+
+        // Load health data from localStorage
+        function loadHealthData() {
+            const savedData = localStorage.getItem('healthAI_data');
+            if (savedData) {
+                try {
+                    healthData = JSON.parse(savedData);
+                    updateUI();
+                } catch (error) {
+                    console.error('Error loading saved data:', error);
+                }
+            }
+        }
+
+        // Save health data to localStorage
+        function saveHealthData() {
+            localStorage.setItem('healthAI_data', JSON.stringify(healthData));
+            updateDocumentCount();
+        }
+
+        // Update document count in header
+        function updateDocumentCount() {
+            document.getElementById('doc-count').textContent = healthData.length;
+        }
+
+        // File upload handling
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            handleFiles(Array.from(e.target.files));
+        });
+
+        // Drag and drop handling
+        const dropZone = document.getElementById('file-drop-zone');
+
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(file => 
+                file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+            );
+            if (files.length > 0) {
+                handleFiles(files);
+            }
+        });
+
+        // Handle file processing
+        async function handleFiles(files) {
+            if (files.length === 0 || isProcessing) return;
+
+            isProcessing = true;
+            showProcessing();
+
+            try {
+                const newHealthData = [];
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    
+                    // Simulate file processing
+                    const analysisResult = await processHealthDocument(file);
+                    newHealthData.push(analysisResult);
+                    
+                    // Update progress
+                    const progress = Math.round(((i + 1) / files.length) * 100);
+                    updateProgress(progress);
+                }
+
+                // Add new data to health data array
+                healthData = [...healthData, ...newHealthData];
+                saveHealthData();
+
+                // Switch to results tab and show latest result
+                setTimeout(() => {
+                    hideProcessing();
+                    updateUI();
+                    switchTab('results');
+                    isProcessing = false;
+                }, 500);
+
+            } catch (error) {
+                console.error('Error processing files:', error);
+                hideProcessing();
+                isProcessing = false;
+            }
+        }
+
+        // Simulate health document processing
+        async function processHealthDocument(file) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Generate simulated health data
+                    const metrics = {
+                        'Total Cholesterol': {
+                            value: Math.floor(Math.random() * 100) + 180,
+                            unit: 'mg/dL',
+                            normal_range: '< 200 mg/dL'
+                        },
+                        'LDL Cholesterol': {
+                            value: Math.floor(Math.random() * 60) + 70,
+                            unit: 'mg/dL',
+                            normal_range: '< 100 mg/dL'
+                        },
+                        'HDL Cholesterol': {
+                            value: Math.floor(Math.random() * 40) + 35,
+                            unit: 'mg/dL',
+                            normal_range: '> 40 mg/dL'
+                        },
+                        'Triglycerides': {
+                            value: Math.floor(Math.random() * 150) + 100,
+                            unit: 'mg/dL',
+                            normal_range: '< 150 mg/dL'
+                        },
+                        'Glucose': {
+                            value: Math.floor(Math.random() * 40) + 80,
+                            unit: 'mg/dL',
+                            normal_range: '70-99 mg/dL'
+                        },
+                        'HbA1c': {
+                            value: parseFloat((Math.random() * 2 + 4.5).toFixed(1)),
+                            unit: '%',
+                            normal_range: '< 5.7%'
+                        }
+                    };
+
+                    // Generate insights based on metrics
+                    const insights = [];
+                    const recommendations = [];
+
+                    Object.entries(metrics).forEach(([metric, data]) => {
+                        if (metric === 'Total Cholesterol' && data.value < 200) {
+                            insights.push('✅ Total cholesterol is in optimal range');
+                        } else if (metric === 'Total Cholesterol' && data.value >= 200) {
+                            insights.push('⚠️ Total cholesterol is elevated');
+                            recommendations.push('Consider dietary changes and regular exercise');
+                        }
+                        
+                        if (metric === 'Glucose' && data.value < 100) {
+                            insights.push('✅ Blood glucose is normal');
+                        } else if (metric === 'Glucose' && data.value >= 100) {
+                            insights.push('⚠️ Blood glucose is elevated');
+                            recommendations.push('Monitor blood sugar levels closely');
+                        }
+                    });
+
+                    if (insights.length === 0) {
+                        insights.push('📄 Document processed successfully. Health metrics analyzed.');
+                    }
+
+                    resolve({
+                        fileName: file.name,
+                        uploadDate: new Date().toISOString(),
+                        metrics: metrics,
+                        insights: insights,
+                        recommendations: recommendations,
+                        processingTime: Math.random() * 2 + 1
+                    });
+                }, 1000 + Math.random() * 1000); // Simulate processing time
+            });
+        }
+
+        // Show processing UI
+        function showProcessing() {
+            document.getElementById('upload-content').classList.add('hidden');
+            document.getElementById('processing-content').classList.remove('hidden');
+            dropZone.classList.add('processing');
+            
+            // Animate progress bar
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                updateProgress(progress);
+                if (progress >= 100) {
+                    clearInterval(interval);
+                }
+            }, 200);
+        }
+
+        // Hide processing UI
+        function hideProcessing() {
+            document.getElementById('upload-content').classList.remove('hidden');
+            document.getElementById('processing-content').classList.add('hidden');
+            dropZone.classList.remove('processing');
+            updateProgress(0);
+        }
+
+        //
