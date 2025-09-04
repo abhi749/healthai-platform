@@ -236,10 +236,7 @@
                     <h3 class="text-xl font-semibold text-gray-900 mb-2">No Analysis Results</h3>
                     <p class="text-gray-500">Upload a health document to see AI-generated insights</p>
                 </div>
-
-                <div id="results-content" class="hidden">
-                    <!-- Results will be dynamically populated here -->
-                </div>
+                <div id="results-content" class="hidden"></div>
             </div>
 
             <!-- Trends Tab -->
@@ -270,10 +267,7 @@
                     </svg>
                     <p class="text-gray-500 mt-2">No documents uploaded yet</p>
                 </div>
-
-                <div id="history-content" class="hidden">
-                    <!-- History will be dynamically populated here -->
-                </div>
+                <div id="history-content" class="hidden"></div>
             </div>
         </main>
 
@@ -308,571 +302,224 @@
             </div>
         </footer>
     </div>
-
-    <script>
-        // Update progress bar
-        function updateProgress(progress) {
-            document.getElementById('progress-bar').style.width = progress + '%';
-            document.getElementById('progress-text').textContent = progress;
-        }
-
-        // Update UI based on current data
-        function updateUI() {
-            updateResults();
-            updateHistory();
-            updateTrends();
-            updateRisk();
-        }
-
-        // Update results tab
-        function updateResults() {
-            const noResults = document.getElementById('no-results');
-            const resultsContent = document.getElementById('results-content');
-
-            if (healthData.length === 0) {
-                noResults.classList.remove('hidden');
-                resultsContent.classList.add('hidden');
-                return;
-            }
-
-            noResults.classList.add('hidden');
-            resultsContent.classList.remove('hidden');
-
-            const latestResult = healthData[healthData.length - 1];
-            
-            resultsContent.innerHTML = `
-                <div class="max-w-6xl mx-auto space-y-6">
-                    <div class="gradient-bg rounded-lg text-white p-6">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h2 class="text-2xl font-bold mb-2">Health Analysis Complete</h2>
-                                <p class="text-blue-100">Document: ${latestResult.fileName}</p>
-                                <p class="text-blue-100 text-sm">Processed: ${new Date(latestResult.uploadDate).toLocaleString()}</p>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-3xl font-bold">${Object.keys(latestResult.metrics).length}</div>
-                                <div class="text-blue-100">Metrics Analyzed</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h3 class="text-xl font-semibold text-gray-900 mb-4">📊 Health Metrics</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                            ${Object.entries(latestResult.metrics).map(([metric, data]) => `
-                                <div class="bg-white rounded-lg border p-4 metric-card">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <h4 class="font-semibold text-gray-900 text-sm">${metric}</h4>
-                                        ${metric.toLowerCase().includes('cholesterol') ? 
-                                            '<svg class="h-4 w-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>' : 
-                                          metric.toLowerCase().includes('glucose') ? 
-                                            '<svg class="h-4 w-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>' : ''
-                                        }
-                                    </div>
-                                    <div class="text-2xl font-bold text-gray-900 mb-1">
-                                        ${data.value} <span class="text-sm font-normal text-gray-500">${data.unit}</span>
-                                    </div>
-                                    <div class="text-xs text-gray-500">Normal: ${data.normal_range}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-white rounded-lg border p-6">
-                            <div class="flex items-center mb-4">
-                                <svg class="h-6 w-6 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                                </svg>
-                                <h3 class="text-xl font-semibold text-gray-900">AI Insights</h3>
-                            </div>
-                            <div class="space-y-3">
-                                ${latestResult.insights.map(insight => `
-                                    <div class="flex items-start">
-                                        <svg class="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                        <p class="text-gray-700">${insight}</p>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-
-                        <div class="bg-white rounded-lg border p-6">
-                            <div class="flex items-center mb-4">
-                                <svg class="h-6 w-6 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                                </svg>
-                                <h3 class="text-xl font-semibold text-gray-900">Recommendations</h3>
-                            </div>
-                            <div class="space-y-3">
-                                ${latestResult.recommendations.length > 0 ? 
-                                    latestResult.recommendations.map(rec => `
-                                        <div class="flex items-start">
-                                            <svg class="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11l5-5m0 0l5 5m-5-5v12"></path>
-                                            </svg>
-                                            <p class="text-gray-700">${rec}</p>
-                                        </div>
-                                    `).join('') :
-                                    '<p class="text-gray-500 italic">No specific recommendations at this time. Continue monitoring your health metrics.</p>'
-                                }
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div class="flex items-center justify-between text-sm text-gray-600">
-                            <div class="flex items-center">
-                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                Processing Time: ${latestResult.processingTime.toFixed(2)}s
-                            </div>
-                            <div class="flex items-center">
-                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                                </svg>
-                                Privacy Protected
-                            </div>
-                            <div class="flex items-center">
-                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                </svg>
-                                ${Object.keys(latestResult.metrics).length} Metrics Found
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Update history tab
-        function updateHistory() {
-            const noHistory = document.getElementById('no-history');
-            const historyContent = document.getElementById('history-content');
-
-            if (healthData.length === 0) {
-                noHistory.classList.remove('hidden');
-                historyContent.classList.add('hidden');
-                return;
-            }
-
-            noHistory.classList.add('hidden');
-            historyContent.classList.remove('hidden');
-
-            historyContent.innerHTML = `
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <h2 class="text-2xl font-bold text-gray-900">Document History</h2>
-                        <div class="text-sm text-gray-500">
-                            ${healthData.length} document${healthData.length !== 1 ? 's' : ''} processed
-                        </div>
-                    </div>
-
-                    ${healthData.map((doc, index) => `
-                        <div class="bg-white rounded-lg border hover:shadow-md transition-shadow">
-                            <div class="p-6">
-                                <div class="flex justify-between items-start mb-4">
-                                    <div class="flex items-center">
-                                        <svg class="h-6 w-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">${doc.fileName}</h3>
-                                            <p class="text-sm text-gray-500">${new Date(doc.uploadDate).toLocaleString()}</p>
-                                        </div>
-                                    </div>
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Processed
-                                    </span>
-                                </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                    <div class="text-center p-3 bg-gray-50 rounded">
-                                        <div class="text-2xl font-bold text-gray-900">${Object.keys(doc.metrics).length}</div>
-                                        <div class="text-xs text-gray-500">Metrics</div>
-                                    </div>
-                                    <div class="text-center p-3 bg-gray-50 rounded">
-                                        <div class="text-2xl font-bold text-gray-900">${doc.insights.length}</div>
-                                        <div class="text-xs text-gray-500">Insights</div>
-                                    </div>
-                                    <div class="text-center p-3 bg-gray-50 rounded">
-                                        <div class="text-2xl font-bold text-gray-900">${doc.recommendations.length}</div>
-                                        <div class="text-xs text-gray-500">Recommendations</div>
-                                    </div>
-                                </div>
-
-                                ${Object.keys(doc.metrics).length > 0 ? `
-                                    <div>
-                                        <h4 class="font-semibold text-gray-900 mb-2">Key Metrics:</h4>
-                                        <div class="flex flex-wrap gap-2">
-                                            ${Object.entries(doc.metrics).slice(0, 6).map(([metric, data]) => `
-                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                    ${metric}: ${data.value} ${data.unit}
-                                                </span>
-                                            `).join('')}
-                                            ${Object.keys(doc.metrics).length > 6 ? `
-                                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                    +${Object.keys(doc.metrics).length - 6} more
-                                                </span>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        // Update trends tab
-        function updateTrends() {
-            const trendsTab = document.getElementById('tab-trends');
-            
-            if (healthData.length < 2) {
-                trendsTab.innerHTML = `
-                    <div class="text-center py-8">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                        </svg>
-                        <p class="text-gray-500 mt-2">Upload at least 2 documents to see trends</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Basic trends display (without charts for now)
-            trendsTab.innerHTML = `
-                <div class="space-y-6">
-                    <div class="gradient-bg rounded-lg text-white p-6">
-                        <h2 class="text-2xl font-bold mb-2">Health Trends Analysis</h2>
-                        <p class="text-blue-100">Track your health metrics over time</p>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg border p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Trend Summary</h3>
-                        <p class="text-gray-600">
-                            You have ${healthData.length} health documents uploaded. 
-                            Advanced trend charts and analysis will be available with more data points.
-                        </p>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Update risk tab
-        function updateRisk() {
-            const riskTab = document.getElementById('tab-risk');
-            
-            if (healthData.length === 0) {
-                riskTab.innerHTML = `
-                    <div class="text-center py-8">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                        </svg>
-                        <p class="text-gray-500 mt-2">Upload health documents to see risk assessment</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const latestDoc = healthData[healthData.length - 1];
-            const riskFactors = [];
-
-            // Assess cholesterol risk
-            if (latestDoc.metrics['Total Cholesterol']) {
-                const value = latestDoc.metrics['Total Cholesterol'].value;
-                let risk;
-                if (value < 200) {
-                    risk = { level: 'Normal', color: 'text-green-600', description: 'Optimal cholesterol level' };
-                } else if (value < 240) {
-                    risk = { level: 'Borderline High', color: 'text-yellow-600', description: 'Monitor and improve diet' };
-                } else {
-                    risk = { level: 'High', color: 'text-red-600', description: 'High risk, seek medical advice' };
-                }
-                
-                riskFactors.push({
-                    metric: 'Total Cholesterol',
-                    value: value,
-                    unit: latestDoc.metrics['Total Cholesterol'].unit,
-                    risk: risk
-                });
-            }
-
-            // Assess glucose risk
-            if (latestDoc.metrics['Glucose']) {
-                const value = latestDoc.metrics['Glucose'].value;
-                let risk;
-                if (value < 100) {
-                    risk = { level: 'Normal', color: 'text-green-600', description: 'Optimal glucose level' };
-                } else if (value < 126) {
-                    risk = { level: 'Prediabetes', color: 'text-yellow-600', description: 'Lifestyle changes recommended' };
-                } else {
-                    risk = { level: 'Diabetes Range', color: 'text-red-600', description: 'Consult healthcare provider' };
-                }
-                
-                riskFactors.push({
-                    metric: 'Blood Glucose',
-                    value: value,
-                    unit: latestDoc.metrics['Glucose'].unit,
-                    risk: risk
-                });
-            }
-
-            riskTab.innerHTML = `
-                <div class="space-y-6">
-                    <div class="gradient-orange rounded-lg text-white p-6">
-                        <h2 class="text-2xl font-bold mb-2">Health Risk Assessment</h2>
-                        <p class="text-orange-100">Based on your latest health metrics</p>
-                    </div>
-
-                    ${riskFactors.length > 0 ? `
-                        <div class="grid gap-6">
-                            ${riskFactors.map(factor => `
-                                <div class="bg-white rounded-lg border p-6">
-                                    <div class="flex justify-between items-start mb-4">
-                                        <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">${factor.metric}</h3>
-                                            <p class="text-2xl font-bold text-gray-700">
-                                                ${factor.value} <span class="text-sm font-normal text-gray-500">${factor.unit}</span>
-                                            </p>
-                                        </div>
-                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                            factor.risk.level === 'Normal' ? 'bg-green-100 text-green-800' :
-                                            factor.risk.level === 'Borderline High' || factor.risk.level === 'Prediabetes' ? 'bg-yellow-100 text-yellow-800' :
-                                            'bg-red-100 text-red-800'
-                                        }">
-                                            ${factor.risk.level}
-                                        </span>
-                                    </div>
-                                    <p class="text-sm ${factor.risk.color}">${factor.risk.description}</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : `
-                        <div class="text-center py-8">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                            </svg>
-                            <p class="text-gray-500 mt-2">No risk factors could be assessed from your health data</p>
-                        </div>
-                    `}
-
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                        <h3 class="text-lg font-semibold text-blue-900 mb-3">💡 Risk Management Tips</h3>
-                        <ul class="text-sm text-blue-800 space-y-2">
-                            <li>• Regular exercise (150 minutes moderate activity per week)</li>
-                            <li>• Heart-healthy diet rich in fruits, vegetables, and whole grains</li>
-                            <li>• Maintain healthy weight and limit processed foods</li>
-                            <li>• Regular health screenings and follow-up with healthcare providers</li>
-                            <li>• Stress management and adequate sleep (7-9 hours nightly)</li>
-                        </ul>
-                    </div>
-                </div>
-            `;
-        }
-    </script>
 </body>
-</html> Global variables
-        let healthData = [];
-        let isProcessing = false;
-        let currentTab = 'upload';
+</html>
 
-        // Load data from localStorage on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadHealthData();
-            updateDocumentCount();
+<script>
+// Global variables
+let healthData = [];
+let isProcessing = false;
+
+// Initialize when page loads
+window.addEventListener('load', function() {
+    console.log('Page loaded, initializing HealthAI...');
+    loadHealthData();
+    updateDocumentCount();
+    setupEventHandlers();
+});
+
+// Setup all event handlers
+function setupEventHandlers() {
+    // File input handler
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            console.log('File input changed, files:', e.target.files.length);
+            if (e.target.files && e.target.files.length > 0) {
+                handleFiles(Array.from(e.target.files));
+                e.target.value = '';
+            }
+        });
+    }
+    
+    // Drag and drop handlers
+    const dropZone = document.getElementById('file-drop-zone');
+    if (dropZone) {
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
         });
 
-        // Tab switching function
-        function switchTab(tabName) {
-            // Hide all tabs
-            const tabs = document.querySelectorAll('.tab');
-            tabs.forEach(tab => tab.classList.remove('active'));
-
-            // Remove active class from all nav buttons
-            const navButtons = document.querySelectorAll('.nav-button');
-            navButtons.forEach(btn => btn.classList.remove('active'));
-
-            // Show selected tab
-            document.getElementById('tab-' + tabName).classList.add('active');
-            document.getElementById('nav-' + tabName).classList.add('active');
-
-            currentTab = tabName;
-        }
-
-        // Load health data from localStorage
-        function loadHealthData() {
-            const savedData = localStorage.getItem('healthAI_data');
-            if (savedData) {
-                try {
-                    healthData = JSON.parse(savedData);
-                    updateUI();
-                } catch (error) {
-                    console.error('Error loading saved data:', error);
-                }
-            }
-        }
-
-        // Save health data to localStorage
-        function saveHealthData() {
-            localStorage.setItem('healthAI_data', JSON.stringify(healthData));
-            updateDocumentCount();
-        }
-
-        // Update document count in header
-        function updateDocumentCount() {
-            document.getElementById('doc-count').textContent = healthData.length;
-        }
-
-        // File upload handling
-        document.getElementById('file-input').addEventListener('change', function(e) {
-            handleFiles(Array.from(e.target.files));
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
         });
 
-
-
-        // Handle file processing
-        async function handleFiles(files) {
-            if (files.length === 0 || isProcessing) return;
-
-            isProcessing = true;
-            showProcessing();
-
-            try {
-                const newHealthData = [];
-
-                for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    
-                    // Simulate file processing
-                    const analysisResult = await processHealthDocument(file);
-                    newHealthData.push(analysisResult);
-                    
-                    // Update progress
-                    const progress = Math.round(((i + 1) / files.length) * 100);
-                    updateProgress(progress);
-                }
-
-                // Add new data to health data array
-                healthData = [...healthData, ...newHealthData];
-                saveHealthData();
-
-                // Switch to results tab and show latest result
-                setTimeout(() => {
-                    hideProcessing();
-                    updateUI();
-                    switchTab('results');
-                    isProcessing = false;
-                }, 500);
-
-            } catch (error) {
-                console.error('Error processing files:', error);
-                hideProcessing();
-                isProcessing = false;
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length > 0) {
+                handleFiles(files);
             }
-        }
+        });
+    }
+}
 
-        // Simulate health document processing
-        async function processHealthDocument(file) {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    // Generate simulated health data
-                    const metrics = {
-                        'Total Cholesterol': {
-                            value: Math.floor(Math.random() * 100) + 180,
-                            unit: 'mg/dL',
-                            normal_range: '< 200 mg/dL'
-                        },
-                        'LDL Cholesterol': {
-                            value: Math.floor(Math.random() * 60) + 70,
-                            unit: 'mg/dL',
-                            normal_range: '< 100 mg/dL'
-                        },
-                        'HDL Cholesterol': {
-                            value: Math.floor(Math.random() * 40) + 35,
-                            unit: 'mg/dL',
-                            normal_range: '> 40 mg/dL'
-                        },
-                        'Triglycerides': {
-                            value: Math.floor(Math.random() * 150) + 100,
-                            unit: 'mg/dL',
-                            normal_range: '< 150 mg/dL'
-                        },
-                        'Glucose': {
-                            value: Math.floor(Math.random() * 40) + 80,
-                            unit: 'mg/dL',
-                            normal_range: '70-99 mg/dL'
-                        },
-                        'HbA1c': {
-                            value: parseFloat((Math.random() * 2 + 4.5).toFixed(1)),
-                            unit: '%',
-                            normal_range: '< 5.7%'
-                        }
-                    };
+// Tab switching
+function switchTab(tabName) {
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    const navButtons = document.querySelectorAll('.nav-button');
+    navButtons.forEach(btn => btn.classList.remove('active'));
+    
+    document.getElementById('tab-' + tabName).classList.add('active');
+    document.getElementById('nav-' + tabName).classList.add('active');
+}
 
-                    // Generate insights based on metrics
-                    const insights = [];
-                    const recommendations = [];
-
-                    Object.entries(metrics).forEach(([metric, data]) => {
-                        if (metric === 'Total Cholesterol' && data.value < 200) {
-                            insights.push('✅ Total cholesterol is in optimal range');
-                        } else if (metric === 'Total Cholesterol' && data.value >= 200) {
-                            insights.push('⚠️ Total cholesterol is elevated');
-                            recommendations.push('Consider dietary changes and regular exercise');
-                        }
-                        
-                        if (metric === 'Glucose' && data.value < 100) {
-                            insights.push('✅ Blood glucose is normal');
-                        } else if (metric === 'Glucose' && data.value >= 100) {
-                            insights.push('⚠️ Blood glucose is elevated');
-                            recommendations.push('Monitor blood sugar levels closely');
-                        }
-                    });
-
-                    if (insights.length === 0) {
-                        insights.push('📄 Document processed successfully. Health metrics analyzed.');
-                    }
-
-                    resolve({
-                        fileName: file.name,
-                        uploadDate: new Date().toISOString(),
-                        metrics: metrics,
-                        insights: insights,
-                        recommendations: recommendations,
-                        processingTime: Math.random() * 2 + 1
-                    });
-                }, 1000 + Math.random() * 1000); // Simulate processing time
-            });
-        }
-
-        // Show processing UI
-        function showProcessing() {
-            document.getElementById('upload-content').classList.add('hidden');
-            document.getElementById('processing-content').classList.remove('hidden');
-            dropZone.classList.add('processing');
+// Handle file processing
+async function handleFiles(files) {
+    if (files.length === 0 || isProcessing) return;
+    
+    console.log('Processing', files.length, 'files...');
+    isProcessing = true;
+    showProcessing();
+    
+    try {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const result = await processFile(file);
+            healthData.push(result);
             
-            // Animate progress bar
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 10;
-                updateProgress(progress);
-                if (progress >= 100) {
-                    clearInterval(interval);
-                }
-            }, 200);
+            const progress = Math.round(((i + 1) / files.length) * 100);
+            updateProgress(progress);
         }
+        
+        saveHealthData();
+        updateUI();
+        switchTab('results');
+        
+    } catch (error) {
+        console.error('Error processing files:', error);
+    } finally {
+        setTimeout(() => {
+            hideProcessing();
+            isProcessing = false;
+        }, 500);
+    }
+}
 
-        // Hide processing UI
-        function hideProcessing() {
-            document.getElementById('upload-content').classList.remove('hidden');
-            document.getElementById('processing-content').classList.add('hidden');
-            dropZone.classList.remove('processing');
-            updateProgress(0);
+// Process individual file
+async function processFile(file) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            const metrics = {
+                'Total Cholesterol': { value: Math.floor(Math.random() * 100) + 180, unit: 'mg/dL' },
+                'LDL Cholesterol': { value: Math.floor(Math.random() * 60) + 70, unit: 'mg/dL' },
+                'HDL Cholesterol': { value: Math.floor(Math.random() * 40) + 35, unit: 'mg/dL' },
+                'Glucose': { value: Math.floor(Math.random() * 40) + 80, unit: 'mg/dL' }
+            };
+            
+            resolve({
+                fileName: file.name,
+                uploadDate: new Date().toISOString(),
+                metrics: metrics,
+                insights: ['✅ Document processed successfully', '📊 Health metrics analyzed'],
+                recommendations: ['Continue monitoring your health metrics', 'Maintain a balanced diet']
+            });
+        }, 1000);
+    });
+}
+
+// Show processing UI
+function showProcessing() {
+    document.getElementById('upload-content').classList.add('hidden');
+    document.getElementById('processing-content').classList.remove('hidden');
+}
+
+// Hide processing UI
+function hideProcessing() {
+    document.getElementById('upload-content').classList.remove('hidden');
+    document.getElementById('processing-content').classList.add('hidden');
+}
+
+// Update progress bar
+function updateProgress(progress) {
+    document.getElementById('progress-bar').style.width = progress + '%';
+    document.getElementById('progress-text').textContent = progress;
+}
+
+// Load health data from localStorage
+function loadHealthData() {
+    const saved = localStorage.getItem('healthAI_data');
+    if (saved) {
+        try {
+            healthData = JSON.parse(saved);
+        } catch (e) {
+            healthData = [];
         }
+    }
+}
 
-        //
+// Save health data to localStorage
+function saveHealthData() {
+    localStorage.setItem('healthAI_data', JSON.stringify(healthData));
+    updateDocumentCount();
+}
+
+// Update document count
+function updateDocumentCount() {
+    const count = document.getElementById('doc-count');
+    if (count) {
+        count.textContent = healthData.length;
+    }
+}
+
+// Update UI with current data
+function updateUI() {
+    updateResults();
+    updateHistory();
+}
+
+// Update results tab
+function updateResults() {
+    if (healthData.length === 0) return;
+    
+    const latest = healthData[healthData.length - 1];
+    document.getElementById('no-results').classList.add('hidden');
+    document.getElementById('results-content').classList.remove('hidden');
+    document.getElementById('results-content').innerHTML = `
+        <div class="gradient-bg rounded-lg text-white p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-2">Health Analysis Complete</h2>
+            <p>Document: ${latest.fileName}</p>
+            <p class="text-sm opacity-75">Processed: ${new Date(latest.uploadDate).toLocaleString()}</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            ${Object.entries(latest.metrics).map(([name, data]) => `
+                <div class="bg-white p-4 rounded-lg border metric-card">
+                    <h4 class="font-semibold text-gray-900">${name}</h4>
+                    <p class="text-2xl font-bold">${data.value} ${data.unit}</p>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// Update history tab
+function updateHistory() {
+    if (healthData.length === 0) return;
+    
+    document.getElementById('no-history').classList.add('hidden');
+    document.getElementById('history-content').classList.remove('hidden');
+    document.getElementById('history-content').innerHTML = `
+        <div class="space-y-4">
+            <h2 class="text-2xl font-bold">Document History</h2>
+            ${healthData.map(doc => `
+                <div class="bg-white p-6 rounded-lg border">
+                    <h3 class="text-lg font-semibold">${doc.fileName}</h3>
+                    <p class="text-sm text-gray-500">${new Date(doc.uploadDate).toLocaleString()}</p>
+                    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        ${Object.entries(doc.metrics).map(([name, data]) => `
+                            <div class="bg-gray-50 p-2 rounded">
+                                <div class="font-medium">${name}</div>
+                                <div>${data.value} ${data.unit}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+</script>
