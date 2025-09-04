@@ -217,38 +217,55 @@ async function listUserDocuments(session, env, corsHeaders) {
   }
 }
 
-// Analyze health trends across documents
+// Analyze health trends across documents - ENHANCED DEBUG VERSION
 async function analyzeTrends(data, session, env, corsHeaders) {
   const { parameters, timeRange = '1year' } = data;
   
-  console.log('Analyzing trends for time range:', timeRange);
+  console.log('=== TREND ANALYSIS START ===');
+  console.log('Time range:', timeRange);
+  console.log('Requested parameters:', parameters);
   
-  // Calculate date range
-  const endDate = new Date();
-  const startDate = new Date();
-  switch (timeRange) {
-    case '3months':
-      startDate.setMonth(startDate.getMonth() - 3);
-      break;
-    case '6months':
-      startDate.setMonth(startDate.getMonth() - 6);
-      break;
-    case '1year':
-      startDate.setFullYear(startDate.getFullYear() - 1);
-      break;
-    case '2years':
-      startDate.setFullYear(startDate.getFullYear() - 2);
-      break;
-  }
-
   try {
-    // Get trend data for specified parameters
+    // Calculate date range
+    const endDate = new Date();
+    const startDate = new Date();
+    switch (timeRange) {
+      case '3months':
+        startDate.setMonth(startDate.getMonth() - 3);
+        break;
+      case '6months':
+        startDate.setMonth(startDate.getMonth() - 6);
+        break;
+      case '1year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+      case '2years':
+        startDate.setFullYear(startDate.getFullYear() - 2);
+        break;
+    }
+
+    console.log('Date range:', startDate.toISOString().split('T')[0], 'to', endDate.toISOString().split('T')[0]);
+
+    // First, let's see what health parameters we have
+    const allParametersQuery = await env.DB.prepare(`
+      SELECT DISTINCT parameter_name, COUNT(*) as count
+      FROM health_parameters 
+      WHERE session_token = ?
+      GROUP BY parameter_name
+      ORDER BY count DESC
+    `).bind(session.session_token).all();
+
+    console.log('Available parameters:', allParametersQuery.results);
+
+    // Get trend data for available parameters
     let trendData = [];
     
     if (parameters && parameters.length > 0) {
       // Specific parameters requested
+      console.log('Getting trends for specific parameters:', parameters);
       for (const paramName of parameters) {
         const paramData = await getParameterTrend(paramName, session.session_token, startDate, endDate, env);
+        console.log(`Parameter ${paramName}: ${paramData.length} data points`);
         if (paramData.length > 0) {
           trendData.push({
             parameter: paramName,
@@ -258,20 +275,27 @@ async function analyzeTrends(data, session, env, corsHeaders) {
         }
       }
     } else {
-      // Get all available parameters
-      const allParams = await env.DB.prepare(`
-        SELECT DISTINCT parameter_name
+      // Get all available parameters within date range
+      console.log('Getting trends for all parameters in date range');
+      
+      const parametersInRange = await env.DB.prepare(`
+        SELECT DISTINCT parameter_name, COUNT(*) as count
         FROM health_parameters 
         WHERE session_token = ? AND test_date >= ? AND test_date <= ?
-        ORDER BY parameter_name
+        GROUP BY parameter_name
+        HAVING count > 1
+        ORDER BY count DESC
       `).bind(
         session.session_token,
         startDate.toISOString().split('T')[0],
         endDate.toISOString().split('T')[0]
       ).all();
 
-      for (const param of (allParams.results || [])) {
+      console.log('Parameters in date range with multiple values:', parametersInRange.results);
+
+      for (const param of (parametersInRange.results || [])) {
         const paramData = await getParameterTrend(param.parameter_name, session.session_token, startDate, endDate, env);
+        console.log(`Parameter ${param.parameter_name}: ${paramData.length} data points`);
         if (paramData.length > 1) { // Only include if there are multiple data points
           trendData.push({
             parameter: param.parameter_name,
@@ -282,48 +306,110 @@ async function analyzeTrends(data, session, env, corsHeaders) {
       }
     }
 
-    // Generate trend analysis using AI
-    const trendAnalysis = await generateTrendAnalysis(trendData, env);
+    console.log('Final trend data:', trendData.length, 'parameters with trends');
 
-    return new Response(JSON.stringify({
+    // Generate trend analysis
+    let trendAnalysis;
+    if (trendData.length > 0) {
+      console.log('Generating AI trend analysis...');
+      trendAnalysis = await generateTrendAnalysis(trendData, env);
+    } else {
+      console.log('No trend data available - using fallback message');
+      trendAnalysis = 'No trend data available for the selected time period. Trends require multiple documents with the same health parameters over different dates. Upload more documents over time to see meaningful trend analysis.';
+    }
+
+    const result = {
       success: true,
       timeRange: timeRange,
       trendsFound: trendData.length,
       trendData: trendData,
       analysis: trendAnalysis,
-      generatedAt: new Date().toISOString()
-    }), {
+      generatedAt: new Date().toISOString(),
+      debugInfo: {
+        totalParametersAvailable: allParametersQuery.results?.length || 0,
+        parametersInDateRange: trendData.length,
+        dateRange: {
+          start: startDate.toISOString().split('T')[0],
+          end: endDate.toISOString().split('T')[0]
+        }
+      }
+    };
+
+    console.log('=== TREND ANALYSIS COMPLETE ===');
+    console.log('Result:', result);
+
+    return new Response(JSON.stringify(result), {
       headers: corsHeaders
     });
 
   } catch (error) {
-    console.error('Trend analysis error:', error);
-    throw new Error(`Trend analysis failed: ${error.message}`);
+    console.error('=== TREND ANALYSIS ERROR ===');
+    console.error('Error details:', error);
+    console.error('Stack trace:', error.stack);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      details: 'Trend analysis failed',
+      debugInfo: {
+        timeRange: timeRange,
+        requestedParameters: parameters,
+        errorType: error.constructor.name,
+        timestamp: new Date().toISOString()
+      }
+    }), {
+      status: 500,
+      headers: corsHeaders
+    });
   }
 }
 
-// Get parameter trend data
+// Enhanced parameter trend retrieval with better logging
 async function getParameterTrend(parameterName, sessionToken, startDate, endDate, env) {
-  const results = await env.DB.prepare(`
-    SELECT parameter_value, parameter_unit, test_date, reference_range
-    FROM health_parameters 
-    WHERE session_token = ? AND parameter_name LIKE ? 
-    AND test_date >= ? AND test_date <= ?
-    AND parameter_value IS NOT NULL
-    ORDER BY test_date ASC
-  `).bind(
-    sessionToken,
-    `%${parameterName}%`,
-    startDate.toISOString().split('T')[0],
-    endDate.toISOString().split('T')[0]
-  ).all();
+  console.log(`Getting trend for parameter: ${parameterName}`);
+  
+  try {
+    const query = `
+      SELECT parameter_value, parameter_unit, test_date, reference_range, created_at
+      FROM health_parameters 
+      WHERE session_token = ? AND parameter_name = ? 
+      AND test_date >= ? AND test_date <= ?
+      AND parameter_value IS NOT NULL
+      ORDER BY test_date ASC, created_at ASC
+    `;
+    
+    const results = await env.DB.prepare(query).bind(
+      sessionToken,
+      parameterName,
+      startDate.toISOString().split('T')[0],
+      endDate.toISOString().split('T')[0]
+    ).all();
 
-  return (results.results || []).map(row => ({
-    value: parseFloat(row.parameter_value) || 0,
-    unit: row.parameter_unit,
-    date: row.test_date,
-    referenceRange: row.reference_range
-  }));
+    console.log(`Query result for ${parameterName}:`, results.results?.length || 0, 'rows');
+    
+    if (results.results && results.results.length > 0) {
+      console.log('Sample data:', results.results[0]);
+    }
+
+    const trendData = (results.results || []).map(row => {
+      const numValue = parseFloat(row.parameter_value);
+      return {
+        value: isNaN(numValue) ? 0 : numValue,
+        unit: row.parameter_unit || '',
+        date: row.test_date,
+        referenceRange: row.reference_range || '',
+        createdAt: row.created_at
+      };
+    }).filter(item => item.value > 0); // Filter out zero values
+
+    console.log(`Processed trend data for ${parameterName}:`, trendData.length, 'valid points');
+    
+    return trendData;
+    
+  } catch (error) {
+    console.error(`Error getting trend for ${parameterName}:`, error);
+    return [];
+  }
 }
 
 // Calculate trend (improving, stable, declining)
