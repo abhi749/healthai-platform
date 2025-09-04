@@ -558,8 +558,25 @@
             </div>
         </div>
     </div>
+    
+    <!-- Version Info Footer -->
+    <div class="version-info" onclick="showVersionInfo()">
+        🚀 HealthAI Beta v1.3 | Build 2025.09.05.3
+    </div>
 
     <script>
+        // Version tracking system
+        const VERSION = {
+            major: 1,
+            minor: 3,
+            build: '2025.09.05.3',
+            name: 'BETA',
+            lastUpdated: '2025-09-05 15:30 UTC'
+        };
+        
+        function showVersionInfo() {
+            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔥 Latest Changes:\n• Fixed file upload functionality\n• Enhanced error handling\n• Improved health data formatting\n• Added comprehensive debugging\n• Removed sample data fallback`);
+        }
         // Global state
         let currentSession = null;
         let documents = [];
