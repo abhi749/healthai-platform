@@ -46,6 +46,39 @@ export async function onRequestGet(context) {
       ON device_access(user_email_hash, device_fingerprint)
     `).run();
 
+    // Create health_documents table (MISSING FROM YOUR VERSION)
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS health_documents (
+        document_id TEXT PRIMARY KEY,
+        session_token TEXT NOT NULL,
+        document_name TEXT NOT NULL,
+        document_type TEXT DEFAULT 'Health Report',
+        test_date TEXT,
+        parameters_json TEXT,
+        analysis_result TEXT,
+        created_at TEXT NOT NULL,
+        parameter_count INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'active',
+        deleted_at TEXT
+      )
+    `).run();
+
+    // Create health_parameters table (MISSING FROM YOUR VERSION)
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS health_parameters (
+        parameter_id TEXT PRIMARY KEY,
+        document_id TEXT NOT NULL,
+        session_token TEXT NOT NULL,
+        parameter_name TEXT NOT NULL,
+        parameter_value REAL,
+        parameter_unit TEXT,
+        reference_range TEXT,
+        test_date TEXT,
+        category TEXT DEFAULT 'General',
+        created_at TEXT NOT NULL
+      )
+    `).run();
+
     // Create processing_logs table
     await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS processing_logs (
