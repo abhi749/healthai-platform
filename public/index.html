@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HealthAI - Privacy-First Health Analysis</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/2.29.3/index.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/2.0.0/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -165,43 +167,6 @@
         
         .btn-danger {
             background: #dc3545;
-        }
-        
-        /* Dashboard section styles */
-        .dashboard-section {
-            margin-top: 30px;
-        }
-        
-        .trend-summary {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .trend-card {
-            background: #f8f9ff;
-            border: 1px solid #e0e6ff;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-        }
-        
-        .trend-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #667eea;
-        }
-        
-        .trend-label {
-            font-size: 14px;
-            color: #666;
-            margin-top: 5px;
-        }
-        
-        .trend-chart {
-            margin: 20px 0;
-            height: 300px;
         }
         
         /* Records table styles */
@@ -400,6 +365,11 @@
             padding-bottom: 10px;
         }
         
+        .trend-chart {
+            margin: 20px 0;
+            height: 300px;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -425,10 +395,6 @@
                 flex: none;
             }
             
-            .trend-summary {
-                grid-template-columns: 1fr;
-            }
-            
             .records-table-container {
                 font-size: 14px;
             }
@@ -444,7 +410,8 @@
     <div class="container">
         <div class="header">
             <h1>🩺 HealthAI</h1>
-            <p>Privacy-First Health Analysis • Smart Document Processing • Trend Tracking</p>
+            <p>Two Priorities. One Promise: Health & Privacy First.</p>
+            <p style="opacity: 0.8; font-size: 1rem; margin-top: 10px;">We can't share what we can't see — your data is invisible to us</p>
         </div>
         
         <div class="main-card">
@@ -455,7 +422,7 @@
                 <button class="tab" onclick="switchTab('documents')">📁 Document History</button>
             </div>
             
-            <!-- Combined Dashboard Tab (Upload + Dashboard) -->
+            <!-- Combined Dashboard Tab (Upload only, no health overview) -->
             <div class="tab-content active" id="dashboard-tab">
                 <!-- Upload Section -->
                 <div class="upload-section">
@@ -482,38 +449,6 @@
                     </div>
                     
                     <div id="documentResult"></div>
-                </div>
-                
-                <!-- Dashboard Section -->
-                <div class="dashboard-section">
-                    <div class="section-title">📊 Your Health Overview</div>
-                    
-                    <div class="trend-summary" id="healthSummary">
-                        <div class="trend-card">
-                            <div class="trend-value">--</div>
-                            <div class="trend-label">Total Documents</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">--</div>
-                            <div class="trend-label">Parameters Tracked</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">--</div>
-                            <div class="trend-label">Latest Analysis</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">--</div>
-                            <div class="trend-label">Session Active</div>
-                        </div>
-                    </div>
-                    
-                    <div class="trend-chart">
-                        <canvas id="overviewChart" width="800" height="300"></canvas>
-                    </div>
-                    
-                    <div id="dashboardInsights">
-                        <div class="loading">📊 Loading your health dashboard...</div>
-                    </div>
                 </div>
             </div>
             
@@ -660,7 +595,6 @@
         async function loadDashboardData() {
             await Promise.all([
                 loadDocuments(),
-                loadHealthSummary(),
                 loadHealthRecords(),
                 loadTrends()
             ]);
@@ -679,9 +613,7 @@
             event.target.classList.add('active');
             
             // Load data for specific tabs
-            if (tabName === 'dashboard' && currentSession) {
-                loadHealthSummary();
-            } else if (tabName === 'records' && currentSession) {
+            if (tabName === 'records' && currentSession) {
                 loadHealthRecords();
             } else if (tabName === 'trends' && currentSession) {
                 loadTrends();
@@ -690,7 +622,7 @@
             }
         }
         
-        // Document upload functionality (same as before)
+        // Document upload functionality - FIXED VERSION
         function handleFileSelect(e) {
             const files = e.target.files;
             handleFiles(files);
@@ -724,18 +656,17 @@
                 processingSteps.innerHTML = '⏳ Step 1: Processing document with AI extraction...';
                 await new Promise(resolve => setTimeout(resolve, 1500));
                 
-                // Simulate different document types
-                const fileName = file.name.toLowerCase();
-                let simulatedData = generateSimulatedDocumentData(fileName);
+                // FIXED: Use FormData for PDF file upload
+                const formData = new FormData();
+                formData.append('pdfFile', file);
                 
                 processingSteps.innerHTML += '<br>✅ Step 2: Extracting health parameters...';
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // Extract parameters using our smart API
+                // Extract parameters using our smart API with proper FormData
                 const extractionResponse = await fetch('/api/extract', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentText: simulatedData.text })
+                    body: formData  // Use FormData directly, don't set Content-Type header
                 });
                 
                 const extractionData = await extractionResponse.json();
@@ -759,7 +690,7 @@
                         
                         // Store document if we have a session
                         if (currentSession) {
-                            await storeDocument(file.name, extractionData.extractedData, analysisData.analysis, simulatedData.type, simulatedData.testDate);
+                            await storeDocument(file.name, extractionData.extractedData, analysisData.analysis, extractionData.extractedData.documentType, extractionData.extractedData.testDate);
                         }
                         
                         processingSteps.innerHTML += '<br>✅ Step 5: Complete! Document processed and stored.';
@@ -782,30 +713,7 @@
                 
             } catch (error) {
                 processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
-            }
-        }
-        
-        function generateSimulatedDocumentData(fileName) {
-            const testDate = new Date().toISOString().split('T')[0];
-            
-            if (fileName.includes('dexa') || fileName.includes('bone')) {
-                return {
-                    type: 'DEXA Scan',
-                    testDate: testDate,
-                    text: `DEXA SCAN RESULTS\nScan Date: ${testDate}\nLumbar Spine BMD: 0.952 g/cm² (T-score: -1.8)\nTotal Hip BMD: 0.821 g/cm² (T-score: -1.9)\nBody Fat Percentage: 29.0%\nLean Mass: 98.4 lbs`
-                };
-            } else if (fileName.includes('hormone')) {
-                return {
-                    type: 'Hormone Panel',
-                    testDate: testDate,
-                    text: `HORMONE PANEL\nTest Date: ${testDate}\nTSH: 4.2 mIU/L\nFree T4: 1.1 ng/dL\nTestosterone: 320 ng/dL\nCortisol: 18.5 μg/dL`
-                };
-            } else {
-                return {
-                    type: 'Comprehensive Lab Panel',
-                    testDate: testDate,
-                    text: `LAB RESULTS\nTest Date: ${testDate}\nTotal Cholesterol: 285 mg/dL\nHDL: 32 mg/dL\nLDL: 195 mg/dL\nTriglycerides: 290 mg/dL\nGlucose: 118 mg/dL\nHemoglobin A1c: 6.2%`
-                };
+                console.error('Document processing error:', error);
             }
         }
         
@@ -866,65 +774,6 @@
         // Load health records for the table
         async function loadHealthRecords() {
             if (!currentSession) {
-                document.getElementById('recordsTableBody').innerHTML = `
-                    <tr>
-                        <td colspan="9" class="empty-state">
-                            <h3>🔐 Session Required</h3>
-                            <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view health records.</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    documents = data.documents || [];
-                    
-                    // Extract all parameters from all documents to create detailed records
-                    healthRecords = [];
-                    for (const doc of documents) {
-                        if (doc.parameters_json) {
-                            try {
-                                const parameters = JSON.parse(doc.parameters_json);
-                                if (Array.isArray(parameters)) {
-                                    parameters.forEach(param => {
-                                        healthRecords.push({
-                                            testDate: param.date || doc.test_date || doc.created_at,
-                                            uploadDate: doc.created_at,
-                                            parameterName: param.parameter || param.name,
-                                            value: param.value,
-                                            unit: param.unit || '',
-                                            referenceRange: param.referenceRange || param.reference_range || '',
-                                            status: param.status || 'Unknown',
-                                            category: param.category || 'General',
-                                            documentName: doc.document_name,
-                                            documentId: doc.document_id,
-                                            documentType: doc.document_type
-                                        });
-                                    });
-                                }
-                            } catch (parseError) {
-                                console.error('Error parsing parameters for document:', doc.document_id, parseError);
-                            }
-                        }
-                    }
-                    
-                    // Sort by test date (newest first)
-                    healthRecords.sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
-                    
-                    filteredRecords = [...healthRecords];
-                    renderRecordsTable();
-                    updateRecordsStats();
-                    
-                } else {
-                    throw new Error(data.error);
-                }
-                
-            } catch (error) {
                 document.getElementById('recordsTableBody').innerHTML = `
                     <tr>
                         <td colspan="9" class="error">
@@ -1132,54 +981,7 @@
             `).join('');
         }
         
-        // Load health summary
-        async function loadHealthSummary() {
-            if (!currentSession) {
-                document.getElementById('healthSummary').innerHTML = `
-                    <div class="trend-card">
-                        <div class="trend-value">--</div>
-                        <div class="trend-label">Session Required</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const totalDocs = data.documents?.length || 0;
-                    const totalParams = data.documents?.reduce((sum, doc) => sum + (doc.parameter_count || 0), 0) || 0;
-                    const latestDoc = data.documents?.[0]?.created_at ? new Date(data.documents[0].created_at).toLocaleDateString() : '--';
-                    const sessionActive = currentSession ? 'Active' : 'None';
-                    
-                    document.getElementById('healthSummary').innerHTML = `
-                        <div class="trend-card">
-                            <div class="trend-value">${totalDocs}</div>
-                            <div class="trend-label">Total Documents</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">${totalParams}</div>
-                            <div class="trend-label">Parameters Tracked</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">${latestDoc}</div>
-                            <div class="trend-label">Latest Analysis</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">${sessionActive}</div>
-                            <div class="trend-label">Session Active</div>
-                        </div>
-                    `;
-                }
-                
-            } catch (error) {
-                console.error('Error loading health summary:', error);
-            }
-        }
-        
-        // Load trends (same as before)
+        // Load trends
         async function loadTrends() {
             if (!currentSession) {
                 document.getElementById('trendAnalysis').innerHTML = `
@@ -1385,4 +1187,63 @@
         }
     </script>
 </body>
-</html>
+</html>9" class="empty-state">
+                            <h3>🔐 Session Required</h3>
+                            <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view health records.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    documents = data.documents || [];
+                    
+                    // Extract all parameters from all documents to create detailed records
+                    healthRecords = [];
+                    for (const doc of documents) {
+                        if (doc.parameters_json) {
+                            try {
+                                const parameters = JSON.parse(doc.parameters_json);
+                                if (Array.isArray(parameters)) {
+                                    parameters.forEach(param => {
+                                        healthRecords.push({
+                                            testDate: param.date || doc.test_date || doc.created_at,
+                                            uploadDate: doc.created_at,
+                                            parameterName: param.parameter || param.name,
+                                            value: param.value,
+                                            unit: param.unit || '',
+                                            referenceRange: param.referenceRange || param.reference_range || '',
+                                            status: param.status || 'Unknown',
+                                            category: param.category || 'General',
+                                            documentName: doc.document_name,
+                                            documentId: doc.document_id,
+                                            documentType: doc.document_type
+                                        });
+                                    });
+                                }
+                            } catch (parseError) {
+                                console.error('Error parsing parameters for document:', doc.document_id, parseError);
+                            }
+                        }
+                    }
+                    
+                    // Sort by test date (newest first)
+                    healthRecords.sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
+                    
+                    filteredRecords = [...healthRecords];
+                    renderRecordsTable();
+                    updateRecordsStats();
+                    
+                } else {
+                    throw new Error(data.error);
+                }
+                
+            } catch (error) {
+                document.getElementById('recordsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="
