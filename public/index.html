@@ -10,7 +10,9 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-        }
+    </script>
+</body>
+</html>
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -336,6 +338,137 @@
             margin-left: 8px;
         }
         
+        /* Health Table Styles */
+        .health-table-container {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        
+        .table-header {
+            background: #667eea;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .table-header h3 {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .table-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .search-box {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .health-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 14px;
+        }
+        
+        .health-table th {
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .health-table td {
+            border-bottom: 1px solid #dee2e6;
+            padding: 12px 8px;
+            vertical-align: top;
+        }
+        
+        .health-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+        
+        .parameter-name {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .parameter-value {
+            font-weight: 600;
+        }
+        
+        .parameter-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+        
+        .status-normal { background: #d4edda; color: #155724; }
+        .status-high { background: #f8d7da; color: #721c24; }
+        .status-low { background: #fff3cd; color: #856404; }
+        .status-unknown { background: #e2e3e5; color: #6c757d; }
+        
+        .table-pagination {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+            background: #f8f9fa;
+        }
+        
+        .pagination-info {
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .page-btn:hover:not(.active) {
+            background: #f8f9fa;
+        }
+        
+        .table-scroll-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -364,6 +497,23 @@
             .trend-summary {
                 grid-template-columns: 1fr;
             }
+            
+            .health-table {
+                font-size: 12px;
+            }
+            
+            .health-table th, .health-table td {
+                padding: 8px 4px;
+            }
+            
+            .table-controls {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -386,7 +536,7 @@
             <div class="tab-content active" id="upload-tab">
                 <div class="privacy-info">
                     <h4>🧠 Universal Health Parameter Recognition</h4>
-                    <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
+                    <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your PDF documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
                 </div>
                 
                 <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
@@ -426,6 +576,43 @@
                 
                 <div class="trend-chart">
                     <canvas id="overviewChart" width="800" height="300"></canvas>
+                </div>
+                
+                <!-- Health Parameters Table -->
+                <div class="health-table-container">
+                    <div class="table-header">
+                        <h3>📋 Complete Health Parameters Table</h3>
+                        <div class="table-controls">
+                            <input type="text" id="parameterSearch" class="search-box" placeholder="Search parameters..." onkeyup="filterHealthTable()">
+                            <button class="btn" onclick="exportHealthTable()">📁 Export CSV</button>
+                        </div>
+                    </div>
+                    <div class="table-scroll-container">
+                        <table class="health-table" id="healthParametersTable">
+                            <thead>
+                                <tr>
+                                    <th>Test Date</th>
+                                    <th>Document Name</th>
+                                    <th>Import Date</th>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                    <th>Unit</th>
+                                    <th>Reference Range</th>
+                                    <th>Status</th>
+                                    <th>Category</th>
+                                </tr>
+                            </thead>
+                            <tbody id="healthTableBody">
+                                <tr>
+                                    <td colspan="9" class="loading">📊 Loading health parameters...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-pagination" id="tablePagination">
+                        <div class="pagination-info" id="paginationInfo">Loading...</div>
+                        <div class="pagination-controls" id="paginationControls"></div>
+                    </div>
                 </div>
                 
                 <div id="dashboardInsights">
@@ -475,6 +662,10 @@
         let documents = [];
         let trendData = [];
         let charts = {};
+        let allHealthParameters = [];
+        let filteredParameters = [];
+        let currentPage = 1;
+        let parametersPerPage = 50;
         
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
@@ -504,6 +695,7 @@
             await Promise.all([
                 loadDocuments(),
                 loadHealthSummary(),
+                loadHealthParametersTable(),
                 loadTrends()
             ]);
         }
@@ -523,6 +715,7 @@
             // Load data for specific tabs
             if (tabName === 'dashboard' && currentSession) {
                 loadHealthSummary();
+                loadHealthParametersTable();
             } else if (tabName === 'trends' && currentSession) {
                 loadTrends();
             } else if (tabName === 'documents' && currentSession) {
@@ -530,7 +723,7 @@
             }
         }
         
-        // Document upload functionality (enhanced from previous version)
+        // Document upload functionality (enhanced with real PDF processing)
         function handleFileSelect(e) {
             const files = e.target.files;
             handleFiles(files);
@@ -561,27 +754,30 @@
             processingStatus.style.display = 'block';
             
             try {
-                processingSteps.innerHTML = '⏳ Step 1: Processing document with AI extraction...';
-                await new Promise(resolve => setTimeout(resolve, 1500));
-                
-                // Simulate different document types
-                const fileName = file.name.toLowerCase();
-                let simulatedData = generateSimulatedDocumentData(fileName);
-                
-                processingSteps.innerHTML += '<br>✅ Step 2: Extracting health parameters...';
+                processingSteps.innerHTML = '⏳ Step 1: Reading PDF and extracting text...';
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                // Extract parameters using our smart API
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('pdfFile', file);
+                
+                processingSteps.innerHTML += '<br>⏳ Step 2: AI extracting health parameters...';
+                
+                // Extract parameters using our enhanced API with real PDF processing
                 const extractionResponse = await fetch('/api/extract', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentText: simulatedData.text })
+                    body: formData // Send as FormData instead of JSON
                 });
                 
                 const extractionData = await extractionResponse.json();
                 
                 if (extractionData.success) {
-                    processingSteps.innerHTML += '<br>⏳ Step 3: Analyzing with AI + Medical Context...';
+                    processingSteps.innerHTML += '<br>✅ Step 3: Extracted ' + 
+                        (extractionData.extractedData.totalParametersFound || 0) + ' health parameters!';
+                    
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    processingSteps.innerHTML += '<br>⏳ Step 4: Analyzing with AI + Medical Context...';
                     
                     // Analyze with enhanced AI
                     const analysisResponse = await fetch('/api/analyze', {
@@ -595,17 +791,23 @@
                     const analysisData = await analysisResponse.json();
                     
                     if (analysisData.success) {
-                        processingSteps.innerHTML += '<br>⏳ Step 4: Storing document for trend tracking...';
+                        processingSteps.innerHTML += '<br>⏳ Step 5: Storing document for trend tracking...';
                         
                         // Store document if we have a session
                         if (currentSession) {
-                            await storeDocument(file.name, extractionData.extractedData, analysisData.analysis, simulatedData.type, simulatedData.testDate);
+                            await storeDocument(
+                                file.name, 
+                                extractionData.extractedData, 
+                                analysisData.analysis, 
+                                extractionData.extractedData.documentType || 'Health Report',
+                                extractionData.extractedData.testDate
+                            );
                         }
                         
-                        processingSteps.innerHTML += '<br>✅ Step 5: Complete! Document processed and stored.';
+                        processingSteps.innerHTML += '<br>✅ Step 6: Complete! Real PDF processed and analyzed.';
                         
                         // Show results
-                        showAnalysisResults(analysisData, extractionData.extractedData);
+                        showAnalysisResults(analysisData, extractionData.extractedData, true);
                         
                         // Refresh dashboard data
                         if (currentSession) {
@@ -617,35 +819,22 @@
                         throw new Error('Analysis failed: ' + analysisData.error);
                     }
                 } else {
-                    throw new Error('Extraction failed: ' + extractionData.error);
+                    throw new Error('PDF extraction failed: ' + extractionData.error);
                 }
                 
             } catch (error) {
+                console.error('Document processing error:', error);
                 processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
-            }
-        }
-        
-        function generateSimulatedDocumentData(fileName) {
-            const testDate = new Date().toISOString().split('T')[0];
-            
-            if (fileName.includes('dexa') || fileName.includes('bone')) {
-                return {
-                    type: 'DEXA Scan',
-                    testDate: testDate,
-                    text: `DEXA SCAN RESULTS\nScan Date: ${testDate}\nLumbar Spine BMD: 0.952 g/cm² (T-score: -1.8)\nTotal Hip BMD: 0.821 g/cm² (T-score: -1.9)\nBody Fat Percentage: 29.0%\nLean Mass: 98.4 lbs`
-                };
-            } else if (fileName.includes('hormone')) {
-                return {
-                    type: 'Hormone Panel',
-                    testDate: testDate,
-                    text: `HORMONE PANEL\nTest Date: ${testDate}\nTSH: 4.2 mIU/L\nFree T4: 1.1 ng/dL\nTestosterone: 320 ng/dL\nCortisol: 18.5 μg/dL`
-                };
-            } else {
-                return {
-                    type: 'Comprehensive Lab Panel',
-                    testDate: testDate,
-                    text: `LAB RESULTS\nTest Date: ${testDate}\nTotal Cholesterol: 285 mg/dL\nHDL: 32 mg/dL\nLDL: 195 mg/dL\nTriglycerides: 290 mg/dL\nGlucose: 118 mg/dL\nHemoglobin A1c: 6.2%`
-                };
+                
+                // Show detailed error information
+                if (error.message.includes('text extracted')) {
+                    processingSteps.innerHTML += '<br>💡 <strong>Tip:</strong> This PDF might be image-based. Try a PDF with selectable text.';
+                }
+            } finally {
+                // Hide processing status after a delay
+                setTimeout(() => {
+                    processingStatus.style.display = 'none';
+                }, 5000);
             }
         }
         
@@ -657,15 +846,34 @@
             ).join('\n');
         }
         
-        function showAnalysisResults(analysisData, extractionData) {
+        // Updated function to show results with real vs simulated indicator
+        function showAnalysisResults(analysisData, extractionData, isRealPDF = false) {
             const resultDiv = document.getElementById('documentResult');
+            
+            const processingType = isRealPDF ? 
+                '📄 <strong>Real PDF Processed</strong>' : 
+                '🎭 <strong>Simulated Data</strong>';
+            
+            const parametersDisplay = extractionData.healthParameters && extractionData.healthParameters.length > 0 ? 
+                `<div style="margin: 15px 0;">
+                    <strong>📊 Extracted Parameters:</strong><br>
+                    ${extractionData.healthParameters.slice(0, 5).map(param => 
+                        `• ${param.parameter}: ${param.value}${param.unit ? ' ' + param.unit : ''}`
+                    ).join('<br>')}
+                    ${extractionData.healthParameters.length > 5 ? 
+                        `<br>• ...and ${extractionData.healthParameters.length - 5} more parameters` : ''}
+                </div>` : '';
             
             resultDiv.innerHTML = `
                 <div class="result">
                     <h3>✅ Health Analysis Complete</h3>
+                    ${parametersDisplay}
                     <div class="analysis-content">${analysisData.analysis}</div>
                     <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+                        <strong>Processing Type:</strong> ${processingType}<br>
                         <strong>Parameters Found:</strong> ${extractionData.totalParametersFound || extractionData.healthParameters?.length || 0}<br>
+                        <strong>Document Type:</strong> ${extractionData.documentType || 'Health Report'}<br>
+                        <strong>Test Date:</strong> ${extractionData.testDate || 'Unknown'}<br>
                         <strong>Medical Context:</strong> ${analysisData.medicalContextIncluded ? 'Included' : 'Not available'}<br>
                         <strong>Processing Time:</strong> ${analysisData.timestamp ? 'Complete' : 'Unknown'}<br>
                         <strong>Document Stored:</strong> ${currentSession ? 'Yes - Available in dashboard' : 'Session required for storage'}
@@ -686,357 +894,4 @@
                         action: 'store',
                         sessionToken: currentSession.sessionToken,
                         documentName: documentName,
-                        extractedParameters: extractedData.healthParameters || [],
-                        analysisResult: analysisResult,
-                        documentType: documentType,
-                        testDate: testDate
-                    })
-                });
-                
-                const result = await response.json();
-                if (!result.success) {
-                    console.error('Failed to store document:', result.error);
-                }
-                
-            } catch (error) {
-                console.error('Error storing document:', error);
-            }
-        }
-        
-        // Load documents
-        async function loadDocuments() {
-            if (!currentSession) {
-                document.getElementById('documentList').innerHTML = `
-                    <div class="empty-state">
-                        <h3>🔐 Session Required</h3>
-                        <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to store and track documents.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    documents = data.documents || [];
-                    renderDocumentList();
-                } else {
-                    throw new Error(data.error);
-                }
-                
-            } catch (error) {
-                document.getElementById('documentList').innerHTML = `
-                    <div class="error">
-                        <h3>❌ Error Loading Documents</h3>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        function renderDocumentList() {
-            const documentList = document.getElementById('documentList');
-            
-            if (documents.length === 0) {
-                documentList.innerHTML = `
-                    <div class="empty-state">
-                        <h3>📄 No Documents Yet</h3>
-                        <p>Upload your first health document to start tracking trends!</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            documentList.innerHTML = documents.map(doc => `
-                <div class="document-item">
-                    <div class="document-title">📄 ${doc.document_name}</div>
-                    <div class="document-meta">
-                        <span class="status-badge status-${doc.status}">${doc.status}</span>
-                        <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
-                        <strong>Test Date:</strong> ${doc.test_date || 'Unknown'} • 
-                        <strong>Parameters:</strong> ${doc.parameter_count || 0}
-                    </div>
-                    <div class="document-actions">
-                        <button class="btn btn-secondary" onclick="viewDocument('${doc.document_id}')">👁️ View</button>
-                        <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        // Load health summary
-        async function loadHealthSummary() {
-            if (!currentSession) {
-                document.getElementById('healthSummary').innerHTML = `
-                    <div class="trend-card">
-                        <div class="trend-value">--</div>
-                        <div class="trend-label">Session Required</div>
-                    </div>
-                `;
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    const totalDocs = data.documents?.length || 0;
-                    const totalParams = data.documents?.reduce((sum, doc) => sum + (doc.parameter_count || 0), 0) || 0;
-                    const latestDoc = data.documents?.[0]?.created_at ? new Date(data.documents[0].created_at).toLocaleDateString() : '--';
-                    
-                    document.getElementById('healthSummary').innerHTML = `
-                        <div class="trend-card">
-                            <div class="trend-value">${totalDocs}</div>
-                            <div class="trend-label">Total Documents</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">${totalParams}</div>
-                            <div class="trend-label">Parameters Tracked</div>
-                        </div>
-                        <div class="trend-card">
-                            <div class="trend-value">${latestDoc}</div>
-                            <div class="trend-label">Latest Analysis</div>
-                        </div>
-                    `;
-                }
-                
-            } catch (error) {
-                console.error('Error loading health summary:', error);
-            }
-        }
-        
-        // Load trends
-        async function loadTrends() {
-            if (!currentSession) {
-                document.getElementById('trendAnalysis').innerHTML = `
-                    <div class="empty-state">
-                        <h3>🔐 Session Required</h3>
-                        <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view trend analysis.</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            try {
-                const timeRange = document.getElementById('timeRange')?.value || '6months';
-                
-                const response = await fetch('/api/documents', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'analyze-trends',
-                        sessionToken: currentSession.sessionToken,
-                        timeRange: timeRange
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    trendData = data.trendData || [];
-                    renderTrendChart();
-                    
-                    document.getElementById('trendAnalysis').innerHTML = `
-                        <div class="result">
-                            <h3>📈 Trend Analysis (${timeRange})</h3>
-                            <div class="analysis-content">${data.analysis || 'No trend analysis available yet. Upload more documents to see patterns over time.'}</div>
-                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                                <strong>Trends Found:</strong> ${data.trendsFound || 0}<br>
-                                <strong>Time Range:</strong> ${timeRange}<br>
-                                <strong>Generated:</strong> ${new Date(data.generatedAt || Date.now()).toLocaleString()}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    throw new Error(data.error);
-                }
-                
-            } catch (error) {
-                document.getElementById('trendAnalysis').innerHTML = `
-                    <div class="error">
-                        <h3>❌ Error Loading Trends</h3>
-                        <p>${error.message}</p>
-                    </div>
-                `;
-            }
-        }
-        
-        function renderTrendChart() {
-            const ctx = document.getElementById('trendsChart');
-            if (!ctx) return;
-            
-            // Destroy existing chart
-            if (charts.trends) {
-                charts.trends.destroy();
-            }
-            
-            if (trendData.length === 0) {
-                ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
-                const context = ctx.getContext('2d');
-                context.fillStyle = '#666';
-                context.font = '16px Arial';
-                context.textAlign = 'center';
-                context.fillText('No trend data available yet', ctx.width / 2, ctx.height / 2);
-                return;
-            }
-            
-            const datasets = trendData.map((trend, index) => {
-                const colors = ['#667eea', '#764ba2', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'];
-                return {
-                    label: trend.parameter,
-                    data: trend.data.map(d => ({ x: d.date, y: d.value })),
-                    borderColor: colors[index % colors.length],
-                    backgroundColor: colors[index % colors.length] + '20',
-                    tension: 0.4,
-                    fill: false
-                };
-            });
-            
-            charts.trends = new Chart(ctx, {
-                type: 'line',
-                data: { datasets },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Health Parameter Trends Over Time'
-                        },
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    },
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: {
-                                parser: 'YYYY-MM-DD',
-                                displayFormats: {
-                                    month: 'MMM YYYY'
-                                }
-                            },
-                            title: {
-                                display: true,
-                                text: 'Date'
-                            }
-                        },
-                        y: {
-                            title: {
-                                display: true,
-                                text: 'Value'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Document actions
-        function viewDocument(documentId) {
-            alert(`View document functionality coming soon! Document ID: ${documentId}`);
-        }
-        
-        async function deleteDocument(documentId) {
-            if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/documents', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'delete',
-                        sessionToken: currentSession.sessionToken,
-                        documentId: documentId
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    // Refresh document list
-                    await loadDocuments();
-                    await loadHealthSummary();
-                } else {
-                    throw new Error(data.error);
-                }
-                
-            } catch (error) {
-                alert('Error deleting document: ' + error.message);
-            }
-        }
-        
-        // Drag and drop functionality
-        const uploadArea = document.getElementById('uploadArea');
-        
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        
-        ['dragenter', 'dragover'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.add('dragover');
-            }, false);
-        });
-        
-        ['dragleave', 'drop'].forEach(eventName => {
-            uploadArea.addEventListener(eventName, () => {
-                uploadArea.classList.remove('dragover');
-            }, false);
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
-            handleFiles(files);
-        }, false);
-        
-        // Session management
-        function checkSession() {
-            if (!currentSession) {
-                const shouldCreateSession = confirm('You need to create a session to store documents and track trends. Would you like to create one now?');
-                if (shouldCreateSession) {
-                    window.location.href = '/setup.html';
-                }
-                return false;
-            }
-            return true;
-        }
-        
-        // Initialize charts on tab switch
-        function initializeChart(chartId, type = 'line') {
-            const ctx = document.getElementById(chartId);
-            if (!ctx) return null;
-            
-            return new Chart(ctx, {
-                type: type,
-                data: {
-                    labels: [],
-                    datasets: []
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        }
-                    }
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+                        extractedParameters
