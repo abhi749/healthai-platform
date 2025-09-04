@@ -522,4 +522,255 @@ function updateHistory() {
         </div>
     `;
 }
+
+// Update trends tab
+function updateTrends() {
+    const trendsTab = document.getElementById('tab-trends');
+    
+    if (healthData.length < 2) {
+        trendsTab.innerHTML = `
+            <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+                <p class="text-gray-500 mt-2">Upload at least 2 documents to see trends</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Get all unique metrics across documents
+    const allMetrics = new Set();
+    healthData.forEach(doc => {
+        Object.keys(doc.metrics).forEach(metric => allMetrics.add(metric));
+    });
+
+    trendsTab.innerHTML = `
+        <div class="space-y-6">
+            <div class="gradient-bg rounded-lg text-white p-6">
+                <h2 class="text-2xl font-bold mb-2">Health Trends Analysis</h2>
+                <p class="text-blue-100">Track your health metrics over time (${healthData.length} documents)</p>
+            </div>
+            
+            ${Array.from(allMetrics).map(metric => {
+                // Get data for this metric across all documents
+                const metricData = healthData
+                    .map((doc, index) => ({
+                        date: new Date(doc.uploadDate).toLocaleDateString(),
+                        value: doc.metrics[metric]?.value,
+                        docIndex: index + 1,
+                        fileName: doc.fileName
+                    }))
+                    .filter(d => d.value !== undefined);
+
+                if (metricData.length < 2) return '';
+
+                const latestValue = metricData[metricData.length - 1].value;
+                const previousValue = metricData[metricData.length - 2].value;
+                const change = latestValue - previousValue;
+                const percentChange = previousValue !== 0 ? ((change / previousValue) * 100).toFixed(1) : '0.0';
+                const isImproving = change <= 0; // For most health metrics, lower is better
+
+                return `
+                    <div class="bg-white rounded-lg border p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">${metric}</h3>
+                            <div class="flex items-center">
+                                ${Math.abs(change) > 0.1 ? `
+                                    <svg class="h-4 w-4 mr-1 ${isImproving ? 'text-green-500' : 'text-red-500'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${isImproving ? 'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6' : 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a1.994 1.994 0 01-1.414.586H7a4 4 0 01-4-4V7a4 4 0 014-4z'}"></path>
+                                    </svg>
+                                    <span class="text-sm font-medium ${isImproving ? 'text-green-600' : 'text-red-600'}">
+                                        ${change > 0 ? '+' : ''}${percentChange}%
+                                    </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-2 mb-4">
+                            ${metricData.map(d => `
+                                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                    <span class="text-sm text-gray-600">Doc ${d.docIndex}: ${d.fileName.substring(0, 20)}...</span>
+                                    <span class="font-semibold">${d.value} ${healthData[0].metrics[metric].unit}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="text-sm text-gray-600">
+                            <strong>Latest:</strong> ${latestValue} | 
+                            <strong>Previous:</strong> ${previousValue} | 
+                            <strong>Change:</strong> 
+                            <span class="font-semibold ${isImproving ? 'text-green-600' : 'text-red-600'}">
+                                ${change > 0 ? '+' : ''}${change.toFixed(1)}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+// Update risk assessment tab
+function updateRisk() {
+    const riskTab = document.getElementById('tab-risk');
+    
+    if (healthData.length === 0) {
+        riskTab.innerHTML = `
+            <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                <p class="text-gray-500 mt-2">Upload health documents to see risk assessment</p>
+            </div>
+        `;
+        return;
+    }
+
+    const latestDoc = healthData[healthData.length - 1];
+    const riskFactors = [];
+
+    // Assess cholesterol risk
+    if (latestDoc.metrics['Total Cholesterol']) {
+        const value = latestDoc.metrics['Total Cholesterol'].value;
+        let risk;
+        if (value < 200) {
+            risk = { level: 'Normal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: 'Optimal cholesterol level' };
+        } else if (value < 240) {
+            risk = { level: 'Borderline High', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: 'Monitor and improve diet' };
+        } else {
+            risk = { level: 'High', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: 'High risk, seek medical advice' };
+        }
+        
+        riskFactors.push({
+            metric: 'Total Cholesterol',
+            value: value,
+            unit: latestDoc.metrics['Total Cholesterol'].unit,
+            risk: risk
+        });
+    }
+
+    // Assess LDL cholesterol risk
+    if (latestDoc.metrics['LDL Cholesterol']) {
+        const value = latestDoc.metrics['LDL Cholesterol'].value;
+        let risk;
+        if (value < 100) {
+            risk = { level: 'Optimal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: 'Excellent LDL level' };
+        } else if (value < 130) {
+            risk = { level: 'Near Optimal', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: 'Good, maintain current habits' };
+        } else if (value < 160) {
+            risk = { level: 'Borderline High', color: 'text-orange-600', bgColor: 'bg-orange-100 text-orange-800', description: 'Lifestyle changes recommended' };
+        } else {
+            risk = { level: 'High', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: 'High risk, medical consultation needed' };
+        }
+        
+        riskFactors.push({
+            metric: 'LDL Cholesterol',
+            value: value,
+            unit: latestDoc.metrics['LDL Cholesterol'].unit,
+            risk: risk
+        });
+    }
+
+    // Assess glucose risk
+    if (latestDoc.metrics['Glucose']) {
+        const value = latestDoc.metrics['Glucose'].value;
+        let risk;
+        if (value < 100) {
+            risk = { level: 'Normal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: 'Optimal glucose level' };
+        } else if (value < 126) {
+            risk = { level: 'Prediabetes', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: 'Lifestyle changes recommended' };
+        } else {
+            risk = { level: 'Diabetes Range', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: 'Consult healthcare provider immediately' };
+        }
+        
+        riskFactors.push({
+            metric: 'Blood Glucose',
+            value: value,
+            unit: latestDoc.metrics['Glucose'].unit,
+            risk: risk
+        });
+    }
+
+    // Assess HDL cholesterol risk
+    if (latestDoc.metrics['HDL Cholesterol']) {
+        const value = latestDoc.metrics['HDL Cholesterol'].value;
+        let risk;
+        if (value >= 60) {
+            risk = { level: 'Protective', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: 'Excellent protective level' };
+        } else if (value >= 40) {
+            risk = { level: 'Acceptable', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: 'Consider increasing physical activity' };
+        } else {
+            risk = { level: 'Low', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: 'Low HDL, increase exercise and consider omega-3s' };
+        }
+        
+        riskFactors.push({
+            metric: 'HDL Cholesterol',
+            value: value,
+            unit: latestDoc.metrics['HDL Cholesterol'].unit,
+            risk: risk
+        });
+    }
+
+    riskTab.innerHTML = `
+        <div class="space-y-6">
+            <div class="gradient-orange rounded-lg text-white p-6">
+                <h2 class="text-2xl font-bold mb-2">Health Risk Assessment</h2>
+                <p class="text-orange-100">Based on your latest health metrics from: ${latestDoc.fileName}</p>
+            </div>
+
+            ${riskFactors.length > 0 ? `
+                <div class="grid gap-6">
+                    ${riskFactors.map(factor => `
+                        <div class="bg-white rounded-lg border p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">${factor.metric}</h3>
+                                    <p class="text-2xl font-bold text-gray-700">
+                                        ${factor.value} <span class="text-sm font-normal text-gray-500">${factor.unit}</span>
+                                    </p>
+                                </div>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${factor.risk.bgColor}">
+                                    ${factor.risk.level}
+                                </span>
+                            </div>
+                            <p class="text-sm ${factor.risk.color}">${factor.risk.description}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <p class="text-gray-500 mt-2">No assessable risk factors found in your health data</p>
+                </div>
+            `}
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-blue-900 mb-3">💡 Risk Management Tips</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+                    <div>
+                        <h4 class="font-semibold mb-2">Lifestyle</h4>
+                        <ul class="space-y-1">
+                            <li>• Regular exercise (150 min/week)</li>
+                            <li>• Heart-healthy diet</li>
+                            <li>• Maintain healthy weight</li>
+                            <li>• Adequate sleep (7-9 hours)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Monitoring</h4>
+                        <ul class="space-y-1">
+                            <li>• Regular health screenings</li>
+                            <li>• Track metrics over time</li>
+                            <li>• Follow up with healthcare providers</li>
+                            <li>• Stay informed about your health</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
 </script>
