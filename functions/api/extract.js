@@ -9,43 +9,71 @@ export async function onRequestPost(context) {
   };
 
   try {
-    const formData = await request.formData();
-    const pdfFile = formData.get('pdfFile');
-    const documentText = formData.get('documentText');
-    
     let textToProcess;
     let processingMethod = 'unknown';
     
-    if (pdfFile && pdfFile instanceof File) {
-      console.log('Processing PDF file:', pdfFile.name, 'Size:', pdfFile.size, 'Type:', pdfFile.type);
+    // Check content type to handle different request formats
+    const contentType = request.headers.get('content-type') || '';
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Handle file upload via FormData
+      console.log('Processing FormData request');
       
-      try {
-        // Convert PDF to text using basic extraction
-        textToProcess = await extractTextFromPDF(pdfFile);
-        processingMethod = 'PDF file processing';
+      const formData = await request.formData();
+      const pdfFile = formData.get('pdfFile');
+      const documentText = formData.get('documentText');
+      
+      if (pdfFile && pdfFile instanceof File) {
+        console.log('Processing PDF file:', pdfFile.name, 'Size:', pdfFile.size, 'Type:', pdfFile.type);
         
-        if (!textToProcess || textToProcess.trim().length < 20) {
-          throw new Error('Unable to extract sufficient text from PDF. Extracted: ' + textToProcess?.length + ' characters. PDF may be image-based.');
+        try {
+          // Convert PDF to text using basic extraction
+          textToProcess = await extractTextFromPDF(pdfFile);
+          processingMethod = 'PDF file processing';
+          
+          if (!textToProcess || textToProcess.trim().length < 20) {
+            throw new Error('Unable to extract sufficient text from PDF. Extracted: ' + textToProcess?.length + ' characters. PDF may be image-based.');
+          }
+          
+          console.log('Successfully extracted text from PDF, length:', textToProcess.length);
+          
+        } catch (pdfError) {
+          console.error('PDF extraction failed:', pdfError);
+          // Try fallback processing
+          textToProcess = await fallbackPDFProcessing(pdfFile);
+          processingMethod = 'Fallback PDF processing';
         }
         
-        console.log('Successfully extracted text from PDF, length:', textToProcess.length);
-        
-      } catch (pdfError) {
-        console.error('PDF extraction failed:', pdfError);
-        // Try fallback processing
-        textToProcess = await fallbackPDFProcessing(pdfFile);
-        processingMethod = 'Fallback PDF processing';
+      } else if (documentText) {
+        textToProcess = documentText;
+        processingMethod = 'Direct text input';
+      } else {
+        throw new Error('Either PDF file or document text must be provided');
       }
       
-    } else if (documentText) {
-      textToProcess = documentText;
-      processingMethod = 'Direct text input';
+    } else if (contentType.includes('application/json')) {
+      // Handle JSON request
+      console.log('Processing JSON request');
+      
+      const requestData = await request.json();
+      const { documentText } = requestData;
+      
+      if (documentText) {
+        textToProcess = documentText;
+        processingMethod = 'JSON text input';
+      } else {
+        throw new Error('Document text must be provided in JSON request');
+      }
     } else {
-      throw new Error('Either PDF file or document text must be provided');
+      throw new Error('Unsupported content type. Use multipart/form-data for file uploads or application/json for text.');
     }
 
-    console.log('Text to process length:', textToProcess.length);
-    console.log('Text preview:', textToProcess.substring(0, 200) + '...');
+    console.log('Text to process length:', textToProcess?.length || 0);
+    console.log('Text preview:', textToProcess?.substring(0, 200) + '...');
+
+    if (!textToProcess || textToProcess.length < 10) {
+      throw new Error('Insufficient text content to process');
+    }
 
     // Enhanced extraction prompt for ANY medical parameters
     const extractionPrompt = `You are a medical data extraction AI. Extract ALL health parameters from this text.
@@ -183,7 +211,7 @@ ONLY respond with valid JSON, no other text:`;
         extractionMethod: processingMethod,
         textLength: textToProcess.length,
         timestamp: new Date().toISOString(),
-        pdfProcessed: !!pdfFile,
+        contentType: contentType,
         extractedTextPreview: textToProcess.substring(0, 500) + (textToProcess.length > 500 ? '...' : ''),
         aiResponseLength: aiResponse?.response?.length || 0,
         parametersFound: extractedData.healthParameters?.length || 0
@@ -199,7 +227,12 @@ ONLY respond with valid JSON, no other text:`;
       success: false,
       error: error.message,
       details: 'Failed to extract health parameters from document',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      debugInfo: {
+        contentType: request.headers.get('content-type'),
+        method: request.method,
+        url: request.url
+      }
     }), {
       status: 500,
       headers: corsHeaders
