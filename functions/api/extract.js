@@ -66,7 +66,7 @@ export async function onRequestPost(context) {
     console.log('Text extracted successfully, starting parameter extraction...');
     console.log('Text preview:', textToProcess.substring(0, 300));
 
-    // Extract parameters using AI
+    // Extract parameters using AI with enhanced date detection
     const extractedData = await extractParametersWithAI(textToProcess, env);
     
     // Validate we found parameters
@@ -217,9 +217,11 @@ async function extractTextFromPDF(pdfFile) {
   }
 }
 
-// AI-based parameter extraction - throws errors on failure
+// ENHANCED AI-based parameter extraction with proper date detection
 async function extractParametersWithAI(textToProcess, env) {
   const prompt = `Extract health parameters from this medical document text. Look for numerical values with units for medical tests, measurements, and lab results.
+
+IMPORTANT: Look carefully for dates in the document and extract the actual test/collection date.
 
 TEXT:
 ${textToProcess}
@@ -229,6 +231,7 @@ Find all health measurements including:
 - Vital signs (blood pressure, heart rate, temperature)
 - Body measurements (weight, height, BMI)
 - Medical test results with numerical values
+- DATES: Look for test dates, collection dates, report dates in various formats
 
 Respond with ONLY a JSON object in this exact format:
 {
@@ -239,24 +242,30 @@ Respond with ONLY a JSON object in this exact format:
       "value": "185",
       "unit": "mg/dL",
       "referenceRange": "<200",
-      "date": "2024-09-05",
+      "date": "2024-08-15",
       "status": "Normal"
     }
   ],
   "documentType": "Lab Results",
-  "testDate": "2024-09-05",
+  "testDate": "2024-08-15",
   "totalParametersFound": 1,
   "personalDataFound": []
 }
 
+CRITICAL: For the "date" field in each parameter and "testDate":
+- Look for dates in formats like: "2024-08-15", "08/15/2024", "August 15, 2024", "15-Aug-2024"
+- Use the ACTUAL test/collection date from the document if found
+- If no specific date found, use "2024-09-05" as fallback
+- Ensure date is in YYYY-MM-DD format
+
 JSON only, no other text:`;
 
   try {
-    console.log('Sending text to AI for parameter extraction...');
+    console.log('Sending text to AI for parameter extraction with date detection...');
     
     const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: prompt,
-      max_tokens: 2000,
+      max_tokens: 2500,
       temperature: 0.1
     });
 
@@ -311,6 +320,16 @@ JSON only, no other text:`;
       }
     });
     
+    // ENHANCED: Process and validate dates
+    console.log('Processing and validating dates...');
+    
+    // Try to extract a more accurate test date from the text using additional date detection
+    const detectedTestDate = detectDateFromText(textToProcess);
+    if (detectedTestDate) {
+      console.log('Detected test date from text analysis:', detectedTestDate);
+      extractedData.testDate = detectedTestDate;
+    }
+    
     // Set defaults for missing fields
     if (!extractedData.documentType) {
       extractedData.documentType = 'Health Report';
@@ -320,6 +339,19 @@ JSON only, no other text:`;
       extractedData.testDate = new Date().toISOString().split('T')[0];
     }
     
+    // Validate and normalize test date
+    extractedData.testDate = validateAndNormalizeDate(extractedData.testDate);
+    
+    // Update all parameters with the correct test date if they don't have individual dates
+    extractedData.healthParameters = extractedData.healthParameters.map(param => {
+      if (!param.date || param.date === 'null' || param.date === '') {
+        param.date = extractedData.testDate;
+      } else {
+        param.date = validateAndNormalizeDate(param.date);
+      }
+      return param;
+    });
+    
     if (!extractedData.personalDataFound) {
       extractedData.personalDataFound = [];
     }
@@ -327,6 +359,8 @@ JSON only, no other text:`;
     extractedData.totalParametersFound = extractedData.healthParameters.length;
     
     console.log('AI extraction successful:', extractedData.totalParametersFound, 'parameters found');
+    console.log('Final test date used:', extractedData.testDate);
+    console.log('Parameter dates:', extractedData.healthParameters.map(p => `${p.parameter}: ${p.date}`));
     
     return extractedData;
     
@@ -337,6 +371,142 @@ JSON only, no other text:`;
       throw error; // Re-throw our custom errors
     }
     throw new Error(`AI parameter extraction failed: ${error.message}`);
+  }
+}
+
+// ENHANCED: Detect dates from text using multiple patterns
+function detectDateFromText(text) {
+  console.log('Detecting dates from text...');
+  
+  // Common date patterns in medical documents
+  const datePatterns = [
+    // ISO format: 2024-08-15, 2024/08/15
+    /\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/g,
+    // US format: 08/15/2024, 08-15-2024
+    /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
+    // European format: 15/08/2024, 15-08-2024
+    /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
+    // Month name formats: August 15, 2024 or 15 August 2024
+    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/gi,
+    /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/gi,
+    // Short month formats: Aug 15, 2024 or 15-Aug-2024
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*(\d{1,2}),?\s*(\d{4})\b/gi,
+    /\b(\d{1,2})[\/\-](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\/\-](\d{4})\b/gi
+  ];
+  
+  const foundDates = [];
+  
+  // Look for dates near keywords indicating test/collection dates
+  const testKeywords = [
+    'test date', 'collection date', 'sample date', 'drawn on', 'collected on',
+    'report date', 'lab date', 'specimen date', 'date collected',
+    'date:', 'tested:', 'collected:', 'drawn:', 'specimen:'
+  ];
+  
+  // Search around test keywords for dates
+  testKeywords.forEach(keyword => {
+    const keywordIndex = text.toLowerCase().indexOf(keyword.toLowerCase());
+    if (keywordIndex !== -1) {
+      // Look for dates within 50 characters after the keyword
+      const searchText = text.substring(keywordIndex, keywordIndex + 100);
+      datePatterns.forEach(pattern => {
+        let match;
+        while ((match = pattern.exec(searchText)) !== null) {
+          const dateStr = match[0];
+          console.log(`Found date "${dateStr}" near keyword "${keyword}"`);
+          foundDates.push({ date: dateStr, context: keyword, priority: 10 });
+        }
+      });
+    }
+  });
+  
+  // If no dates found near keywords, search the entire text
+  if (foundDates.length === 0) {
+    datePatterns.forEach(pattern => {
+      let match;
+      while ((match = pattern.exec(text)) !== null) {
+        const dateStr = match[0];
+        console.log(`Found general date: "${dateStr}"`);
+        foundDates.push({ date: dateStr, context: 'general', priority: 1 });
+      }
+    });
+  }
+  
+  if (foundDates.length === 0) {
+    console.log('No dates detected in text');
+    return null;
+  }
+  
+  // Sort by priority and return the most likely test date
+  foundDates.sort((a, b) => b.priority - a.priority);
+  const bestDate = foundDates[0].date;
+  
+  console.log('Best date found:', bestDate);
+  return validateAndNormalizeDate(bestDate);
+}
+
+// Validate and normalize date to YYYY-MM-DD format
+function validateAndNormalizeDate(dateStr) {
+  if (!dateStr || dateStr === 'null' || dateStr === '') {
+    return new Date().toISOString().split('T')[0];
+  }
+  
+  try {
+    // Handle various date formats
+    let normalizedDate;
+    
+    // Already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      normalizedDate = new Date(dateStr);
+    }
+    // MM/DD/YYYY or MM-DD-YYYY format
+    else if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(dateStr)) {
+      normalizedDate = new Date(dateStr);
+    }
+    // DD/MM/YYYY format (European) - be careful here
+    else if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(dateStr)) {
+      const parts = dateStr.split(/[\/\-]/);
+      // Assume MM/DD/YYYY for US format first, then try DD/MM/YYYY
+      normalizedDate = new Date(parts[2], parts[0] - 1, parts[1]);
+      if (isNaN(normalizedDate.getTime())) {
+        normalizedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+    }
+    // YYYY/MM/DD format
+    else if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(dateStr)) {
+      normalizedDate = new Date(dateStr.replace(/\//g, '-'));
+    }
+    // Month name formats
+    else {
+      normalizedDate = new Date(dateStr);
+    }
+    
+    // Validate the date is reasonable (not in future, not too old)
+    const now = new Date();
+    const fiveYearsAgo = new Date(now.getFullYear() - 5, now.getMonth(), now.getDate());
+    
+    if (isNaN(normalizedDate.getTime())) {
+      console.warn(`Invalid date format: ${dateStr}, using current date`);
+      return new Date().toISOString().split('T')[0];
+    }
+    
+    if (normalizedDate > now) {
+      console.warn(`Date in future: ${dateStr}, using current date`);
+      return new Date().toISOString().split('T')[0];
+    }
+    
+    if (normalizedDate < fiveYearsAgo) {
+      console.warn(`Date too old: ${dateStr}, using current date`);
+      return new Date().toISOString().split('T')[0];
+    }
+    
+    const result = normalizedDate.toISOString().split('T')[0];
+    console.log(`Normalized date: ${dateStr} → ${result}`);
+    return result;
+    
+  } catch (error) {
+    console.warn(`Error parsing date "${dateStr}":`, error);
+    return new Date().toISOString().split('T')[0];
   }
 }
 
