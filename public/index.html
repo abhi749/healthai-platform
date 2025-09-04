@@ -711,9 +711,16 @@ function updateTrends() {
 
 // Update risk assessment tab
 function updateRisk() {
+    console.log('Updating risk assessment tab...');
+    
     const riskTab = document.getElementById('tab-risk');
+    if (!riskTab) {
+        console.error('Risk tab not found!');
+        return;
+    }
     
     if (healthData.length === 0) {
+        console.log('No health data for risk assessment');
         riskTab.innerHTML = `
             <div class="text-center py-8">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -726,30 +733,173 @@ function updateRisk() {
     }
 
     const latestDoc = healthData[healthData.length - 1];
+    console.log('Analyzing risks for latest document:', latestDoc.fileName, 'with metrics:', Object.keys(latestDoc.metrics || {}));
+    
     const riskFactors = [];
 
-    // Assess cholesterol risk
-    if (latestDoc.metrics['Total Cholesterol']) {
-        const value = latestDoc.metrics['Total Cholesterol'].value;
-        let risk;
-        if (value < 200) {
-            risk = { level: 'Normal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: 'Optimal cholesterol level' };
-        } else if (value < 240) {
-            risk = { level: 'Borderline High', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: 'Monitor and improve diet' };
-        } else {
-            risk = { level: 'High', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: 'High risk, seek medical advice' };
+    // Helper function to assess and add risk factors
+    function addRiskFactor(metricName, assessFunction) {
+        if (latestDoc.metrics && latestDoc.metrics[metricName]) {
+            const value = latestDoc.metrics[metricName].value;
+            const unit = latestDoc.metrics[metricName].unit;
+            const risk = assessFunction(value);
+            
+            console.log('Risk assessment for', metricName, ':', { value, risk: risk.level });
+            
+            riskFactors.push({
+                metric: metricName,
+                value: value,
+                unit: unit,
+                risk: risk
+            });
         }
-        
-        riskFactors.push({
-            metric: 'Total Cholesterol',
-            value: value,
-            unit: latestDoc.metrics['Total Cholesterol'].unit,
-            risk: risk
-        });
     }
 
+    // Assess cholesterol risk
+    addRiskFactor('Total Cholesterol', (value) => {
+        if (value < 200) return { level: 'Normal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: '✅ Optimal cholesterol level' };
+        if (value < 240) return { level: 'Borderline High', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: '⚠️ Monitor and improve diet' };
+        return { level: 'High', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: '🚨 High risk, seek medical advice' };
+    });
+
     // Assess LDL cholesterol risk
-    if (latestDoc.metrics['LDL Cholesterol']) {
+    addRiskFactor('LDL Cholesterol', (value) => {
+        if (value < 100) return { level: 'Optimal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: '✅ Excellent LDL level' };
+        if (value < 130) return { level: 'Near Optimal', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: '✅ Good, maintain current habits' };
+        if (value < 160) return { level: 'Borderline High', color: 'text-orange-600', bgColor: 'bg-orange-100 text-orange-800', description: '⚠️ Lifestyle changes recommended' };
+        return { level: 'High', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: '🚨 High risk, medical consultation needed' };
+    });
+
+    // Assess glucose risk
+    addRiskFactor('Glucose', (value) => {
+        if (value < 100) return { level: 'Normal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: '✅ Optimal glucose level' };
+        if (value < 126) return { level: 'Prediabetes', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: '⚠️ Lifestyle changes recommended' };
+        return { level: 'Diabetes Range', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: '🚨 Consult healthcare provider immediately' };
+    });
+
+    // Assess HDL cholesterol risk
+    addRiskFactor('HDL Cholesterol', (value) => {
+        if (value >= 60) return { level: 'Protective', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: '✅ Excellent protective level' };
+        if (value >= 40) return { level: 'Acceptable', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: '⚠️ Consider increasing physical activity' };
+        return { level: 'Low', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: '🚨 Low HDL, increase exercise and consider omega-3s' };
+    });
+
+    // Assess triglycerides risk
+    addRiskFactor('Triglycerides', (value) => {
+        if (value < 150) return { level: 'Normal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: '✅ Optimal triglyceride level' };
+        if (value < 200) return { level: 'Borderline High', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: '⚠️ Monitor diet and exercise' };
+        if (value < 500) return { level: 'High', color: 'text-orange-600', bgColor: 'bg-orange-100 text-orange-800', description: '⚠️ Lifestyle changes needed' };
+        return { level: 'Very High', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: '🚨 Medical attention required' };
+    });
+
+    // Assess HbA1c risk
+    addRiskFactor('HbA1c', (value) => {
+        if (value < 5.7) return { level: 'Normal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: '✅ Optimal HbA1c level' };
+        if (value < 6.5) return { level: 'Prediabetes', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: '⚠️ Monitor closely' };
+        return { level: 'Diabetes Range', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: '🚨 Medical management needed' };
+    });
+
+    // Assess BMI risk
+    addRiskFactor('BMI', (value) => {
+        if (value < 18.5) return { level: 'Underweight', color: 'text-yellow-600', bgColor: 'bg-yellow-100 text-yellow-800', description: '⚠️ Consider healthy weight gain' };
+        if (value <= 24.9) return { level: 'Normal', color: 'text-green-600', bgColor: 'bg-green-100 text-green-800', description: '✅ Healthy weight range' };
+        if (value <= 29.9) return { level: 'Overweight', color: 'text-orange-600', bgColor: 'bg-orange-100 text-orange-800', description: '⚠️ Weight management recommended' };
+        return { level: 'Obese', color: 'text-red-600', bgColor: 'bg-red-100 text-red-800', description: '🚨 Comprehensive weight management needed' };
+    });
+
+    console.log('Generated', riskFactors.length, 'risk factors');
+
+    riskTab.innerHTML = `
+        <div class="space-y-6">
+            <div class="gradient-orange rounded-lg text-white p-6">
+                <h2 class="text-2xl font-bold mb-2">⚠️ Health Risk Assessment</h2>
+                <p class="text-orange-100">Based on your latest health metrics from: ${latestDoc.fileName}</p>
+                <p class="text-orange-100 text-sm">${riskFactors.length} risk factors analyzed</p>
+            </div>
+
+            ${riskFactors.length > 0 ? `
+                <div class="grid gap-6">
+                    ${riskFactors.map((factor, index) => `
+                        <div class="bg-white rounded-lg border p-6 hover:shadow-lg transition-shadow">
+                            <div class="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">${factor.metric}</h3>
+                                    <p class="text-2xl font-bold text-gray-700">
+                                        ${factor.value} <span class="text-sm font-normal text-gray-500">${factor.unit}</span>
+                                    </p>
+                                </div>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${factor.risk.bgColor}">
+                                    ${factor.risk.level}
+                                </span>
+                            </div>
+                            <p class="text-sm ${factor.risk.color} font-medium">${factor.risk.description}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            ` : `
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <p class="text-gray-500 mt-2">No assessable risk factors found in your health data</p>
+                </div>
+            `}
+
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-blue-900 mb-3">💡 Health Management Tips</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+                    <div>
+                        <h4 class="font-semibold mb-2">🏃 Lifestyle</h4>
+                        <ul class="space-y-1">
+                            <li>• Regular exercise (150 min/week)</li>
+                            <li>• Heart-healthy diet (fruits, vegetables, whole grains)</li>
+                            <li>• Maintain healthy weight</li>
+                            <li>• Adequate sleep (7-9 hours)</li>
+                            <li>• Stress management techniques</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">🔬 Monitoring</h4>
+                        <ul class="space-y-1">
+                            <li>• Regular health screenings</li>
+                            <li>• Track metrics over time</li>
+                            <li>• Follow up with healthcare providers</li>
+                            <li>• Stay informed about your health</li>
+                            <li>• Consider preventive measures</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-blue-100 rounded text-xs text-blue-700">
+                    <strong>Disclaimer:</strong> This analysis is for informational purposes only. Always consult with healthcare professionals for medical advice and treatment decisions.
+                </div>
+            </div>
+        </div>
+    `;
+    
+    console.log('Risk assessment tab updated successfully');
+}
+
+// Test function to add demo data
+function testUpload() {
+    console.log('Creating test health data...');
+    
+    // Create a test file object
+    const testFile = {
+        name: 'test-health-report.pdf',
+        size: 1024,
+        type: 'application/pdf'
+    };
+    
+    // Process the test file
+    processFile(testFile).then(result => {
+        console.log('Test file processed:', result);
+        healthData.push(result);
+        saveHealthData();
+        updateUI();
+        switchTab('results');
+        console.log('Test upload complete! Check Results, Trends, and Risk tabs.');
+    });
+}metrics['LDL Cholesterol']) {
         const value = latestDoc.metrics['LDL Cholesterol'].value;
         let risk;
         if (value < 100) {
