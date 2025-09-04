@@ -18,4 +18,4 @@ bucket_name = "healthai-documents"
 [[d1_databases]]
 binding = "DB"
 database_name = "healthai-sessions"
-database_id = "your-database-id" # This will be updated after D1 setup
+database_id = "1fb0a82f-75ed-475f-b206-bb46dd6940e8" # This will be updated after D1 setup
