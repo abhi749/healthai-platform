@@ -556,7 +556,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🩺 HealthAI</h1>
+            <h1>🩺 HealthAI <span style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 1rem; font-weight: 500; margin-left: 15px;">BETA</span></h1>
             <p>Privacy-First Health Analysis • Multi-Document Trend Tracking</p>
         </div>
         
@@ -582,7 +582,7 @@
                        📊 Body Composition • 💊 Metabolic Panels • Any Health Data<br>
                        <strong>Maximum file size: 25MB • Format: PDF</strong></p>
                     <button class="btn">Choose File</button>
-                    <input type="file" id="fileInput" class="file-input" accept=".pdf">
+                    <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
                 </div>
                 
                 <div class="processing-status" id="processingStatus">
@@ -705,19 +705,8 @@
         
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
-    initializeDashboard();
-    
-    // Add file input event listener
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            const files = e.target.files;
-            if (files && files.length > 0) {
-                handleFiles(files);
-            }
+            initializeDashboard();
         });
-    }
-});
         
         function initializeDashboard() {
             // Check for existing session
