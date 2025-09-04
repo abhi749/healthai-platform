@@ -708,6 +708,7 @@
                         throw new Error('Analysis failed: ' + analysisData.error);
                     }
                 } else {
+                    console.error('Extraction failed:', extractionData);
                     throw new Error('Extraction failed: ' + extractionData.error);
                 }
                 
