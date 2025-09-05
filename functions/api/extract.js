@@ -217,7 +217,7 @@ async function extractTextFromPDF(pdfFile) {
   }
 }
 
-// ENHANCED AI-based parameter extraction with proper date detection
+// ENHANCED AI-based parameter extraction with SMART DATE HANDLING
 async function extractParametersWithAI(textToProcess, env) {
   const prompt = `Extract health parameters from this medical document text. Look for numerical values with units for medical tests, measurements, and lab results.
 
@@ -242,26 +242,28 @@ Respond with ONLY a JSON object in this exact format:
       "value": "185",
       "unit": "mg/dL",
       "referenceRange": "<200",
-      "date": "2024-08-15",
+      "date": "2025-09-15",
       "status": "Normal"
     }
   ],
   "documentType": "Lab Results",
-  "testDate": "2024-08-15",
+  "testDate": "2025-09-15",
   "totalParametersFound": 1,
   "personalDataFound": []
 }
 
-CRITICAL: For the "date" field in each parameter and "testDate":
-- Look for dates in formats like: "2024-08-15", "08/15/2024", "August 15, 2024", "15-Aug-2024"
+CRITICAL DATE HANDLING RULES:
+- Look for dates in formats like: "2025-09-15", "09/15/2025", "September 15, 2025", "15-Sep-2025"
 - Use the ACTUAL test/collection date from the document if found
-- If no specific date found, use "2024-09-05" as fallback
-- Ensure date is in YYYY-MM-DD format
+- If only month/year found (like "Sep 2025"), use the 15th of that month: "2025-09-15"
+- If no specific date found, use current date: "2025-09-05"
+- Always ensure date is in YYYY-MM-DD format
+- For partial dates, assume the middle of the time period (15th for month)
 
 JSON only, no other text:`;
 
   try {
-    console.log('Sending text to AI for parameter extraction with date detection...');
+    console.log('Sending text to AI for parameter extraction with smart date detection...');
     
     const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: prompt,
@@ -320,13 +322,13 @@ JSON only, no other text:`;
       }
     });
     
-    // ENHANCED: Process and validate dates
-    console.log('Processing and validating dates...');
+    // ENHANCED: Process and validate dates with smart month handling
+    console.log('Processing and validating dates with smart month handling...');
     
-    // Try to extract a more accurate test date from the text using additional date detection
-    const detectedTestDate = detectDateFromText(textToProcess);
+    // Try to extract a more accurate test date from the text using enhanced date detection
+    const detectedTestDate = detectDateFromTextSmart(textToProcess);
     if (detectedTestDate) {
-      console.log('Detected test date from text analysis:', detectedTestDate);
+      console.log('Detected test date from smart text analysis:', detectedTestDate);
       extractedData.testDate = detectedTestDate;
     }
     
@@ -339,15 +341,15 @@ JSON only, no other text:`;
       extractedData.testDate = new Date().toISOString().split('T')[0];
     }
     
-    // Validate and normalize test date
-    extractedData.testDate = validateAndNormalizeDate(extractedData.testDate);
+    // Validate and normalize test date with smart month handling
+    extractedData.testDate = validateAndNormalizeDateSmart(extractedData.testDate);
     
     // Update all parameters with the correct test date if they don't have individual dates
     extractedData.healthParameters = extractedData.healthParameters.map(param => {
       if (!param.date || param.date === 'null' || param.date === '') {
         param.date = extractedData.testDate;
       } else {
-        param.date = validateAndNormalizeDate(param.date);
+        param.date = validateAndNormalizeDateSmart(param.date);
       }
       return param;
     });
@@ -374,24 +376,29 @@ JSON only, no other text:`;
   }
 }
 
-// ENHANCED: Detect dates from text using multiple patterns
-function detectDateFromText(text) {
-  console.log('Detecting dates from text...');
+// ENHANCED: Smart date detection with month-middle assumption
+function detectDateFromTextSmart(text) {
+  console.log('Smart date detection from text...');
   
   // Common date patterns in medical documents
   const datePatterns = [
-    // ISO format: 2024-08-15, 2024/08/15
+    // ISO format: 2025-09-15, 2025/09/15
     /\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/g,
-    // US format: 08/15/2024, 08-15-2024
+    // US format: 09/15/2025, 09-15-2025
     /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
-    // European format: 15/08/2024, 15-08-2024
+    // European format: 15/09/2025, 15-09-2025
     /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
-    // Month name formats: August 15, 2024 or 15 August 2024
+    // Month name formats: September 15, 2025 or 15 September 2025
     /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/gi,
     /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/gi,
-    // Short month formats: Aug 15, 2024 or 15-Aug-2024
+    // Short month formats: Sep 15, 2025 or 15-Sep-2025
     /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*(\d{1,2}),?\s*(\d{4})\b/gi,
-    /\b(\d{1,2})[\/\-](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\/\-](\d{4})\b/gi
+    /\b(\d{1,2})[\/\-](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\/\-](\d{4})\b/gi,
+    // NEW: Month-Year only patterns (Sep 2025, September 2025)
+    /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/gi,
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{4})\b/gi,
+    // NEW: Numeric month-year (09/2025, 09-2025)
+    /\b(\d{1,2})[\/\-](\d{4})\b/g
   ];
   
   const foundDates = [];
@@ -442,22 +449,43 @@ function detectDateFromText(text) {
   const bestDate = foundDates[0].date;
   
   console.log('Best date found:', bestDate);
-  return validateAndNormalizeDate(bestDate);
+  return validateAndNormalizeDateSmart(bestDate);
 }
 
-// Validate and normalize date to YYYY-MM-DD format
-function validateAndNormalizeDate(dateStr) {
+// SMART date validation with month-middle assumption
+function validateAndNormalizeDateSmart(dateStr) {
   if (!dateStr || dateStr === 'null' || dateStr === '') {
     return new Date().toISOString().split('T')[0];
   }
   
   try {
-    // Handle various date formats
+    // Handle various date formats with smart month handling
     let normalizedDate;
+    
+    console.log(`Smart date processing: "${dateStr}"`);
     
     // Already in YYYY-MM-DD format
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       normalizedDate = new Date(dateStr);
+    }
+    // Month-Year only patterns (need smart handling)
+    else if (/^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})$/i.test(dateStr)) {
+      const [, monthName, year] = dateStr.match(/^(\w+)\s+(\d{4})$/i);
+      const monthNum = getMonthNumber(monthName);
+      normalizedDate = new Date(parseInt(year), monthNum - 1, 15); // 15th of the month
+      console.log(`Month-year format detected: ${monthName} ${year} -> 15th of month`);
+    }
+    else if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{4})$/i.test(dateStr)) {
+      const [, monthAbbr, year] = dateStr.match(/^(\w+)\.?\s+(\d{4})$/i);
+      const monthNum = getMonthNumber(monthAbbr);
+      normalizedDate = new Date(parseInt(year), monthNum - 1, 15); // 15th of the month
+      console.log(`Month abbreviation-year format: ${monthAbbr} ${year} -> 15th of month`);
+    }
+    // Numeric month-year only (MM/YYYY or MM-YYYY)
+    else if (/^\d{1,2}[\/\-]\d{4}$/.test(dateStr)) {
+      const parts = dateStr.split(/[\/\-]/);
+      normalizedDate = new Date(parseInt(parts[1]), parseInt(parts[0]) - 1, 15); // 15th of the month
+      console.log(`Numeric month-year format: ${dateStr} -> 15th of month`);
     }
     // MM/DD/YYYY or MM-DD-YYYY format
     else if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(dateStr)) {
@@ -476,7 +504,7 @@ function validateAndNormalizeDate(dateStr) {
     else if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(dateStr)) {
       normalizedDate = new Date(dateStr.replace(/\//g, '-'));
     }
-    // Month name formats
+    // Month name formats with day
     else {
       normalizedDate = new Date(dateStr);
     }
@@ -501,13 +529,33 @@ function validateAndNormalizeDate(dateStr) {
     }
     
     const result = normalizedDate.toISOString().split('T')[0];
-    console.log(`Normalized date: ${dateStr} → ${result}`);
+    console.log(`Smart normalized date: ${dateStr} → ${result}`);
     return result;
     
   } catch (error) {
     console.warn(`Error parsing date "${dateStr}":`, error);
     return new Date().toISOString().split('T')[0];
   }
+}
+
+// Helper function to convert month name to number
+function getMonthNumber(monthName) {
+  const months = {
+    'january': 1, 'jan': 1,
+    'february': 2, 'feb': 2,
+    'march': 3, 'mar': 3,
+    'april': 4, 'apr': 4,
+    'may': 5,
+    'june': 6, 'jun': 6,
+    'july': 7, 'jul': 7,
+    'august': 8, 'aug': 8,
+    'september': 9, 'sep': 9,
+    'october': 10, 'oct': 10,
+    'november': 11, 'nov': 11,
+    'december': 12, 'dec': 12
+  };
+  
+  return months[monthName.toLowerCase()] || 1;
 }
 
 export async function onRequestOptions() {
