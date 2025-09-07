@@ -1,110 +1,565 @@
-// Step 3: Analyze with AI
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthAI - Privacy-First Health Analysis</title>
+    <meta name="description" content="AI-powered health document analysis with complete privacy protection. Anonymous processing, instant insights.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js for trends -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        health: {
+                            primary: '#667eea',
+                            secondary: '#764ba2',
+                            accent: '#4ecdc4'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .dragover {
+            border-color: #667eea !important;
+            background-color: rgba(102, 126, 234, 0.1) !important;
+        }
+        .status-normal { color: #10b981; }
+        .status-high { color: #ef4444; }
+        .status-low { color: #f59e0b; }
+        .status-unknown { color: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="gradient-bg text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2">
+                    <div class="text-2xl">🩺</div>
+                    <h1 class="text-xl font-bold">HealthAI</h1>
+                </div>
+                <div class="text-sm">
+                    Two Priorities. One Promise: Health & Privacy First.
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Privacy Statement -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+        <div class="max-w-7xl mx-auto">
+            <p class="text-blue-800 text-center">
+                <span class="font-semibold">Privacy Guarantee:</span> 
+                We can't share what we can't see — your data is invisible to us
+            </p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- Tab Navigation -->
+        <div class="mb-6">
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8">
+                    <button onclick="showTab('dashboard')" id="dashboard-tab" class="tab-button py-2 px-1 border-b-2 font-medium text-sm border-health-primary text-health-primary">
+                        📊 Health Dashboard
+                    </button>
+                    <button onclick="showTab('records')" id="records-tab" class="tab-button py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        📋 Health Records
+                    </button>
+                    <button onclick="showTab('trends')" id="trends-tab" class="tab-button py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        📈 Trend Analysis
+                    </button>
+                    <button onclick="showTab('documents')" id="documents-tab" class="tab-button py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        📁 Document History
+                    </button>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard-content" class="tab-content">
+            <!-- Upload Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    📄 Upload & Analyze Health Documents
+                </h2>
+                
+                <!-- Feature Highlight -->
+                <div class="bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-200 rounded-lg p-4 mb-4">
+                    <h3 class="font-semibold text-health-primary mb-2">
+                        🧠 Universal Health Parameter Recognition + Smart Date Handling
+                    </h3>
+                    <p class="text-gray-700 mb-3">
+                        <strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. 
+                        Personal identifiers are automatically detected and removed on your device before AI processing.
+                    </p>
+                    
+                    <!-- Smart Date Processing Info -->
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <h4 class="font-medium text-green-800 mb-2">🎯 NEW: Smart Date Processing (Build 9)</h4>
+                        <ul class="text-sm text-green-700 space-y-1">
+                            <li>• <strong>"Sep 2025"</strong> → Automatically becomes <strong>"September 15, 2025"</strong></li>
+                            <li>• <strong>"2025/09"</strong> → Becomes <strong>"September 15, 2025"</strong></li>
+                            <li>• <strong>"September 2025"</strong> → Becomes <strong>"September 15, 2025"</strong></li>
+                            <li>• When only month/year found, assumes middle of month (15th) 📅</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Upload Area -->
+                <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-health-primary transition-colors cursor-pointer">
+                    <div class="space-y-4">
+                        <div class="text-4xl">📁</div>
+                        <h3 class="text-lg font-medium text-gray-900">Drop Any Health Document Here</h3>
+                        <div class="text-sm text-gray-600 space-y-1">
+                            <p>🔬 Lab Results • 🦴 DEXA/Bone Density • 🧬 Hormone Panels</p>
+                            <p>🏃‍♀️ Fitness Reports • 🧬 Genetic Analysis • 🩸 Blood Work</p>
+                            <p>⚖️ Body Composition • 🔥 Metabolic Panels • Any Health Data</p>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            Maximum file size: 25MB • Format: PDF with readable text
+                        </p>
+                        <input type="file" id="fileInput" accept=".pdf" class="hidden" onchange="handleFiles(this.files)">
+                        <button onclick="document.getElementById('fileInput').click()" class="bg-health-primary text-white px-6 py-2 rounded-lg hover:bg-health-secondary transition-colors">
+                            Choose File
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Processing Status -->
+                <div id="processingStatus" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg hidden">
+                    <div class="flex items-center space-x-2 mb-2">
+                        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-health-primary"></div>
+                        <span class="font-medium">Processing Document...</span>
+                    </div>
+                    <div id="processingSteps" class="text-sm text-gray-600 space-y-1"></div>
+                </div>
+
+                <!-- Results -->
+                <div id="documentResult" class="mt-4"></div>
+            </div>
+        </div>
+
+        <!-- Health Records Tab -->
+        <div id="records-content" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">📋 Health Records</h2>
+                    <button onclick="exportRecords()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm">
+                        📥 Export CSV
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <input type="text" id="parameterFilter" placeholder="Filter by parameter..." class="border border-gray-300 rounded-lg px-3 py-2" onchange="filterRecords()">
+                    <input type="date" id="dateFromFilter" class="border border-gray-300 rounded-lg px-3 py-2" onchange="filterRecords()">
+                    <input type="date" id="dateToFilter" class="border border-gray-300 rounded-lg px-3 py-2" onchange="filterRecords()">
+                    <select id="categoryFilter" class="border border-gray-300 rounded-lg px-3 py-2" onchange="filterRecords()">
+                        <option value="">All Categories</option>
+                        <option value="Blood Chemistry">Blood Chemistry</option>
+                        <option value="Hormones">Hormones</option>
+                        <option value="Vitamins">Vitamins</option>
+                        <option value="Body Composition">Body Composition</option>
+                    </select>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-blue-50 p-3 rounded-lg">
+                        <div class="text-sm text-gray-600">Total Records</div>
+                        <div class="text-lg font-semibold" id="totalRecords">0</div>
+                    </div>
+                    <div class="bg-green-50 p-3 rounded-lg">
+                        <div class="text-sm text-gray-600">Unique Parameters</div>
+                        <div class="text-lg font-semibold" id="uniqueParameters">0</div>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-lg">
+                        <div class="text-sm text-gray-600">Date Range</div>
+                        <div class="text-sm font-semibold" id="dateRange">--</div>
+                    </div>
+                    <div class="bg-orange-50 p-3 rounded-lg">
+                        <div class="text-sm text-gray-600">Filtered Results</div>
+                        <div class="text-lg font-semibold" id="filteredCount">0</div>
+                    </div>
+                </div>
+
+                <!-- Records Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Test Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Upload Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Parameter</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Value</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Document</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Records will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trends Tab -->
+        <div id="trends-content" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">📈 Trend Analysis</h2>
+                    <select id="timeRange" class="border border-gray-300 rounded-lg px-3 py-2" onchange="loadTrends()">
+                        <option value="3months">Last 3 Months</option>
+                        <option value="6months" selected>Last 6 Months</option>
+                        <option value="1year">Last Year</option>
+                        <option value="all">All Time</option>
+                    </select>
+                </div>
+
+                <!-- Chart Container -->
+                <div class="mb-6">
+                    <canvas id="trendsChart" width="400" height="200"></canvas>
+                    <div id="chartFallback" class="hidden p-4 bg-gray-100 text-center rounded-lg">
+                        Chart will appear here when trend data is available
+                    </div>
+                </div>
+
+                <!-- Trend Analysis Text -->
+                <div id="trendAnalysis" class="prose max-w-none">
+                    <!-- Analysis content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents Tab -->
+        <div id="documents-content" class="tab-content hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">📁 Document History</h2>
+                <div id="documentList">
+                    <!-- Documents will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-100 mt-12 py-4">
+        <div class="max-w-7xl mx-auto px-4 text-center text-sm text-gray-600">
+            🩺 HealthAI Beta v1.6 | Build 2025.09.08.9
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Global variables
+        let currentSession = null;
+        let documents = [];
+        let healthRecords = [];
+        let filteredRecords = [];
+        let trendData = [];
+        let currentChart = null;
+        let chartJsLoaded = typeof Chart !== 'undefined';
+
+        // Safe execution wrapper
+        function safeExecute(fn, context = 'unknown') {
+            try {
+                return fn();
+            } catch (error) {
+                console.error(`Error in ${context}:`, error);
+                return null;
+            }
+        }
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== HEALTHAI BUILD 9 INITIALIZATION ===');
+            console.log('Chart.js loaded:', chartJsLoaded);
+            
+            // Load session from localStorage
+            const sessionData = localStorage.getItem('healthai_session');
+            if (sessionData) {
+                try {
+                    currentSession = JSON.parse(sessionData);
+                    console.log('Session loaded:', currentSession.sessionToken.substring(0, 20) + '...');
+                } catch (error) {
+                    console.error('Error loading session:', error);
+                    localStorage.removeItem('healthai_session');
+                }
+            }
+
+            // Show default tab
+            showTab('dashboard');
+            
+            // Load dashboard data if session exists
+            if (currentSession) {
+                loadDashboardData();
+            }
+        });
+
+        // Tab management
+        function showTab(tabName) {
+            safeExecute(() => {
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab-button').forEach(tab => {
+                    tab.classList.remove('border-health-primary', 'text-health-primary');
+                    tab.classList.add('border-transparent', 'text-gray-500');
+                });
+
+                // Show selected tab content
+                const selectedContent = document.getElementById(tabName + '-content');
+                if (selectedContent) {
+                    selectedContent.classList.remove('hidden');
+                }
+
+                // Activate selected tab button
+                const selectedTab = document.getElementById(tabName + '-tab');
+                if (selectedTab) {
+                    selectedTab.classList.remove('border-transparent', 'text-gray-500');
+                    selectedTab.classList.add('border-health-primary', 'text-health-primary');
+                }
+
+                // Load specific tab data
+                if (currentSession) {
+                    switch(tabName) {
+                        case 'records':
+                            loadHealthRecords();
+                            break;
+                        case 'trends':
+                            loadTrends();
+                            break;
+                        case 'documents':
+                            loadDocuments();
+                            break;
+                    }
+                }
+            }, 'showTab');
+        }
+
+        // Load all dashboard data
+        async function loadDashboardData() {
+            await safeExecute(async () => {
+                if (!currentSession) return;
+                
+                console.log('Loading dashboard data...');
+                await Promise.all([
+                    loadHealthRecords(),
+                    loadDocuments()
+                ]);
+            }, 'loadDashboardData');
+        }
+
+        // File handling
+        function handleFiles(files) {
+            safeExecute(() => {
+                if (files.length === 0) return;
+                
+                const file = files[0];
+                console.log('File selected:', file.name, file.type, file.size);
+                
+                if (file.type !== 'application/pdf') {
+                    alert('Please select a PDF file.');
+                    return;
+                }
+                
+                if (file.size > 25 * 1024 * 1024) {
+                    alert('File size must be less than 25MB.');
+                    return;
+                }
+                
+                processDocument(file);
+            }, 'handleFiles');
+        }
+
+        // Document processing with smart date handling
+        async function processDocument(file) {
+            await safeExecute(async () => {
+                const processingStatus = document.getElementById('processingStatus');
+                const processingSteps = document.getElementById('processingSteps');
+                const resultDiv = document.getElementById('documentResult');
+
+                // Show processing status
+                if (processingStatus) {
+                    processingStatus.style.display = 'block';
+                }
+                if (processingSteps) {
+                    processingSteps.innerHTML = '';
+                }
+                if (resultDiv) {
+                    resultDiv.innerHTML = '';
+                }
+
+                try {
+                    // Step 1: Extract data
                     if (processingSteps) {
-                        processingSteps.innerHTML += '<br>⏳ Step 3: Analyzing with AI and medical context...';
+                        processingSteps.innerHTML += '<div>✅ Step 1: Extracting data with smart date processing...</div>';
                     }
                     await sleep(500);
-                    
+
+                    const formData = new FormData();
+                    formData.append('document', file);
+
+                    const extractResponse = await fetch('/api/extract', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!extractResponse.ok) {
+                        const errorText = await extractResponse.text();
+                        throw new Error(`Extraction failed: ${extractResponse.status} - ${errorText}`);
+                    }
+
+                    const extractionData = await extractResponse.json();
+                    console.log('Extraction response:', extractionData);
+
+                    if (!extractionData.success) {
+                        throw new Error(extractionData.error || 'Failed to extract document data');
+                    }
+
+                    // Step 2: Process extracted data
+                    if (processingSteps) {
+                        processingSteps.innerHTML += '<div>✅ Step 2: Processing health parameters with smart date handling...</div>';
+                    }
+                    await sleep(300);
+
+                    // Step 3: Analyze with AI
+                    if (processingSteps) {
+                        processingSteps.innerHTML += '<div>✅ Step 3: Analyzing with AI and medical context...</div>';
+                    }
+                    await sleep(500);
+
                     const healthDataText = formatHealthDataForAnalysis(extractionData.extractedData.healthParameters);
                     console.log('Formatted health data:', healthDataText);
-                    
+
                     if (!healthDataText.trim()) {
                         throw new Error('No health parameters found in document');
                     }
-                    
+
                     const analysisResponse = await fetch('/api/analyze', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
                             healthData: healthDataText
                         })
                     });
-                    
+
                     if (!analysisResponse.ok) {
                         const errorText = await analysisResponse.text();
                         throw new Error(`Analysis failed: ${analysisResponse.status} - ${errorText}`);
                     }
-                    
+
                     const analysisData = await analysisResponse.json();
                     console.log('Analysis response:', analysisData);
-                    
+
                     if (!analysisData.success) {
                         throw new Error(analysisData.error || 'Failed to analyze health data');
                     }
-                    
+
                     // Step 4: Store document with smart date handling
                     if (processingSteps) {
-                        processingSteps.innerHTML += '<br>⏳ Step 4: Storing document with smart date processing...';
+                        processingSteps.innerHTML += '<div>✅ Step 4: Storing document with smart date processing...</div>';
                     }
                     await sleep(300);
-                    
+
                     if (currentSession) {
                         await storeDocument(
-                            file.name, 
-                            extractionData.extractedData, 
-                            analysisData.analysis, 
-                            extractionData.extractedData.documentType, 
-                            extractedData.extractedData.testDate
+                            file.name,
+                            extractionData.extractedData,
+                            analysisData.analysis,
+                            extractionData.extractedData.documentType,
+                            extractionData.extractedData.testDate
                         );
                     }
-                    
+
                     // Step 5: Complete
                     if (processingSteps) {
-                        processingSteps.innerHTML += '<br>✅ Step 5: Analysis complete with smart date handling!';
+                        processingSteps.innerHTML += '<div>✅ Step 5: Analysis complete with smart date handling!</div>';
                     }
-                    
+
                     // Show clean results with date info
                     showCleanAnalysisResults(analysisData, extractionData.extractedData);
-                    
+
                     // Hide processing status after showing results
                     setTimeout(() => {
                         if (processingStatus) processingStatus.style.display = 'none';
                     }, 2000);
-                    
+
                     // Refresh dashboard data
                     if (currentSession) {
                         setTimeout(() => {
                             loadDashboardData();
                         }, 1000);
                     }
-                    
+
                 } catch (error) {
                     console.error('Document processing error:', error);
-                    
                     if (processingSteps) {
-                        processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
+                        processingSteps.innerHTML += `<div>❌ Error: ${error.message}</div>`;
                     }
-                    
+
                     // Show user-friendly error
                     setTimeout(() => {
                         if (resultDiv) {
                             resultDiv.innerHTML = `
-                                <div class="error">
-                                    <h3>❌ Document Processing Failed</h3>
-                                    <p><strong>Error:</strong> ${error.message}</p>
-                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
-                                        <strong>Common Solutions:</strong><br>
-                                        • Ensure PDF contains readable text (not just scanned images)<br>
-                                        • Check that document has clear health parameters with values<br>
-                                        • Try a different health document format<br>
-                                        • Check your internet connection and try again<br>
-                                        • For partial dates, system will auto-assign 15th of month
-                                    </div>
+                                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                    <h3 class="font-semibold text-red-800 mb-2">❌ Document Processing Failed</h3>
+                                    <p class="text-red-700 mb-3"><strong>Error:</strong> ${error.message}</p>
+                                    
+                                    <h4 class="font-medium text-red-800 mb-2">Common Solutions:</h4>
+                                    <ul class="text-red-700 text-sm space-y-1">
+                                        <li>• Ensure PDF contains readable text (not just scanned images)</li>
+                                        <li>• Check that document has clear health parameters with values</li>
+                                        <li>• Try a different health document format</li>
+                                        <li>• Check your internet connection and try again</li>
+                                        <li>• For partial dates, system will auto-assign 15th of month</li>
+                                    </ul>
                                 </div>
                             `;
                         }
-                        
                         if (processingStatus) processingStatus.style.display = 'none';
                     }, 3000);
                 }
             }, 'processDocument');
         }
-        
+
         // Enhanced analysis results display with smart date information
         function showCleanAnalysisResults(analysisData, extractedData) {
             safeExecute(() => {
                 const resultDiv = document.getElementById('documentResult');
                 if (!resultDiv) return;
-                
+
                 // Clean the analysis text - remove any technical artifacts
                 let cleanAnalysis = analysisData.analysis || 'Analysis completed successfully.';
                 
@@ -118,46 +573,60 @@
                     .replace(/let\s+\w+\s*=/g, '') // Remove let declarations
                     .replace(/var\s+\w+\s*=/g, '') // Remove var declarations
                     .trim();
-                
+
                 // Determine if smart date processing was used
                 const testDate = extractedData.testDate || 'Not specified';
                 const isSmartDate = /^\d{4}-\d{2}-15$/.test(testDate); // Ends with -15 (middle of month)
-                
+
                 resultDiv.innerHTML = `
-                    <div class="result">
-                        <h3>✅ Health Analysis Complete</h3>
-                        <div class="analysis-content">${cleanAnalysis}</div>
-                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                <div>
-                                    <strong>📊 Processing Summary:</strong><br>
-                                    • Parameters Found: ${extractedData.totalParametersFound || extractedData.healthParameters?.length || 0}<br>
-                                    • Document Type: ${extractedData.documentType || 'Health Report'}<br>
-                                    • Test Date: ${testDate}${isSmartDate ? ' 🎯' : ''}<br>
-                                    • Medical Context: ${analysisData.medicalContextIncluded ? '✅ Included' : '❌ Not available'}
-                                </div>
-                                <div>
-                                    <strong>🔒 Privacy & Features:</strong><br>
-                                    • Personal Data Removed: ✅ Yes<br>
-                                    • Anonymous Processing: ✅ Complete<br>
-                                    • Smart Date Processing: ${isSmartDate ? '✅ Applied (15th)' : '✅ Standard'}<br>
-                                    • Storage: ${currentSession ? '✅ Stored for trends' : '❌ Session required'}
-                                </div>
-                            </div>
-                            ${isSmartDate ? '<div style="margin-top: 10px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 12px; color: #389e0d;"><strong>🎯 Smart Date Applied:</strong> Partial date detected and processed to middle of month (15th)</div>' : ''}
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <h3 class="font-semibold text-green-800 mb-3">✅ Health Analysis Complete</h3>
+                        
+                        <div class="bg-white border border-green-200 rounded p-3 mb-4">
+                            ${cleanAnalysis}
                         </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h4 class="font-medium text-green-800 mb-2">📊 Processing Summary:</h4>
+                                <ul class="text-green-700 text-sm space-y-1">
+                                    <li>• <strong>Parameters Found:</strong> ${extractedData.totalParametersFound || extractedData.healthParameters?.length || 0}</li>
+                                    <li>• <strong>Document Type:</strong> ${extractedData.documentType || 'Health Report'}</li>
+                                    <li>• <strong>Test Date:</strong> ${testDate}${isSmartDate ? ' 📅' : ''}</li>
+                                    <li>• <strong>Medical Context:</strong> ${analysisData.medicalContextIncluded ? '✅ Included' : '❌ Not available'}</li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-medium text-green-800 mb-2">🔒 Privacy & Features:</h4>
+                                <ul class="text-green-700 text-sm space-y-1">
+                                    <li>• <strong>Personal Data Removed:</strong> ✅ Yes</li>
+                                    <li>• <strong>Anonymous Processing:</strong> ✅ Complete</li>
+                                    <li>• <strong>Smart Date Processing:</strong> ${isSmartDate ? '✅ Applied (15th)' : '✅ Standard'}</li>
+                                    <li>• <strong>Storage:</strong> ${currentSession ? '✅ Stored for trends' : '❌ Session required'}</li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        ${isSmartDate ? `
+                            <div class="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
+                                <p class="text-blue-700 text-sm">
+                                    <strong>📅 Smart Date Applied:</strong> Partial date detected and processed to middle of month (15th)
+                                </p>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }, 'showCleanAnalysisResults');
         }
-        
+
         function formatHealthDataForAnalysis(healthParameters) {
             return safeExecute(() => {
                 if (!healthParameters || !Array.isArray(healthParameters)) {
                     console.warn('No health parameters provided for analysis');
                     return '';
                 }
-                
+
                 return healthParameters.map(param => {
                     const name = param.parameter || param.name || 'Unknown Parameter';
                     const value = param.value || '0';
@@ -166,22 +635,23 @@
                 }).join('\n');
             }, 'formatHealthDataForAnalysis') || '';
         }
-        
+
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
-        
+
         // Document storage with smart date support
         async function storeDocument(documentName, extractedData, analysisResult, documentType, testDate) {
             await safeExecute(async () => {
                 if (!currentSession) return;
-                
+
                 try {
                     console.log('Storing document with smart date handling:', testDate);
-                    
                     const response = await fetch('/api/documents', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify({
                             action: 'store',
                             sessionToken: currentSession.sessionToken,
@@ -192,104 +662,106 @@
                             testDate: testDate
                         })
                     });
-                    
+
                     const result = await response.json();
                     if (!result.success) {
                         console.error('Failed to store document:', result.error);
                     } else {
                         console.log('Document stored successfully with smart date:', result.testDate);
                     }
-                    
                 } catch (error) {
                     console.error('Error storing document:', error);
                 }
             }, 'storeDocument');
         }
-        
+
         // Load health records for the table - WITH SMART DATE SUPPORT
         async function loadHealthRecords() {
             await safeExecute(async () => {
                 console.log('=== LOADING HEALTH RECORDS WITH SMART DATE SUPPORT ===');
-                
                 const tableBody = document.getElementById('recordsTableBody');
                 if (!tableBody) return;
-                
+
                 if (!currentSession) {
                     console.log('No session found for health records');
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="9" class="empty-state">
-                                <h3>🔐 Session Required</h3>
-                                <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view health records.</p>
+                            <td colspan="9" class="text-center py-8">
+                                <div class="text-yellow-600">
+                                    <div class="text-2xl mb-2">🔒</div>
+                                    <div class="font-medium">Session Required</div>
+                                    <div class="text-sm">Please create a session to view health records.</div>
+                                </div>
                             </td>
                         </tr>
                     `;
                     return;
                 }
-                
+
                 try {
                     console.log('Fetching documents with session:', currentSession.sessionToken.substring(0, 20) + '...');
-                    
                     const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
                     
                     if (!response.ok) {
                         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
                     }
-                    
+
                     const data = await response.json();
                     console.log('Documents API response:', data);
-                    
+
                     if (data.success) {
                         documents = data.documents || [];
                         healthRecords = data.healthRecords || [];
-                        
                         console.log('Documents loaded:', documents.length);
                         console.log('Health records loaded:', healthRecords.length);
-                        
+
                         // Sort by test date (newest first) - smart date handling already applied
                         healthRecords.sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
-                        
                         filteredRecords = [...healthRecords];
                         renderRecordsTable();
                         updateRecordsStats();
-                        
                     } else {
                         throw new Error(data.error || 'Failed to load documents');
                     }
-                    
                 } catch (error) {
                     console.error('Error loading health records:', error);
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="9" class="error">
-                                <h3>❌ Error Loading Records</h3>
-                                <p><strong>Error:</strong> ${error.message}</p>
-                                <p><strong>Debug:</strong> Check console (F12) for detailed logs</p>
+                            <td colspan="9" class="text-center py-8">
+                                <div class="text-red-600">
+                                    <div class="text-2xl mb-2">❌</div>
+                                    <div class="font-medium">Error Loading Records</div>
+                                    <div class="text-sm">Error: ${error.message}</div>
+                                    <div class="text-xs mt-1">Debug: Check console (F12) for detailed logs</div>
+                                </div>
                             </td>
                         </tr>
                     `;
                 }
             }, 'loadHealthRecords');
         }
-        
+
         // Render records table with smart date indicators
         function renderRecordsTable() {
             safeExecute(() => {
                 const tableBody = document.getElementById('recordsTableBody');
                 if (!tableBody) return;
-                
+
                 if (filteredRecords.length === 0) {
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="9" class="empty-state">
-                                <h3>📋 No Records Found</h3>
-                                <p>Upload your first health document to start building your record history!</p>
+                            <td colspan="9" class="text-center py-8">
+                                <div class="text-gray-500">
+                                    <div class="text-2xl mb-2">📋</div>
+                                    <div class="font-medium">No Records Found</div>
+                                    <div class="text-sm">Upload your first health document to start building your record history!</div>
+                                </div>
                             </td>
                         </tr>
                     `;
                     return;
                 }
-                
+
                 tableBody.innerHTML = filteredRecords.map(record => {
                     const testDate = safeExecute(() => new Date(record.testDate).toLocaleDateString(), 'testDate') || 'Unknown';
                     const uploadDate = safeExecute(() => new Date(record.uploadDate).toLocaleDateString(), 'uploadDate') || 'Unknown';
@@ -297,36 +769,49 @@
                     
                     // Check if this date was smart-processed (ends with -15)
                     const isSmartDate = /15$/.test(new Date(record.testDate).getDate().toString().padStart(2, '0'));
-                    const smartDateIndicator = isSmartDate ? ' 🎯' : '';
-                    
+                    const smartDateIndicator = isSmartDate ? ' 📅' : '';
+
                     return `
-                        <tr>
-                            <td>${testDate}${smartDateIndicator}</td>
-                            <td>${uploadDate}</td>
-                            <td class="parameter-name">${record.parameterName || 'Unknown'}</td>
-                            <td class="parameter-value">${record.value || 'N/A'}</td>
-                            <td>${record.unit || ''}</td>
-                            <td>${record.referenceRange || 'Not specified'}</td>
-                            <td class="status-${statusClass}">${record.status || 'Unknown'}</td>
-                            <td>${record.category || 'General'}</td>
-                            <td title="${record.documentType || 'Health Report'}">${record.documentName && record.documentName.length > 20 ? record.documentName.substring(0, 20) + '...' : record.documentName || 'Unnamed'}</td>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${testDate}${smartDateIndicator}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${uploadDate}</td>
+                            <td class="px-6 py-4 text-sm">${record.parameterName || 'Unknown'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">${record.value || 'N/A'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${record.unit || ''}</td>
+                            <td class="px-6 py-4 text-sm">${record.referenceRange || 'Not specified'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                <span class="status-${statusClass} font-medium">${record.status || 'Unknown'}</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm">${record.category || 'General'}</td>
+                            <td class="px-6 py-4 text-sm">
+                                ${record.documentName && record.documentName.length > 20 ? 
+                                    record.documentName.substring(0, 20) + '...' : 
+                                    record.documentName || 'Unnamed'}
+                            </td>
                         </tr>
                     `;
                 }).join('');
             }, 'renderRecordsTable');
         }
-        
+
         function getStatusClass(status) {
             return safeExecute(() => {
                 switch (status?.toLowerCase()) {
-                    case 'normal': case 'optimal': return 'normal';
-                    case 'high': case 'elevated': return 'high';
-                    case 'low': case 'below': return 'low';
-                    default: return 'unknown';
+                    case 'normal':
+                    case 'optimal':
+                        return 'normal';
+                    case 'high':
+                    case 'elevated':
+                        return 'high';
+                    case 'low':
+                    case 'below':
+                        return 'low';
+                    default:
+                        return 'unknown';
                 }
             }, 'getStatusClass') || 'unknown';
         }
-        
+
         // Filter records
         function filterRecords() {
             safeExecute(() => {
@@ -334,13 +819,13 @@
                 const dateFromFilter = document.getElementById('dateFromFilter')?.value || '';
                 const dateToFilter = document.getElementById('dateToFilter')?.value || '';
                 const categoryFilter = document.getElementById('categoryFilter')?.value || '';
-                
+
                 filteredRecords = healthRecords.filter(record => {
                     // Parameter name filter
                     if (parameterFilter && !record.parameterName?.toLowerCase().includes(parameterFilter)) {
                         return false;
                     }
-                    
+
                     // Date range filter
                     if (dateFromFilter && new Date(record.testDate) < new Date(dateFromFilter)) {
                         return false;
@@ -348,27 +833,27 @@
                     if (dateToFilter && new Date(record.testDate) > new Date(dateToFilter)) {
                         return false;
                     }
-                    
+
                     // Category filter
                     if (categoryFilter && record.category !== categoryFilter) {
                         return false;
                     }
-                    
+
                     return true;
                 });
-                
+
                 renderRecordsTable();
                 updateRecordsStats();
             }, 'filterRecords');
         }
-        
+
         // Update records statistics
         function updateRecordsStats() {
             safeExecute(() => {
                 const totalRecords = healthRecords.length;
                 const uniqueParameters = new Set(healthRecords.map(r => r.parameterName).filter(Boolean)).size;
                 const filteredCount = filteredRecords.length;
-                
+
                 let dateRange = '--';
                 if (healthRecords.length > 0) {
                     const dates = healthRecords.map(r => new Date(r.testDate)).sort();
@@ -376,19 +861,19 @@
                     const maxDate = dates[dates.length - 1].toLocaleDateString();
                     dateRange = `${minDate} - ${maxDate}`;
                 }
-                
+
                 const totalRecordsEl = document.getElementById('totalRecords');
                 const uniqueParametersEl = document.getElementById('uniqueParameters');
                 const dateRangeEl = document.getElementById('dateRange');
                 const filteredCountEl = document.getElementById('filteredCount');
-                
+
                 if (totalRecordsEl) totalRecordsEl.textContent = totalRecords;
                 if (uniqueParametersEl) uniqueParametersEl.textContent = uniqueParameters;
                 if (dateRangeEl) dateRangeEl.textContent = dateRange;
                 if (filteredCountEl) filteredCountEl.textContent = filteredCount;
             }, 'updateRecordsStats');
         }
-        
+
         // Export records to CSV
         function exportRecords() {
             safeExecute(() => {
@@ -396,7 +881,7 @@
                     alert('No records to export');
                     return;
                 }
-                
+
                 const headers = ['Test Date', 'Upload Date', 'Parameter Name', 'Value', 'Unit', 'Reference Range', 'Status', 'Category', 'Document Name'];
                 const csvContent = [
                     headers.join(','),
@@ -412,7 +897,7 @@
                         `"${record.documentName || ''}"`
                     ].join(','))
                 ].join('\n');
-                
+
                 const blob = new Blob([csvContent], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -424,153 +909,191 @@
                 window.URL.revokeObjectURL(url);
             }, 'exportRecords');
         }
-        
+
         // Load documents
         async function loadDocuments() {
             await safeExecute(async () => {
                 const documentList = document.getElementById('documentList');
                 if (!documentList) return;
-                
+
                 if (!currentSession) {
                     documentList.innerHTML = `
-                        <div class="empty-state">
-                            <h3>🔐 Session Required</h3>
-                            <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to store and track documents.</p>
+                        <div class="text-center py-8">
+                            <div class="text-yellow-600">
+                                <div class="text-2xl mb-2">🔒</div>
+                                <div class="font-medium">Session Required</div>
+                                <div class="text-sm">Please create a session to store and track documents.</div>
+                            </div>
                         </div>
                     `;
                     return;
                 }
-                
+
                 try {
                     const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         documents = data.documents || [];
                         renderDocumentList();
                     } else {
                         throw new Error(data.error);
                     }
-                    
                 } catch (error) {
                     documentList.innerHTML = `
-                        <div class="error">
-                            <h3>❌ Error Loading Documents</h3>
-                            <p>${error.message}</p>
+                        <div class="text-center py-8">
+                            <div class="text-red-600">
+                                <div class="text-2xl mb-2">❌</div>
+                                <div class="font-medium">Error Loading Documents</div>
+                                <div class="text-sm">${error.message}</div>
+                            </div>
                         </div>
                     `;
                 }
             }, 'loadDocuments');
         }
-        
+
         function renderDocumentList() {
             safeExecute(() => {
                 const documentList = document.getElementById('documentList');
                 if (!documentList) return;
-                
+
                 if (documents.length === 0) {
                     documentList.innerHTML = `
-                        <div class="empty-state">
-                            <h3>📄 No Documents Yet</h3>
-                            <p>Upload your first health document to start tracking trends!</p>
+                        <div class="text-center py-8">
+                            <div class="text-gray-500">
+                                <div class="text-2xl mb-2">📄</div>
+                                <div class="font-medium">No Documents Yet</div>
+                                <div class="text-sm">Upload your first health document to start tracking trends!</div>
+                            </div>
                         </div>
                     `;
                     return;
                 }
-                
+
                 documentList.innerHTML = documents.map(doc => {
                     // Check if this is a smart-processed date (ends with -15)
                     const isSmartDate = doc.test_date && doc.test_date.endsWith('-15');
-                    const smartDateIndicator = isSmartDate ? ' 🎯' : '';
-                    
+                    const smartDateIndicator = isSmartDate ? ' 📅' : '';
+
                     return `
-                    <div class="document-item">
-                        <div class="document-title">📄 ${doc.document_name}</div>
-                        <div class="document-meta">
-                            <span class="status-badge status-${doc.status}">${doc.status}</span>
-                            <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
-                            <strong>Test Date:</strong> ${doc.test_date || 'Unknown'}${smartDateIndicator} • 
-                            <strong>Parameters:</strong> ${doc.parameter_count || 0}
+                        <div class="border border-gray-200 rounded-lg p-4 mb-4">
+                            <div class="flex justify-between items-start">
+                                <div class="flex-1">
+                                    <h3 class="font-medium text-gray-900">📄 ${doc.document_name}</h3>
+                                    <div class="text-sm text-gray-600 mt-1">
+                                        <span class="inline-block bg-gray-100 px-2 py-1 rounded text-xs">${doc.status}</span>
+                                        <span class="ml-2">Type: ${doc.document_type || 'Health Report'}</span>
+                                        <span class="ml-2">• Test Date: ${doc.test_date || 'Unknown'}${smartDateIndicator}</span>
+                                        <span class="ml-2">• Parameters: ${doc.parameter_count || 0}</span>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2 ml-4">
+                                    <button onclick="viewDocument('${doc.id}')" class="text-blue-600 hover:text-blue-800 text-sm">
+                                        👁️ View
+                                    </button>
+                                    <button onclick="deleteDocument('${doc.id}')" class="text-red-600 hover:text-red-800 text-sm">
+                                        🗑️ Delete
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="document-actions">
-                            <button class="btn btn-secondary" onclick="viewDocument('${doc.document_id}')">👁️ View</button>
-                            <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
-                        </div>
-                    </div>
-                `;
+                    `;
                 }).join('');
             }, 'renderDocumentList');
         }
-        
+
         // Load trends - WITH SMART DATE SUPPORT
         async function loadTrends() {
             await safeExecute(async () => {
                 const trendAnalysis = document.getElementById('trendAnalysis');
                 const chartFallback = document.getElementById('chartFallback');
-                
+
                 if (!currentSession) {
                     if (trendAnalysis) {
                         trendAnalysis.innerHTML = `
-                            <div class="empty-state">
-                                <h3>🔐 Session Required</h3>
-                                <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view trend analysis.</p>
+                            <div class="text-center py-8">
+                                <div class="text-yellow-600">
+                                    <div class="text-2xl mb-2">🔒</div>
+                                    <div class="font-medium">Session Required</div>
+                                    <div class="text-sm">Please create a session to view trend analysis.</div>
+                                </div>
                             </div>
                         `;
                     }
                     return;
                 }
-                
+
                 try {
                     const timeRange = document.getElementById('timeRange')?.value || '6months';
                     console.log('=== LOADING TRENDS WITH SMART DATE SUPPORT ===');
                     console.log('Time range:', timeRange);
                     console.log('Session token:', currentSession.sessionToken.substring(0, 20) + '...');
                     console.log('Chart.js available:', chartJsLoaded);
-                    
+
                     if (trendAnalysis) {
                         trendAnalysis.innerHTML = `
-                            <div class="loading">📈 Loading trend analysis with smart date handling...</div>
+                            <div class="text-center py-4 text-blue-600">
+                                📈 Loading trend analysis with smart date handling...
+                            </div>
                         `;
                     }
-                    
+
                     const response = await fetch('/api/documents', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify({
                             action: 'analyze-trends',
                             sessionToken: currentSession.sessionToken,
                             timeRange: timeRange
                         })
                     });
-                    
+
                     console.log('Trends API response status:', response.status);
-                    
+
                     if (!response.ok) {
                         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
                     }
-                    
+
                     const data = await response.json();
                     console.log('Trends API response:', data);
-                    
+
                     if (data.success) {
                         trendData = data.trendData || [];
                         console.log('Trend data received:', trendData.length, 'parameters');
-                        
                         renderTrendChart();
-                        
+
                         if (trendAnalysis) {
                             trendAnalysis.innerHTML = `
-                                <div class="result">
-                                    <h3>📈 Trend Analysis (${timeRange}) - Smart Date Processing Active</h3>
-                                    <div class="analysis-content">${data.analysis || 'No trend analysis available yet.'}</div>
-                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                                        <strong>📊 Analysis Summary:</strong><br>
-                                        • Parameters with Trends: ${data.trendsFound || 0}<br>
-                                        • Time Range: ${timeRange}<br>
-                                        • Smart Date Processing: ✅ Applied (15th for partial dates)<br>
-                                        • Generated: ${new Date(data.generatedAt || Date.now()).toLocaleString()}<br>
-                                        • Chart.js Status: ${chartJsLoaded ? '✅ Available' : '❌ Not loaded'}<br>
-                                        ${data.debugInfo ? `• Total Parameters Available: ${data.debugInfo.totalParametersAvailable}<br>• Date Range: ${data.debugInfo.dateRange?.start} to ${data.debugInfo.dateRange?.end}` : ''}
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h3 class="font-semibold text-blue-800 mb-3">📈 Trend Analysis (${timeRange}) - Smart Date Processing Active</h3>
+                                    <div class="prose max-w-none">
+                                        ${data.analysis || 'No trend analysis available yet.'}
+                                    </div>
+                                    
+                                    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <h4 class="font-medium text-blue-800 mb-2">📊 Analysis Summary:</h4>
+                                            <ul class="text-blue-700 text-sm space-y-1">
+                                                <li>• Parameters with Trends: ${data.trendsFound || 0}</li>
+                                                <li>• Time Range: ${timeRange}</li>
+                                                <li>• Smart Date Processing: ✅ Applied (15th for partial dates)</li>
+                                                <li>• Generated: ${new Date(data.generatedAt || Date.now()).toLocaleString()}</li>
+                                                <li>• Chart.js Status: ${chartJsLoaded ? '✅ Available' : '❌ Not loaded'}</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        ${data.debugInfo ? `
+                                            <div>
+                                                <h4 class="font-medium text-blue-800 mb-2">🔧 Debug Info:</h4>
+                                                <ul class="text-blue-700 text-sm space-y-1">
+                                                    <li>• Total Parameters Available: ${data.debugInfo.totalParametersAvailable}</li>
+                                                    <li>• Date Range: ${data.debugInfo.dateRange?.start} to ${data.debugInfo.dateRange?.end}</li>
+                                                </ul>
+                                            </div>
+                                        ` : ''}
                                     </div>
                                 </div>
                             `;
@@ -579,42 +1102,41 @@
                         console.error('Trends API returned error:', data);
                         throw new Error(data.error || 'Unknown API error');
                     }
-                    
                 } catch (error) {
                     console.error('=== TRENDS LOADING ERROR ===');
                     console.error('Error details:', error);
-                    
                     if (trendAnalysis) {
                         trendAnalysis.innerHTML = `
-                            <div class="error">
-                                <h3>❌ Error Loading Trends</h3>
-                                <p><strong>Error:</strong> ${error.message}</p>
-                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
-                                    <strong>Debugging Info:</strong><br>
-                                    • Chart.js loaded: ${chartJsLoaded ? 'Yes' : 'No'}<br>
-                                    • Smart date processing: ✅ Available<br>
-                                    • Check browser console (F12) for detailed logs<br>
-                                    • Ensure you have uploaded multiple documents<br>
-                                    • Try refreshing the page and checking again<br>
-                                    • Current session: ${currentSession ? 'Active' : 'None'}
-                                </div>
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <h3 class="font-semibold text-red-800 mb-2">❌ Error Loading Trends</h3>
+                                <p class="text-red-700 mb-3"><strong>Error:</strong> ${error.message}</p>
+                                
+                                <h4 class="font-medium text-red-800 mb-2">Debugging Info:</h4>
+                                <ul class="text-red-700 text-sm space-y-1">
+                                    <li>• Chart.js loaded: ${chartJsLoaded ? 'Yes' : 'No'}</li>
+                                    <li>• Smart date processing: ✅ Available</li>
+                                    <li>• Check browser console (F12) for detailed logs</li>
+                                    <li>• Ensure you have uploaded multiple documents</li>
+                                    <li>• Try refreshing the page and checking again</li>
+                                    <li>• Current session: ${currentSession ? 'Active' : 'None'}</li>
+                                </ul>
                             </div>
                         `;
                     }
                 }
             }, 'loadTrends');
         }
-        
+
         function renderTrendChart() {
             safeExecute(() => {
                 const ctx = document.getElementById('trendsChart');
                 const chartFallback = document.getElementById('chartFallback');
-                
+
                 if (!ctx) {
                     console.error('Chart canvas not found');
                     return;
                 }
-                
+
                 // Properly destroy existing chart
                 if (currentChart) {
                     try {
@@ -626,21 +1148,21 @@
                         currentChart = null;
                     }
                 }
-                
+
                 // Clear canvas
                 const context = ctx.getContext('2d');
                 context.clearRect(0, 0, ctx.width, ctx.height);
-                
+
                 // Check if Chart.js is available
                 if (!chartJsLoaded || typeof Chart === 'undefined') {
                     console.warn('Chart.js not available, showing fallback');
                     if (chartFallback) {
                         chartFallback.style.display = 'block';
-                        chartFallback.innerHTML = '📈 Chart library not available. Trend data is shown in the analysis below.';
+                        chartFallback.innerHTML = '📊 Chart library not available. Trend data is shown in the analysis below.';
                     }
                     return;
                 }
-                
+
                 if (trendData.length === 0) {
                     if (chartFallback) {
                         chartFallback.style.display = 'block';
@@ -648,19 +1170,19 @@
                     }
                     return;
                 }
-                
+
                 if (chartFallback) {
                     chartFallback.style.display = 'none';
                 }
-                
+
                 try {
                     const datasets = trendData.map((trend, index) => {
                         const colors = ['#667eea', '#764ba2', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'];
                         return {
                             label: trend.parameter,
-                            data: trend.data.map(d => ({ 
-                                x: d.date, 
-                                y: d.value 
+                            data: trend.data.map(d => ({
+                                x: d.date,
+                                y: d.value
                             })),
                             borderColor: colors[index % colors.length],
                             backgroundColor: colors[index % colors.length] + '20',
@@ -668,11 +1190,13 @@
                             fill: false
                         };
                     });
-                    
+
                     // Create new chart with simple configuration (no date-fns)
                     currentChart = new Chart(ctx, {
                         type: 'line',
-                        data: { datasets },
+                        data: {
+                            datasets
+                        },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
@@ -690,7 +1214,7 @@
                                 x: {
                                     title: {
                                         display: true,
-                                        text: 'Date (🎯 = Smart Processed)'
+                                        text: 'Date (📅 = Smart Processed)'
                                     }
                                 },
                                 y: {
@@ -702,9 +1226,8 @@
                             }
                         }
                     });
-                    
+
                     console.log('✅ Chart rendered successfully with smart date support');
-                    
                 } catch (chartError) {
                     console.error('Chart rendering error:', chartError);
                     if (chartFallback) {
@@ -714,66 +1237,65 @@
                 }
             }, 'renderTrendChart');
         }
-        
+
         // Document actions
         function viewDocument(documentId) {
             safeExecute(() => {
                 alert(`View document functionality coming soon! Document ID: ${documentId}`);
             }, 'viewDocument');
         }
-        
+
         async function deleteDocument(documentId) {
             await safeExecute(async () => {
                 if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
                     return;
                 }
-                
+
                 try {
                     const response = await fetch('/api/documents', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
                         body: JSON.stringify({
                             action: 'delete',
                             sessionToken: currentSession.sessionToken,
                             documentId: documentId
                         })
                     });
-                    
+
                     const data = await response.json();
-                    
                     if (data.success) {
                         // Refresh all data
                         await loadDashboardData();
                     } else {
                         throw new Error(data.error);
                     }
-                    
                 } catch (error) {
                     alert('Error deleting document: ' + error.message);
                 }
             }, 'deleteDocument');
         }
-        
+
         // Drag and drop functionality
         const uploadArea = document.getElementById('uploadArea');
-        
         if (uploadArea) {
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                 uploadArea.addEventListener(eventName, preventDefaults, false);
             });
-            
+
             ['dragenter', 'dragover'].forEach(eventName => {
                 uploadArea.addEventListener(eventName, () => {
                     uploadArea.classList.add('dragover');
                 }, false);
             });
-            
+
             ['dragleave', 'drop'].forEach(eventName => {
                 uploadArea.addEventListener(eventName, () => {
                     uploadArea.classList.remove('dragover');
                 }, false);
             });
-            
+
             uploadArea.addEventListener('drop', (e) => {
                 safeExecute(() => {
                     const dt = e.dataTransfer;
@@ -782,12 +1304,12 @@
                 }, 'dragDrop');
             }, false);
         }
-        
+
         function preventDefaults(e) {
             e.preventDefault();
             e.stopPropagation();
         }
-        
+
         // Session management
         function checkSession() {
             return safeExecute(() => {
@@ -803,848 +1325,4 @@
         }
     </script>
 </body>
-</html><!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HealthAI - Privacy-First Health Analysis</title>
-    <!-- Load Chart.js with simpler, more reliable configuration -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-            padding: 40px 0;
-        }
-        
-        .header h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-        
-        .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
-        
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .main-card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            padding: 30px;
-            grid-column: 1 / -1;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            padding: 25px;
-        }
-        
-        .tabs {
-            display: flex;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #f0f0f0;
-            flex-wrap: wrap;
-        }
-        
-        .tab {
-            padding: 15px 25px;
-            cursor: pointer;
-            border: none;
-            background: none;
-            font-size: 16px;
-            font-weight: 600;
-            color: #666;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s ease;
-            flex: 1;
-            min-width: 120px;
-        }
-        
-        .tab.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        /* Upload section styles */
-        .upload-section {
-            margin-bottom: 40px;
-            padding-bottom: 30px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            background: #f8f9ff;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-        
-        .upload-area.dragover {
-            border-color: #4c51bf;
-            background: #e6f3ff;
-        }
-        
-        .upload-area h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-            font-size: 1.5rem;
-        }
-        
-        .upload-area p {
-            color: #666;
-            margin-bottom: 20px;
-        }
-        
-        .file-input {
-            display: none;
-        }
-        
-        .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-            font-size: 14px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .btn:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-        }
-        
-        .btn-danger {
-            background: #dc3545;
-        }
-        
-        /* Records table styles */
-        .records-table-container {
-            overflow-x: auto;
-            margin: 20px 0;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .records-table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            min-width: 800px;
-        }
-        
-        .records-table th,
-        .records-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .records-table th {
-            background: #f8f9ff;
-            font-weight: 600;
-            color: #667eea;
-            border-bottom: 2px solid #e0e6ff;
-        }
-        
-        .records-table tr:hover {
-            background: #f8f9fa;
-        }
-        
-        .parameter-name {
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .parameter-value {
-            font-weight: 500;
-        }
-        
-        .status-normal { color: #28a745; }
-        .status-high { color: #dc3545; }
-        .status-low { color: #ffc107; }
-        .status-unknown { color: #6c757d; }
-        
-        .document-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .document-item {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            background: #f8f9fa;
-            transition: all 0.3s ease;
-        }
-        
-        .document-item:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transform: translateY(-2px);
-        }
-        
-        .document-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .document-title {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 5px;
-        }
-        
-        .document-meta {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
-        .document-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .privacy-info {
-            background: #e6f7ff;
-            border: 1px solid #91d5ff;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .privacy-info h4 {
-            color: #1890ff;
-            margin-bottom: 10px;
-        }
-        
-        .processing-status {
-            display: none;
-            background: #fff7e6;
-            border: 1px solid #ffd666;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .result {
-            background: #f8f9ff;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-        
-        .result h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-        
-        .analysis-content {
-            white-space: pre-line;
-            line-height: 1.8;
-            background: white;
-            padding: 20px;
-            border-radius: 6px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .loading {
-            text-align: center;
-            color: #667eea;
-            font-style: italic;
-            padding: 20px;
-        }
-        
-        .error {
-            background: #ffe6e6;
-            border: 2px solid #ff6b6b;
-            color: #d63031;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        
-        .empty-state h3 {
-            margin-bottom: 10px;
-            color: #999;
-        }
-        
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .status-active { background: #d4edda; color: #155724; }
-        .status-processing { background: #fff3cd; color: #856404; }
-        
-        .filters-section {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .filter-input {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            min-width: 150px;
-        }
-        
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #667eea;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #f0f0f0;
-            padding-bottom: 10px;
-        }
-        
-        .trend-chart {
-            margin: 20px 0;
-            height: 300px;
-            position: relative;
-        }
-
-        .chart-fallback {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            border: 2px dashed #ddd;
-        }
-
-        .version-info {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            color: #666;
-            cursor: pointer;
-            border: 1px solid #ddd;
-            transition: all 0.3s ease;
-        }
-
-        .version-info:hover {
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .smart-date-feature {
-            background: #e8f5e8;
-            border: 2px solid #52c41a;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-        
-        .smart-date-feature h5 {
-            color: #389e0d;
-            margin-bottom: 8px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-        
-        .smart-date-feature ul {
-            margin: 8px 0 0 20px;
-            font-size: 13px;
-            color: #52c41a;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .main-card, .card {
-                padding: 20px;
-            }
-            
-            .tabs {
-                flex-direction: column;
-            }
-            
-            .tab {
-                flex: none;
-            }
-            
-            .records-table-container {
-                font-size: 14px;
-            }
-            
-            .filters-section {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .version-info {
-                position: static;
-                text-align: center;
-                margin-top: 20px;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🩺 HealthAI</h1>
-            <p>Two Priorities. One Promise: Health & Privacy First.</p>
-            <p style="opacity: 0.8; font-size: 1rem; margin-top: 10px;">We can't share what we can't see — your data is invisible to us</p>
-        </div>
-        
-        <div class="main-card">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('dashboard')">📊 Health Dashboard</button>
-                <button class="tab" onclick="switchTab('records')">📋 Health Records</button>
-                <button class="tab" onclick="switchTab('trends')">📈 Trend Analysis</button>
-                <button class="tab" onclick="switchTab('documents')">📁 Document History</button>
-            </div>
-            
-            <!-- Combined Dashboard Tab (Upload only, no health overview) -->
-            <div class="tab-content active" id="dashboard-tab">
-                <!-- Upload Section -->
-                <div class="upload-section">
-                    <div class="section-title">📄 Upload & Analyze Health Documents</div>
-                    
-                    <div class="privacy-info">
-                        <h4>🧠 Universal Health Parameter Recognition + Smart Date Handling</h4>
-                        <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
-                        
-                        <div class="smart-date-feature">
-                            <h5>🎯 NEW: Smart Date Processing (Build 8)</h5>
-                            <ul>
-                                <li><strong>"Sep 2025"</strong> → Automatically becomes <strong>"September 15, 2025"</strong></li>
-                                <li><strong>"2025/09"</strong> → Becomes <strong>"September 15, 2025"</strong></li>
-                                <li><strong>"September 2025"</strong> → Becomes <strong>"September 15, 2025"</strong></li>
-                                <li>When only month/year found, assumes middle of month (15th)</li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                        <h3>📁 Drop Any Health Document Here</h3>
-                        <p>🔬 Lab Results • 🦴 DEXA/Bone Density • 💉 Hormone Panels<br>
-                           🏃 Fitness Reports • 🧬 Genetic Analysis • 🩸 Blood Work<br>
-                           📊 Body Composition • 💊 Metabolic Panels • Any Health Data<br>
-                           <strong>Maximum file size: 25MB • Format: PDF with readable text</strong></p>
-                        <button class="btn">Choose File</button>
-                        <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
-                    </div>
-                    
-                    <div class="processing-status" id="processingStatus">
-                        <h4>🤖 AI Processing Your Document...</h4>
-                        <div id="processingSteps"></div>
-                    </div>
-                    
-                    <div id="documentResult"></div>
-                </div>
-            </div>
-            
-            <!-- Health Records Table Tab -->
-            <div class="tab-content" id="records-tab">
-                <div class="section-title">📋 Detailed Health Records</div>
-                
-                <div class="filters-section">
-                    <input type="text" id="parameterFilter" placeholder="Filter by parameter name..." class="filter-input" oninput="filterRecords()">
-                    <input type="date" id="dateFromFilter" class="filter-input" onchange="filterRecords()">
-                    <span style="color: #666;">to</span>
-                    <input type="date" id="dateToFilter" class="filter-input" onchange="filterRecords()">
-                    <select id="categoryFilter" class="filter-input" onchange="filterRecords()">
-                        <option value="">All Categories</option>
-                        <option value="Cardiovascular">Cardiovascular</option>
-                        <option value="Metabolic">Metabolic</option>
-                        <option value="Hormonal">Hormonal</option>
-                        <option value="Nutritional">Nutritional</option>
-                        <option value="Inflammatory">Inflammatory</option>
-                        <option value="General">General</option>
-                    </select>
-                    <button class="btn" onclick="loadHealthRecords()">🔄 Refresh</button>
-                    <button class="btn btn-secondary" onclick="exportRecords()">📋 Export CSV</button>
-                </div>
-                
-                <div class="records-table-container">
-                    <table class="records-table" id="recordsTable">
-                        <thead>
-                            <tr>
-                                <th>Test Date</th>
-                                <th>Upload Date</th>
-                                <th>Parameter Name</th>
-                                <th>Value</th>
-                                <th>Unit</th>
-                                <th>Reference Range</th>
-                                <th>Status</th>
-                                <th>Category</th>
-                                <th>Document</th>
-                            </tr>
-                        </thead>
-                        <tbody id="recordsTableBody">
-                            <tr>
-                                <td colspan="9" class="loading">📋 Loading health records...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div id="recordsStats" style="margin-top: 20px; padding: 15px; background: #f8f9ff; border-radius: 8px;">
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; font-weight: 600; color: #667eea;" id="totalRecords">--</div>
-                            <div style="font-size: 14px; color: #666;">Total Records</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; font-weight: 600; color: #667eea;" id="uniqueParameters">--</div>
-                            <div style="font-size: 14px; color: #666;">Unique Parameters</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; font-weight: 600; color: #667eea;" id="dateRange">--</div>
-                            <div style="font-size: 14px; color: #666;">Date Range</div>
-                        </div>
-                        <div style="text-align: center;">
-                            <div style="font-size: 20px; font-weight: 600; color: #667eea;" id="filteredCount">--</div>
-                            <div style="font-size: 14px; color: #666;">Filtered Results</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Trend Analysis Tab -->
-            <div class="tab-content" id="trends-tab">
-                <div class="section-title">📈 Health Trend Analysis</div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label for="timeRange" style="font-weight: 600; margin-right: 10px;">Time Range:</label>
-                    <select id="timeRange" onchange="loadTrends()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
-                        <option value="3months">Last 3 Months</option>
-                        <option value="6months" selected>Last 6 Months</option>
-                        <option value="1year">Last Year</option>
-                        <option value="2years">Last 2 Years</option>
-                    </select>
-                    <button class="btn" onclick="loadTrends()" style="margin-left: 10px;">🔄 Refresh Trends</button>
-                </div>
-                
-                <div class="trend-chart">
-                    <canvas id="trendsChart" width="800" height="300"></canvas>
-                    <div class="chart-fallback" id="chartFallback" style="display: none;">
-                        📈 Trend visualization will appear here once you upload multiple health documents over time.
-                    </div>
-                </div>
-                
-                <div id="trendAnalysis">
-                    <div class="loading">📈 Loading trend analysis...</div>
-                </div>
-            </div>
-            
-            <!-- Document History Tab -->
-            <div class="tab-content" id="documents-tab">
-                <div class="section-title">📁 Document History</div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3>Your Health Documents</h3>
-                    <button class="btn" onclick="loadDocuments()">🔄 Refresh</button>
-                </div>
-                
-                <div class="document-list" id="documentList">
-                    <div class="loading">📄 Loading your documents...</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Version Info Footer -->
-    <div class="version-info" onclick="showVersionInfo()">
-        🚀 HealthAI Beta v1.6 | Build 2025.09.05.8
-    </div>
-
-    <script>
-        // Version tracking system - BUILD 8 - SMART DATE HANDLING WITH MONTH-MIDDLE ASSUMPTION
-        const VERSION = {
-            major: 1,
-            minor: 6,
-            build: '2025.09.05.8',
-            name: 'BETA',
-            lastUpdated: '2025-09-05 18:30 UTC'
-        };
-        
-        function showVersionInfo() {
-            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔥 Latest Changes (Build 8):\n• NEW: Smart date handling for partial dates\n• ENHANCED: "Sep 2025" → "2025-09-15" (middle of month)\n• IMPROVED: Better date detection from medical documents\n• FIXED: Month-only and year-only date processing\n• OPTIMIZED: More accurate test date extraction\n• UPDATED: Enhanced UI messaging about date features`);
-        }
-        
-        // Global state
-        let currentSession = null;
-        let documents = [];
-        let healthRecords = [];
-        let filteredRecords = [];
-        let trendData = [];
-        let currentChart = null; // Single chart reference for proper cleanup
-        let chartJsLoaded = false;
-        
-        // Wrap all code in try-catch to prevent uncaught exceptions
-        function safeExecute(fn, context = 'Unknown') {
-            try {
-                return fn();
-            } catch (error) {
-                console.warn(`Safe execution failed in ${context}:`, error);
-                return null;
-            }
-        }
-        
-        // Check if Chart.js is loaded properly
-        function checkChartJs() {
-            return safeExecute(() => {
-                if (typeof Chart !== 'undefined') {
-                    chartJsLoaded = true;
-                    console.log('✅ Chart.js loaded successfully');
-                    return true;
-                } else {
-                    console.warn('⚠️ Chart.js not loaded - charts will be disabled');
-                    return false;
-                }
-            }, 'checkChartJs') || false;
-        }
-        
-        // Initialize dashboard with error handling
-        document.addEventListener('DOMContentLoaded', function() {
-            safeExecute(() => {
-                console.log('🚀 HealthAI Dashboard initializing...');
-                console.log('🎯 Build 8: Smart date handling with month-middle assumption enabled');
-                console.log('📅 Date Features: Sep 2025 → 2025-09-15 (15th of month)');
-                
-                // Check Chart.js availability after slight delay
-                setTimeout(() => {
-                    checkChartJs();
-                }, 1000);
-                
-                initializeDashboard();
-            }, 'DOMContentLoaded');
-        });
-        
-        function initializeDashboard() {
-            safeExecute(() => {
-                // Check for existing session
-                const savedSession = localStorage.getItem('healthai_session');
-                if (savedSession) {
-                    try {
-                        currentSession = JSON.parse(savedSession);
-                        console.log('Found existing session:', currentSession.sessionToken.substring(0, 20) + '...');
-                    } catch (error) {
-                        console.error('Error parsing saved session:', error);
-                        localStorage.removeItem('healthai_session');
-                    }
-                }
-                
-                // Load dashboard data if we have a session
-                if (currentSession) {
-                    loadDashboardData();
-                }
-            }, 'initializeDashboard');
-        }
-        
-        async function loadDashboardData() {
-            await safeExecute(async () => {
-                console.log('Loading dashboard data...');
-                await Promise.all([
-                    loadDocuments(),
-                    loadHealthRecords(),
-                    loadTrends()
-                ].map(promise => promise.catch(error => {
-                    console.warn('Dashboard data loading error:', error);
-                    return null;
-                })));
-            }, 'loadDashboardData');
-        }
-        
-        // Tab switching functionality with error handling
-        function switchTab(tabName) {
-            safeExecute(() => {
-                console.log('Switching to tab:', tabName);
-                
-                document.querySelectorAll('.tab-content').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                document.querySelectorAll('.tab').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                const targetTab = document.getElementById(tabName + '-tab');
-                if (targetTab) {
-                    targetTab.classList.add('active');
-                }
-                
-                if (event && event.target) {
-                    event.target.classList.add('active');
-                }
-                
-                // Load data for specific tabs
-                if (tabName === 'records' && currentSession) {
-                    loadHealthRecords();
-                } else if (tabName === 'trends' && currentSession) {
-                    loadTrends();
-                } else if (tabName === 'documents' && currentSession) {
-                    loadDocuments();
-                }
-            }, 'switchTab');
-        }
-        
-        // Document upload functionality
-        function handleFileSelect(e) {
-            safeExecute(() => {
-                const files = e.target.files;
-                handleFiles(files);
-            }, 'handleFileSelect');
-        }
-        
-        function handleFiles(files) {
-            safeExecute(() => {
-                if (files.length === 0) return;
-                
-                const file = files[0];
-                
-                if (file.type !== 'application/pdf') {
-                    alert('Please upload a PDF file only.');
-                    return;
-                }
-                
-                if (file.size > 25 * 1024 * 1024) {
-                    alert('File size must be less than 25MB.');
-                    return;
-                }
-                
-                processDocument(file);
-            }, 'handleFiles');
-        }
-        
-        async function processDocument(file) {
-            await safeExecute(async () => {
-                const processingStatus = document.getElementById('processingStatus');
-                const processingSteps = document.getElementById('processingSteps');
-                const resultDiv = document.getElementById('documentResult');
-                
-                // Clear previous results
-                if (resultDiv) resultDiv.innerHTML = '';
-                if (processingStatus) processingStatus.style.display = 'block';
-                
-                try {
-                    // Step 1: Show processing start
-                    if (processingSteps) {
-                        processingSteps.innerHTML = '⏳ Step 1: Uploading and processing document...';
-                    }
-                    await sleep(500);
-                    
-                    // Step 2: Extract parameters using FormData
-                    if (processingSteps) {
-                        processingSteps.innerHTML += '<br>⏳ Step 2: Extracting health parameters with smart date detection...';
-                    }
-                    
-                    const formData = new FormData();
-                    formData.append('pdfFile', file);
-                    
-                    console.log('Sending file to extraction API with smart date handling...');
-                    console.log('🎯 Smart Date Features Active: Month-middle assumption enabled');
-                    
-                    const extractionResponse = await fetch('/api/extract', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    if (!extractionResponse.ok) {
-                        const errorText = await extractionResponse.text();
-                        throw new Error(`Extraction failed: ${extractionResponse.status} - ${errorText}`);
-                    }
-                    
-                    const extractionData = await extractionResponse.json();
-                    console.log('Extraction response:', extractionData);
-                    
-                    if (!extractionData.success) {
-                        throw new Error(extractionData.error || 'Failed to extract health parameters');
-                    }
-                    
-                    // Step 3: Analyze with AI
-                    if (processingSteps) {
-                        processingSteps.innerHTML += '<br>⏳ Step
+</html>
