@@ -1,4 +1,809 @@
-<!DOCTYPE html>
+// Step 3: Analyze with AI
+                    if (processingSteps) {
+                        processingSteps.innerHTML += '<br>⏳ Step 3: Analyzing with AI and medical context...';
+                    }
+                    await sleep(500);
+                    
+                    const healthDataText = formatHealthDataForAnalysis(extractionData.extractedData.healthParameters);
+                    console.log('Formatted health data:', healthDataText);
+                    
+                    if (!healthDataText.trim()) {
+                        throw new Error('No health parameters found in document');
+                    }
+                    
+                    const analysisResponse = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            healthData: healthDataText
+                        })
+                    });
+                    
+                    if (!analysisResponse.ok) {
+                        const errorText = await analysisResponse.text();
+                        throw new Error(`Analysis failed: ${analysisResponse.status} - ${errorText}`);
+                    }
+                    
+                    const analysisData = await analysisResponse.json();
+                    console.log('Analysis response:', analysisData);
+                    
+                    if (!analysisData.success) {
+                        throw new Error(analysisData.error || 'Failed to analyze health data');
+                    }
+                    
+                    // Step 4: Store document with smart date handling
+                    if (processingSteps) {
+                        processingSteps.innerHTML += '<br>⏳ Step 4: Storing document with smart date processing...';
+                    }
+                    await sleep(300);
+                    
+                    if (currentSession) {
+                        await storeDocument(
+                            file.name, 
+                            extractionData.extractedData, 
+                            analysisData.analysis, 
+                            extractionData.extractedData.documentType, 
+                            extractedData.extractedData.testDate
+                        );
+                    }
+                    
+                    // Step 5: Complete
+                    if (processingSteps) {
+                        processingSteps.innerHTML += '<br>✅ Step 5: Analysis complete with smart date handling!';
+                    }
+                    
+                    // Show clean results with date info
+                    showCleanAnalysisResults(analysisData, extractionData.extractedData);
+                    
+                    // Hide processing status after showing results
+                    setTimeout(() => {
+                        if (processingStatus) processingStatus.style.display = 'none';
+                    }, 2000);
+                    
+                    // Refresh dashboard data
+                    if (currentSession) {
+                        setTimeout(() => {
+                            loadDashboardData();
+                        }, 1000);
+                    }
+                    
+                } catch (error) {
+                    console.error('Document processing error:', error);
+                    
+                    if (processingSteps) {
+                        processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
+                    }
+                    
+                    // Show user-friendly error
+                    setTimeout(() => {
+                        if (resultDiv) {
+                            resultDiv.innerHTML = `
+                                <div class="error">
+                                    <h3>❌ Document Processing Failed</h3>
+                                    <p><strong>Error:</strong> ${error.message}</p>
+                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
+                                        <strong>Common Solutions:</strong><br>
+                                        • Ensure PDF contains readable text (not just scanned images)<br>
+                                        • Check that document has clear health parameters with values<br>
+                                        • Try a different health document format<br>
+                                        • Check your internet connection and try again<br>
+                                        • For partial dates, system will auto-assign 15th of month
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (processingStatus) processingStatus.style.display = 'none';
+                    }, 3000);
+                }
+            }, 'processDocument');
+        }
+        
+        // Enhanced analysis results display with smart date information
+        function showCleanAnalysisResults(analysisData, extractedData) {
+            safeExecute(() => {
+                const resultDiv = document.getElementById('documentResult');
+                if (!resultDiv) return;
+                
+                // Clean the analysis text - remove any technical artifacts
+                let cleanAnalysis = analysisData.analysis || 'Analysis completed successfully.';
+                
+                // Remove any code-like content or technical artifacts
+                cleanAnalysis = cleanAnalysis
+                    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+                    .replace(/`[^`]*`/g, '') // Remove inline code
+                    .replace(/\$\{[^}]*\}/g, '') // Remove template literals
+                    .replace(/function\s*\([^)]*\)/g, '') // Remove function declarations
+                    .replace(/const\s+\w+\s*=/g, '') // Remove const declarations
+                    .replace(/let\s+\w+\s*=/g, '') // Remove let declarations
+                    .replace(/var\s+\w+\s*=/g, '') // Remove var declarations
+                    .trim();
+                
+                // Determine if smart date processing was used
+                const testDate = extractedData.testDate || 'Not specified';
+                const isSmartDate = /^\d{4}-\d{2}-15$/.test(testDate); // Ends with -15 (middle of month)
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h3>✅ Health Analysis Complete</h3>
+                        <div class="analysis-content">${cleanAnalysis}</div>
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <strong>📊 Processing Summary:</strong><br>
+                                    • Parameters Found: ${extractedData.totalParametersFound || extractedData.healthParameters?.length || 0}<br>
+                                    • Document Type: ${extractedData.documentType || 'Health Report'}<br>
+                                    • Test Date: ${testDate}${isSmartDate ? ' 🎯' : ''}<br>
+                                    • Medical Context: ${analysisData.medicalContextIncluded ? '✅ Included' : '❌ Not available'}
+                                </div>
+                                <div>
+                                    <strong>🔒 Privacy & Features:</strong><br>
+                                    • Personal Data Removed: ✅ Yes<br>
+                                    • Anonymous Processing: ✅ Complete<br>
+                                    • Smart Date Processing: ${isSmartDate ? '✅ Applied (15th)' : '✅ Standard'}<br>
+                                    • Storage: ${currentSession ? '✅ Stored for trends' : '❌ Session required'}
+                                </div>
+                            </div>
+                            ${isSmartDate ? '<div style="margin-top: 10px; padding: 8px; background: #e8f5e8; border-radius: 4px; font-size: 12px; color: #389e0d;"><strong>🎯 Smart Date Applied:</strong> Partial date detected and processed to middle of month (15th)</div>' : ''}
+                        </div>
+                    </div>
+                `;
+            }, 'showCleanAnalysisResults');
+        }
+        
+        function formatHealthDataForAnalysis(healthParameters) {
+            return safeExecute(() => {
+                if (!healthParameters || !Array.isArray(healthParameters)) {
+                    console.warn('No health parameters provided for analysis');
+                    return '';
+                }
+                
+                return healthParameters.map(param => {
+                    const name = param.parameter || param.name || 'Unknown Parameter';
+                    const value = param.value || '0';
+                    const unit = param.unit || '';
+                    return `${name}: ${value}${unit ? ' ' + unit : ''}`;
+                }).join('\n');
+            }, 'formatHealthDataForAnalysis') || '';
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // Document storage with smart date support
+        async function storeDocument(documentName, extractedData, analysisResult, documentType, testDate) {
+            await safeExecute(async () => {
+                if (!currentSession) return;
+                
+                try {
+                    console.log('Storing document with smart date handling:', testDate);
+                    
+                    const response = await fetch('/api/documents', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'store',
+                            sessionToken: currentSession.sessionToken,
+                            documentName: documentName,
+                            extractedParameters: extractedData.healthParameters || [],
+                            analysisResult: analysisResult,
+                            documentType: documentType,
+                            testDate: testDate
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (!result.success) {
+                        console.error('Failed to store document:', result.error);
+                    } else {
+                        console.log('Document stored successfully with smart date:', result.testDate);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error storing document:', error);
+                }
+            }, 'storeDocument');
+        }
+        
+        // Load health records for the table - WITH SMART DATE SUPPORT
+        async function loadHealthRecords() {
+            await safeExecute(async () => {
+                console.log('=== LOADING HEALTH RECORDS WITH SMART DATE SUPPORT ===');
+                
+                const tableBody = document.getElementById('recordsTableBody');
+                if (!tableBody) return;
+                
+                if (!currentSession) {
+                    console.log('No session found for health records');
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <h3>🔐 Session Required</h3>
+                                <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view health records.</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                try {
+                    console.log('Fetching documents with session:', currentSession.sessionToken.substring(0, 20) + '...');
+                    
+                    const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Documents API response:', data);
+                    
+                    if (data.success) {
+                        documents = data.documents || [];
+                        healthRecords = data.healthRecords || [];
+                        
+                        console.log('Documents loaded:', documents.length);
+                        console.log('Health records loaded:', healthRecords.length);
+                        
+                        // Sort by test date (newest first) - smart date handling already applied
+                        healthRecords.sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
+                        
+                        filteredRecords = [...healthRecords];
+                        renderRecordsTable();
+                        updateRecordsStats();
+                        
+                    } else {
+                        throw new Error(data.error || 'Failed to load documents');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading health records:', error);
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="error">
+                                <h3>❌ Error Loading Records</h3>
+                                <p><strong>Error:</strong> ${error.message}</p>
+                                <p><strong>Debug:</strong> Check console (F12) for detailed logs</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }, 'loadHealthRecords');
+        }
+        
+        // Render records table with smart date indicators
+        function renderRecordsTable() {
+            safeExecute(() => {
+                const tableBody = document.getElementById('recordsTableBody');
+                if (!tableBody) return;
+                
+                if (filteredRecords.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <h3>📋 No Records Found</h3>
+                                <p>Upload your first health document to start building your record history!</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tableBody.innerHTML = filteredRecords.map(record => {
+                    const testDate = safeExecute(() => new Date(record.testDate).toLocaleDateString(), 'testDate') || 'Unknown';
+                    const uploadDate = safeExecute(() => new Date(record.uploadDate).toLocaleDateString(), 'uploadDate') || 'Unknown';
+                    const statusClass = getStatusClass(record.status);
+                    
+                    // Check if this date was smart-processed (ends with -15)
+                    const isSmartDate = /15$/.test(new Date(record.testDate).getDate().toString().padStart(2, '0'));
+                    const smartDateIndicator = isSmartDate ? ' 🎯' : '';
+                    
+                    return `
+                        <tr>
+                            <td>${testDate}${smartDateIndicator}</td>
+                            <td>${uploadDate}</td>
+                            <td class="parameter-name">${record.parameterName || 'Unknown'}</td>
+                            <td class="parameter-value">${record.value || 'N/A'}</td>
+                            <td>${record.unit || ''}</td>
+                            <td>${record.referenceRange || 'Not specified'}</td>
+                            <td class="status-${statusClass}">${record.status || 'Unknown'}</td>
+                            <td>${record.category || 'General'}</td>
+                            <td title="${record.documentType || 'Health Report'}">${record.documentName && record.documentName.length > 20 ? record.documentName.substring(0, 20) + '...' : record.documentName || 'Unnamed'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }, 'renderRecordsTable');
+        }
+        
+        function getStatusClass(status) {
+            return safeExecute(() => {
+                switch (status?.toLowerCase()) {
+                    case 'normal': case 'optimal': return 'normal';
+                    case 'high': case 'elevated': return 'high';
+                    case 'low': case 'below': return 'low';
+                    default: return 'unknown';
+                }
+            }, 'getStatusClass') || 'unknown';
+        }
+        
+        // Filter records
+        function filterRecords() {
+            safeExecute(() => {
+                const parameterFilter = document.getElementById('parameterFilter')?.value?.toLowerCase() || '';
+                const dateFromFilter = document.getElementById('dateFromFilter')?.value || '';
+                const dateToFilter = document.getElementById('dateToFilter')?.value || '';
+                const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+                
+                filteredRecords = healthRecords.filter(record => {
+                    // Parameter name filter
+                    if (parameterFilter && !record.parameterName?.toLowerCase().includes(parameterFilter)) {
+                        return false;
+                    }
+                    
+                    // Date range filter
+                    if (dateFromFilter && new Date(record.testDate) < new Date(dateFromFilter)) {
+                        return false;
+                    }
+                    if (dateToFilter && new Date(record.testDate) > new Date(dateToFilter)) {
+                        return false;
+                    }
+                    
+                    // Category filter
+                    if (categoryFilter && record.category !== categoryFilter) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                renderRecordsTable();
+                updateRecordsStats();
+            }, 'filterRecords');
+        }
+        
+        // Update records statistics
+        function updateRecordsStats() {
+            safeExecute(() => {
+                const totalRecords = healthRecords.length;
+                const uniqueParameters = new Set(healthRecords.map(r => r.parameterName).filter(Boolean)).size;
+                const filteredCount = filteredRecords.length;
+                
+                let dateRange = '--';
+                if (healthRecords.length > 0) {
+                    const dates = healthRecords.map(r => new Date(r.testDate)).sort();
+                    const minDate = dates[0].toLocaleDateString();
+                    const maxDate = dates[dates.length - 1].toLocaleDateString();
+                    dateRange = `${minDate} - ${maxDate}`;
+                }
+                
+                const totalRecordsEl = document.getElementById('totalRecords');
+                const uniqueParametersEl = document.getElementById('uniqueParameters');
+                const dateRangeEl = document.getElementById('dateRange');
+                const filteredCountEl = document.getElementById('filteredCount');
+                
+                if (totalRecordsEl) totalRecordsEl.textContent = totalRecords;
+                if (uniqueParametersEl) uniqueParametersEl.textContent = uniqueParameters;
+                if (dateRangeEl) dateRangeEl.textContent = dateRange;
+                if (filteredCountEl) filteredCountEl.textContent = filteredCount;
+            }, 'updateRecordsStats');
+        }
+        
+        // Export records to CSV
+        function exportRecords() {
+            safeExecute(() => {
+                if (filteredRecords.length === 0) {
+                    alert('No records to export');
+                    return;
+                }
+                
+                const headers = ['Test Date', 'Upload Date', 'Parameter Name', 'Value', 'Unit', 'Reference Range', 'Status', 'Category', 'Document Name'];
+                const csvContent = [
+                    headers.join(','),
+                    ...filteredRecords.map(record => [
+                        record.testDate,
+                        record.uploadDate,
+                        `"${record.parameterName || ''}"`,
+                        record.value || '',
+                        `"${record.unit || ''}"`,
+                        `"${record.referenceRange || ''}"`,
+                        record.status || '',
+                        record.category || '',
+                        `"${record.documentName || ''}"`
+                    ].join(','))
+                ].join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `healthai_records_smart_dates_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 'exportRecords');
+        }
+        
+        // Load documents
+        async function loadDocuments() {
+            await safeExecute(async () => {
+                const documentList = document.getElementById('documentList');
+                if (!documentList) return;
+                
+                if (!currentSession) {
+                    documentList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>🔐 Session Required</h3>
+                            <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to store and track documents.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        documents = data.documents || [];
+                        renderDocumentList();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                    
+                } catch (error) {
+                    documentList.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Error Loading Documents</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
+            }, 'loadDocuments');
+        }
+        
+        function renderDocumentList() {
+            safeExecute(() => {
+                const documentList = document.getElementById('documentList');
+                if (!documentList) return;
+                
+                if (documents.length === 0) {
+                    documentList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>📄 No Documents Yet</h3>
+                            <p>Upload your first health document to start tracking trends!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                documentList.innerHTML = documents.map(doc => {
+                    // Check if this is a smart-processed date (ends with -15)
+                    const isSmartDate = doc.test_date && doc.test_date.endsWith('-15');
+                    const smartDateIndicator = isSmartDate ? ' 🎯' : '';
+                    
+                    return `
+                    <div class="document-item">
+                        <div class="document-title">📄 ${doc.document_name}</div>
+                        <div class="document-meta">
+                            <span class="status-badge status-${doc.status}">${doc.status}</span>
+                            <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
+                            <strong>Test Date:</strong> ${doc.test_date || 'Unknown'}${smartDateIndicator} • 
+                            <strong>Parameters:</strong> ${doc.parameter_count || 0}
+                        </div>
+                        <div class="document-actions">
+                            <button class="btn btn-secondary" onclick="viewDocument('${doc.document_id}')">👁️ View</button>
+                            <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `;
+                }).join('');
+            }, 'renderDocumentList');
+        }
+        
+        // Load trends - WITH SMART DATE SUPPORT
+        async function loadTrends() {
+            await safeExecute(async () => {
+                const trendAnalysis = document.getElementById('trendAnalysis');
+                const chartFallback = document.getElementById('chartFallback');
+                
+                if (!currentSession) {
+                    if (trendAnalysis) {
+                        trendAnalysis.innerHTML = `
+                            <div class="empty-state">
+                                <h3>🔐 Session Required</h3>
+                                <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view trend analysis.</p>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                try {
+                    const timeRange = document.getElementById('timeRange')?.value || '6months';
+                    console.log('=== LOADING TRENDS WITH SMART DATE SUPPORT ===');
+                    console.log('Time range:', timeRange);
+                    console.log('Session token:', currentSession.sessionToken.substring(0, 20) + '...');
+                    console.log('Chart.js available:', chartJsLoaded);
+                    
+                    if (trendAnalysis) {
+                        trendAnalysis.innerHTML = `
+                            <div class="loading">📈 Loading trend analysis with smart date handling...</div>
+                        `;
+                    }
+                    
+                    const response = await fetch('/api/documents', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'analyze-trends',
+                            sessionToken: currentSession.sessionToken,
+                            timeRange: timeRange
+                        })
+                    });
+                    
+                    console.log('Trends API response status:', response.status);
+                    
+                    if (!response.ok) {
+                        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Trends API response:', data);
+                    
+                    if (data.success) {
+                        trendData = data.trendData || [];
+                        console.log('Trend data received:', trendData.length, 'parameters');
+                        
+                        renderTrendChart();
+                        
+                        if (trendAnalysis) {
+                            trendAnalysis.innerHTML = `
+                                <div class="result">
+                                    <h3>📈 Trend Analysis (${timeRange}) - Smart Date Processing Active</h3>
+                                    <div class="analysis-content">${data.analysis || 'No trend analysis available yet.'}</div>
+                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+                                        <strong>📊 Analysis Summary:</strong><br>
+                                        • Parameters with Trends: ${data.trendsFound || 0}<br>
+                                        • Time Range: ${timeRange}<br>
+                                        • Smart Date Processing: ✅ Applied (15th for partial dates)<br>
+                                        • Generated: ${new Date(data.generatedAt || Date.now()).toLocaleString()}<br>
+                                        • Chart.js Status: ${chartJsLoaded ? '✅ Available' : '❌ Not loaded'}<br>
+                                        ${data.debugInfo ? `• Total Parameters Available: ${data.debugInfo.totalParametersAvailable}<br>• Date Range: ${data.debugInfo.dateRange?.start} to ${data.debugInfo.dateRange?.end}` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } else {
+                        console.error('Trends API returned error:', data);
+                        throw new Error(data.error || 'Unknown API error');
+                    }
+                    
+                } catch (error) {
+                    console.error('=== TRENDS LOADING ERROR ===');
+                    console.error('Error details:', error);
+                    
+                    if (trendAnalysis) {
+                        trendAnalysis.innerHTML = `
+                            <div class="error">
+                                <h3>❌ Error Loading Trends</h3>
+                                <p><strong>Error:</strong> ${error.message}</p>
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
+                                    <strong>Debugging Info:</strong><br>
+                                    • Chart.js loaded: ${chartJsLoaded ? 'Yes' : 'No'}<br>
+                                    • Smart date processing: ✅ Available<br>
+                                    • Check browser console (F12) for detailed logs<br>
+                                    • Ensure you have uploaded multiple documents<br>
+                                    • Try refreshing the page and checking again<br>
+                                    • Current session: ${currentSession ? 'Active' : 'None'}
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            }, 'loadTrends');
+        }
+        
+        function renderTrendChart() {
+            safeExecute(() => {
+                const ctx = document.getElementById('trendsChart');
+                const chartFallback = document.getElementById('chartFallback');
+                
+                if (!ctx) {
+                    console.error('Chart canvas not found');
+                    return;
+                }
+                
+                // Properly destroy existing chart
+                if (currentChart) {
+                    try {
+                        currentChart.destroy();
+                        currentChart = null;
+                        console.log('Previous chart destroyed successfully');
+                    } catch (error) {
+                        console.warn('Error destroying previous chart:', error);
+                        currentChart = null;
+                    }
+                }
+                
+                // Clear canvas
+                const context = ctx.getContext('2d');
+                context.clearRect(0, 0, ctx.width, ctx.height);
+                
+                // Check if Chart.js is available
+                if (!chartJsLoaded || typeof Chart === 'undefined') {
+                    console.warn('Chart.js not available, showing fallback');
+                    if (chartFallback) {
+                        chartFallback.style.display = 'block';
+                        chartFallback.innerHTML = '📈 Chart library not available. Trend data is shown in the analysis below.';
+                    }
+                    return;
+                }
+                
+                if (trendData.length === 0) {
+                    if (chartFallback) {
+                        chartFallback.style.display = 'block';
+                        chartFallback.innerHTML = '📈 No trend data available yet. Upload more documents to see trends.';
+                    }
+                    return;
+                }
+                
+                if (chartFallback) {
+                    chartFallback.style.display = 'none';
+                }
+                
+                try {
+                    const datasets = trendData.map((trend, index) => {
+                        const colors = ['#667eea', '#764ba2', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'];
+                        return {
+                            label: trend.parameter,
+                            data: trend.data.map(d => ({ 
+                                x: d.date, 
+                                y: d.value 
+                            })),
+                            borderColor: colors[index % colors.length],
+                            backgroundColor: colors[index % colors.length] + '20',
+                            tension: 0.4,
+                            fill: false
+                        };
+                    });
+                    
+                    // Create new chart with simple configuration (no date-fns)
+                    currentChart = new Chart(ctx, {
+                        type: 'line',
+                        data: { datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Health Parameter Trends Over Time (Smart Date Processing)'
+                                },
+                                legend: {
+                                    display: true,
+                                    position: 'top'
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Date (🎯 = Smart Processed)'
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Value'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    console.log('✅ Chart rendered successfully with smart date support');
+                    
+                } catch (chartError) {
+                    console.error('Chart rendering error:', chartError);
+                    if (chartFallback) {
+                        chartFallback.style.display = 'block';
+                        chartFallback.innerHTML = '📈 Chart rendering error. Trend data is shown in the analysis below.';
+                    }
+                }
+            }, 'renderTrendChart');
+        }
+        
+        // Document actions
+        function viewDocument(documentId) {
+            safeExecute(() => {
+                alert(`View document functionality coming soon! Document ID: ${documentId}`);
+            }, 'viewDocument');
+        }
+        
+        async function deleteDocument(documentId) {
+            await safeExecute(async () => {
+                if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/documents', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'delete',
+                            sessionToken: currentSession.sessionToken,
+                            documentId: documentId
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Refresh all data
+                        await loadDashboardData();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                    
+                } catch (error) {
+                    alert('Error deleting document: ' + error.message);
+                }
+            }, 'deleteDocument');
+        }
+        
+        // Drag and drop functionality
+        const uploadArea = document.getElementById('uploadArea');
+        
+        if (uploadArea) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.add('dragover');
+                }, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadArea.addEventListener(eventName, () => {
+                    uploadArea.classList.remove('dragover');
+                }, false);
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                safeExecute(() => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    handleFiles(files);
+                }, 'dragDrop');
+            }, false);
+        }
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // Session management
+        function checkSession() {
+            return safeExecute(() => {
+                if (!currentSession) {
+                    const shouldCreateSession = confirm('You need to create a session to store documents and track trends. Would you like to create one now?');
+                    if (shouldCreateSession) {
+                        window.location.href = '/setup.html';
+                    }
+                    return false;
+                }
+                return true;
+            }, 'checkSession') || false;
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -403,6 +1208,27 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
+        .smart-date-feature {
+            background: #e8f5e8;
+            border: 2px solid #52c41a;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .smart-date-feature h5 {
+            color: #389e0d;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .smart-date-feature ul {
+            margin: 8px 0 0 20px;
+            font-size: 13px;
+            color: #52c41a;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -469,7 +1295,17 @@
                     
                     <div class="privacy-info">
                         <h4>🧠 Universal Health Parameter Recognition + Smart Date Handling</h4>
-                        <p><strong>NEW:</strong> Smart date detection now handles partial dates intelligently. If your document shows "Sep 2025", we assume September 15, 2025 (middle of the month). AI-powered extraction recognizes ANY medical parameter and removes personal identifiers on your device.</p>
+                        <p><strong>AI-powered smart extraction</strong> recognizes ANY medical parameter from your documents. Personal identifiers are automatically detected and removed on your device before AI processing.</p>
+                        
+                        <div class="smart-date-feature">
+                            <h5>🎯 NEW: Smart Date Processing (Build 8)</h5>
+                            <ul>
+                                <li><strong>"Sep 2025"</strong> → Automatically becomes <strong>"September 15, 2025"</strong></li>
+                                <li><strong>"2025/09"</strong> → Becomes <strong>"September 15, 2025"</strong></li>
+                                <li><strong>"September 2025"</strong> → Becomes <strong>"September 15, 2025"</strong></li>
+                                <li>When only month/year found, assumes middle of month (15th)</li>
+                            </ul>
+                        </div>
                     </div>
                     
                     <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
@@ -477,7 +1313,7 @@
                         <p>🔬 Lab Results • 🦴 DEXA/Bone Density • 💉 Hormone Panels<br>
                            🏃 Fitness Reports • 🧬 Genetic Analysis • 🩸 Blood Work<br>
                            📊 Body Composition • 💊 Metabolic Panels • Any Health Data<br>
-                           <strong>Maximum file size: 25MB • Format: PDF</strong></p>
+                           <strong>Maximum file size: 25MB • Format: PDF with readable text</strong></p>
                         <button class="btn">Choose File</button>
                         <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileSelect(event)">
                     </div>
@@ -613,11 +1449,11 @@
             minor: 6,
             build: '2025.09.05.8',
             name: 'BETA',
-            lastUpdated: '2025-09-05 18:00 UTC'
+            lastUpdated: '2025-09-05 18:30 UTC'
         };
         
         function showVersionInfo() {
-            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔥 Latest Changes (Build 8):\n• NEW: Smart date handling for partial dates\n• ENHANCED: "Sep 2025" → "2025-09-15" (middle of month)\n• IMPROVED: Better date detection from medical documents\n• FIXED: Month-only and year-only date processing\n• OPTIMIZED: More accurate test date extraction`);
+            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔥 Latest Changes (Build 8):\n• NEW: Smart date handling for partial dates\n• ENHANCED: "Sep 2025" → "2025-09-15" (middle of month)\n• IMPROVED: Better date detection from medical documents\n• FIXED: Month-only and year-only date processing\n• OPTIMIZED: More accurate test date extraction\n• UPDATED: Enhanced UI messaging about date features`);
         }
         
         // Global state
@@ -658,6 +1494,7 @@
             safeExecute(() => {
                 console.log('🚀 HealthAI Dashboard initializing...');
                 console.log('🎯 Build 8: Smart date handling with month-middle assumption enabled');
+                console.log('📅 Date Features: Sep 2025 → 2025-09-15 (15th of month)');
                 
                 // Check Chart.js availability after slight delay
                 setTimeout(() => {
@@ -789,6 +1626,7 @@
                     formData.append('pdfFile', file);
                     
                     console.log('Sending file to extraction API with smart date handling...');
+                    console.log('🎯 Smart Date Features Active: Month-middle assumption enabled');
                     
                     const extractionResponse = await fetch('/api/extract', {
                         method: 'POST',
@@ -809,130 +1647,4 @@
                     
                     // Step 3: Analyze with AI
                     if (processingSteps) {
-                        processingSteps.innerHTML += '<br>⏳ Step 3: Analyzing with AI and medical context...';
-                    }
-                    await sleep(500);
-                    
-                    const healthDataText = formatHealthDataForAnalysis(extractionData.extractedData.healthParameters);
-                    console.log('Formatted health data:', healthDataText);
-                    
-                    if (!healthDataText.trim()) {
-                        throw new Error('No health parameters found in document');
-                    }
-                    
-                    const analysisResponse = await fetch('/api/analyze', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            healthData: healthDataText
-                        })
-                    });
-                    
-                    if (!analysisResponse.ok) {
-                        const errorText = await analysisResponse.text();
-                        throw new Error(`Analysis failed: ${analysisResponse.status} - ${errorText}`);
-                    }
-                    
-                    const analysisData = await analysisResponse.json();
-                    console.log('Analysis response:', analysisData);
-                    
-                    if (!analysisData.success) {
-                        throw new Error(analysisData.error || 'Failed to analyze health data');
-                    }
-                    
-                    // Step 4: Store document with smart date handling
-                    if (processingSteps) {
-                        processingSteps.innerHTML += '<br>⏳ Step 4: Storing document with smart date processing...';
-                    }
-                    await sleep(300);
-                    
-                    if (currentSession) {
-                        await storeDocument(
-                            file.name, 
-                            extractionData.extractedData, 
-                            analysisData.analysis, 
-                            extractionData.extractedData.documentType, 
-                            extractionData.extractedData.testDate
-                        );
-                    }
-                    
-                    // Step 5: Complete
-                    if (processingSteps) {
-                        processingSteps.innerHTML += '<br>✅ Step 5: Analysis complete with smart date handling!';
-                    }
-                    
-                    // Show clean results with date info
-                    showCleanAnalysisResults(analysisData, extractionData.extractedData);
-                    
-                    // Hide processing status after showing results
-                    setTimeout(() => {
-                        if (processingStatus) processingStatus.style.display = 'none';
-                    }, 2000);
-                    
-                    // Refresh dashboard data
-                    if (currentSession) {
-                        setTimeout(() => {
-                            loadDashboardData();
-                        }, 1000);
-                    }
-                    
-                } catch (error) {
-                    console.error('Document processing error:', error);
-                    
-                    if (processingSteps) {
-                        processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
-                    }
-                    
-                    // Show user-friendly error
-                    setTimeout(() => {
-                        if (resultDiv) {
-                            resultDiv.innerHTML = `
-                                <div class="error">
-                                    <h3>❌ Document Processing Failed</h3>
-                                    <p><strong>Error:</strong> ${error.message}</p>
-                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
-                                        <strong>Common Solutions:</strong><br>
-                                        • Ensure PDF contains readable text (not just scanned images)<br>
-                                        • Check that document has clear health parameters with values<br>
-                                        • Try a different health document format<br>
-                                        • Check your internet connection and try again
-                                    </div>
-                                </div>
-                            `;
-                        }
-                        
-                        if (processingStatus) processingStatus.style.display = 'none';
-                    }, 3000);
-                }
-            }, 'processDocument');
-        }
-        
-        // Enhanced analysis results display with date information
-        function showCleanAnalysisResults(analysisData, extractionData) {
-            safeExecute(() => {
-                const resultDiv = document.getElementById('documentResult');
-                if (!resultDiv) return;
-                
-                // Clean the analysis text - remove any technical artifacts
-                let cleanAnalysis = analysisData.analysis || 'Analysis completed successfully.';
-                
-                // Remove any code-like content or technical artifacts
-                cleanAnalysis = cleanAnalysis
-                    .replace(/```[\s\S]*?```/g, '') // Remove code blocks
-                    .replace(/`[^`]*`/g, '') // Remove inline code
-                    .replace(/\$\{[^}]*\}/g, '') // Remove template literals
-                    .replace(/function\s*\([^)]*\)/g, '') // Remove function declarations
-                    .replace(/const\s+\w+\s*=/g, '') // Remove const declarations
-                    .replace(/let\s+\w+\s*=/g, '') // Remove let declarations
-                    .replace(/var\s+\w+\s*=/g, '') // Remove var declarations
-                    .trim();
-                
-                resultDiv.innerHTML = `
-                    <div class="result">
-                        <h3>✅ Health Analysis Complete</h3>
-                        <div class="analysis-content">${cleanAnalysis}</div>
-                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                <div>
-                                    <strong>📊 Processing Summary:</strong><br>
-                                    • Parameters Found:
+                        processingSteps.innerHTML += '<br>⏳ Step
