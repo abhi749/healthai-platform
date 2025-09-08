@@ -35,28 +35,23 @@ export async function onRequestPost(context) {
         
         // Validate file size (25MB limit)
         if (pdfFile.size > 25 * 1024 * 1024) {
-          throw new Error('File size exceeds 25MB limit');
+          throw new Error(`File size ${pdfFile.size} bytes exceeds 25MB limit (${25 * 1024 * 1024} bytes)`);
         }
         
         // Validate file type
         if (!pdfFile.type.includes('pdf') && !fileName.toLowerCase().includes('.pdf')) {
-          throw new Error('Only PDF files are supported');
+          throw new Error(`Invalid file type: ${pdfFile.type}. Only PDF files are supported.`);
         }
         
-        try {
-          // Try to extract text from PDF using a more robust method
-          textToProcess = await extractTextFromPDF(pdfFile);
-          processingMethod = 'PDF text extraction';
-          
-          console.log('PDF extraction result length:', textToProcess.length);
-          
-          if (!textToProcess || textToProcess.trim().length < 10) {
-            throw new Error('No readable text found in PDF. This may be a scanned/image-based PDF.');
-          }
-          
-        } catch (pdfError) {
-          console.error('PDF extraction failed:', pdfError.message);
-          throw new Error(`PDF processing failed: ${pdfError.message}. Please ensure your PDF contains readable text (not scanned images).`);
+        // Extract text from PDF - no fallbacks, let it fail with detailed error
+        textToProcess = await extractTextFromPDF(pdfFile);
+        processingMethod = 'PDF text extraction';
+        
+        console.log('PDF extraction result length:', textToProcess.length);
+        console.log('PDF extraction preview (first 300 chars):', textToProcess.substring(0, 300));
+        
+        if (!textToProcess || textToProcess.trim().length < 10) {
+          throw new Error(`PDF text extraction produced insufficient content. Extracted ${textToProcess.length} characters. Preview: "${textToProcess.substring(0, 100)}"`);
         }
         
       } else if (documentText && documentText.trim()) {
@@ -65,7 +60,7 @@ export async function onRequestPost(context) {
         console.log('Using provided document text, length:', textToProcess.length);
         
       } else {
-        throw new Error('Either PDF file or document text must be provided');
+        throw new Error('No valid input provided. Expected either PDF file or document text.');
       }
       
     } else {
@@ -81,7 +76,7 @@ export async function onRequestPost(context) {
 
     // Validate that we have meaningful text to process
     if (!textToProcess || textToProcess.trim().length < 10) {
-      throw new Error('Insufficient text content for processing');
+      throw new Error(`Insufficient text content for processing. Text length: ${textToProcess.length}`);
     }
 
     console.log(`Processing ${textToProcess.length} characters using ${processingMethod}`);
@@ -93,80 +88,74 @@ export async function onRequestPost(context) {
       textToProcess = textToProcess.substring(0, MAX_TEXT_LENGTH) + '...';
     }
 
-    // Enhanced extraction prompt for medical data
-    const extractionPrompt = `Extract health and medical data from this document. Find all numerical health values, test results, and measurements.
+    // Simplified and direct extraction prompt
+    const extractionPrompt = `You are a medical data extractor. Extract health parameters from this document and return ONLY a JSON object.
 
-Document text:
-${textToProcess}
+Document: ${textToProcess}
 
-Extract and return a JSON object with this exact structure:
-{
-  "healthParameters": [
-    {
-      "name": "parameter name",
-      "value": "numerical value with unit",
-      "category": "category like 'blood work', 'vital signs', etc.",
-      "date": "test date if found"
-    }
-  ]
-}
+Find numerical health values like lab results, measurements, vital signs, etc.
 
-Look for parameters like:
-- Blood tests (cholesterol, glucose, hemoglobin, etc.)
-- Vital signs (blood pressure, heart rate, temperature)
-- Body measurements (weight, height, BMI)
-- Hormone levels
-- Vitamin levels
-- Any other numerical health values
+Return ONLY this JSON format (no other text):
+{"healthParameters":[{"name":"parameter name","value":"number with unit","category":"blood work","date":"date if found"}]}
 
-Return only valid JSON. If no health parameters found, return {"healthParameters": []}.`;
+If no health data found, return: {"healthParameters":[]}`;
 
     console.log('Calling Workers AI for extraction');
+    console.log('Prompt length:', extractionPrompt.length);
     
-    // Call Workers AI
+    // Call Workers AI with conservative settings
     const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: extractionPrompt,
-      max_tokens: 1000,
-      temperature: 0.1
+      max_tokens: 500,
+      temperature: 0.0
     });
 
-    console.log('AI Response received:', JSON.stringify(aiResponse));
+    console.log('AI Response received:', JSON.stringify(aiResponse, null, 2));
 
     if (!aiResponse || !aiResponse.response) {
-      throw new Error('No response from AI model');
+      throw new Error('No response from AI model. AI response object: ' + JSON.stringify(aiResponse));
     }
 
-    // Parse AI response
+    // Parse AI response - no fallbacks, detailed error reporting
     let extractedData;
+    const responseText = aiResponse.response.trim();
+    console.log('Raw AI response:', responseText);
+    
+    // Find JSON boundaries
+    const firstBrace = responseText.indexOf('{');
+    const lastBrace = responseText.lastIndexOf('}');
+    
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+      throw new Error(`No valid JSON structure found in AI response. Response: "${responseText}". First brace at: ${firstBrace}, Last brace at: ${lastBrace}`);
+    }
+    
+    const jsonText = responseText.substring(firstBrace, lastBrace + 1);
+    console.log('Extracted JSON text:', jsonText);
+    
     try {
-      // Try to extract JSON from AI response
-      const responseText = aiResponse.response.trim();
-      console.log('Raw AI response:', responseText);
-      
-      // Look for JSON in the response
-      let jsonStart = responseText.indexOf('{');
-      let jsonEnd = responseText.lastIndexOf('}') + 1;
-      
-      if (jsonStart === -1 || jsonEnd === 0) {
-        throw new Error('No JSON found in AI response');
-      }
-      
-      const jsonText = responseText.substring(jsonStart, jsonEnd);
       extractedData = JSON.parse(jsonText);
-      
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError.message);
-      console.error('AI response was:', aiResponse.response);
-      throw new Error('Failed to parse health data from document. The AI response was not in valid JSON format.');
+      throw new Error(`JSON parse failed: ${parseError.message}. Attempted to parse: "${jsonText}". Full AI response: "${responseText}"`);
     }
 
     // Validate extracted data structure
-    if (!extractedData || !Array.isArray(extractedData.healthParameters)) {
-      console.error('Invalid extracted data structure:', extractedData);
-      throw new Error('Invalid data structure returned from AI analysis');
+    if (!extractedData || typeof extractedData !== 'object') {
+      throw new Error(`Invalid extracted data type: ${typeof extractedData}. Data: ${JSON.stringify(extractedData)}`);
+    }
+
+    if (!Array.isArray(extractedData.healthParameters)) {
+      throw new Error(`healthParameters is not an array. Type: ${typeof extractedData.healthParameters}. Value: ${JSON.stringify(extractedData.healthParameters)}`);
     }
 
     console.log(`Successfully extracted ${extractedData.healthParameters.length} health parameters`);
+    console.log('Health parameters:', JSON.stringify(extractedData.healthParameters, null, 2));
+
+    // Validate each health parameter
+    extractedData.healthParameters.forEach((param, index) => {
+      if (!param.name || !param.value) {
+        console.warn(`Parameter ${index} missing required fields:`, param);
+      }
+    });
 
     // Return success response
     const result = {
@@ -177,7 +166,9 @@ Return only valid JSON. If no health parameters found, return {"healthParameters
         processingMethod: processingMethod,
         textLength: textToProcess.length,
         parametersFound: extractedData.healthParameters.length,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        aiResponseLength: responseText.length,
+        jsonExtracted: jsonText
       }
     };
 
@@ -191,12 +182,14 @@ Return only valid JSON. If no health parameters found, return {"healthParameters
     console.error('Extract API Error:', error.message);
     console.error('Error stack:', error.stack);
     
-    // Return detailed error for debugging
+    // Return detailed error for debugging - no fallbacks
     const errorResponse = {
       success: false,
       error: error.message,
+      errorType: error.constructor.name,
       details: "Document extraction failed",
       timestamp: new Date().toISOString(),
+      stack: error.stack,
       troubleshooting: {
         pdfRequirements: "PDF must contain readable text (not scanned images)",
         dataRequirements: "Document must contain numerical health values (lab results, measurements, etc.)",
@@ -205,7 +198,8 @@ Return only valid JSON. If no health parameters found, return {"healthParameters
           "Scanned/image-based PDFs cannot be processed",
           "Documents without numerical health values",
           "Corrupted or password-protected files",
-          "Non-medical documents"
+          "Non-medical documents",
+          "AI model returning invalid JSON format"
         ]
       }
     };
@@ -217,45 +211,69 @@ Return only valid JSON. If no health parameters found, return {"healthParameters
   }
 }
 
-// PDF text extraction function
+// PDF text extraction function - no fallbacks
 async function extractTextFromPDF(pdfFile) {
-  try {
-    console.log('Starting PDF text extraction');
+  console.log('Starting PDF text extraction');
+  
+  // Convert File to ArrayBuffer
+  const arrayBuffer = await pdfFile.arrayBuffer();
+  console.log('PDF converted to ArrayBuffer, size:', arrayBuffer.byteLength);
+  
+  if (arrayBuffer.byteLength === 0) {
+    throw new Error('PDF file is empty (0 bytes)');
+  }
+
+  // Simple byte-by-byte text extraction
+  // Note: This is a basic implementation that won't work with all PDFs
+  // For production use, you'd need a proper PDF parsing library
+  const uint8Array = new Uint8Array(arrayBuffer);
+  let text = '';
+  let consecutiveNonText = 0;
+  
+  console.log('Starting byte-by-byte extraction...');
+  
+  for (let i = 0; i < uint8Array.length; i++) {
+    const byte = uint8Array[i];
+    const char = String.fromCharCode(byte);
     
-    // Convert File to ArrayBuffer
-    const arrayBuffer = await pdfFile.arrayBuffer();
-    console.log('PDF converted to ArrayBuffer, size:', arrayBuffer.byteLength);
-    
-    // For now, we'll use a simple approach
-    // In a real implementation, you'd use a PDF parsing library
-    // This is a placeholder that will need to be replaced with actual PDF parsing
-    
-    // Try to read as text (this won't work for real PDFs, but helps with debugging)
-    const uint8Array = new Uint8Array(arrayBuffer);
-    let text = '';
-    
-    // Look for text patterns in the PDF
-    for (let i = 0; i < uint8Array.length - 1; i++) {
-      const char = String.fromCharCode(uint8Array[i]);
-      if (char.match(/[a-zA-Z0-9\s.,()%-]/)) {
-        text += char;
+    // Check if character is printable text
+    if (byte >= 32 && byte <= 126) {
+      text += char;
+      consecutiveNonText = 0;
+    } else if (byte === 10 || byte === 13) {
+      // Handle line breaks
+      text += ' ';
+      consecutiveNonText = 0;
+    } else {
+      consecutiveNonText++;
+      // Add space for word separation after sequences of non-text bytes
+      if (consecutiveNonText === 1 && text.length > 0 && !text.endsWith(' ')) {
+        text += ' ';
       }
     }
-    
-    // Clean up the extracted text
-    text = text.replace(/\s+/g, ' ').trim();
-    
-    console.log('Extracted text length:', text.length);
-    console.log('Text preview:', text.substring(0, 200));
-    
-    if (text.length < 50) {
-      throw new Error('Unable to extract sufficient text from PDF. This appears to be a scanned or image-based PDF.');
-    }
-    
-    return text;
-    
-  } catch (error) {
-    console.error('PDF extraction error:', error.message);
-    throw new Error(`PDF text extraction failed: ${error.message}`);
   }
+  
+  // Clean up the extracted text
+  text = text.replace(/\s+/g, ' ').trim();
+  
+  console.log('Raw extraction completed');
+  console.log('Extracted text length:', text.length);
+  console.log('Text preview (first 500 chars):', text.substring(0, 500));
+  console.log('Text preview (last 200 chars):', text.substring(Math.max(0, text.length - 200)));
+  
+  if (text.length < 50) {
+    throw new Error(`PDF text extraction insufficient. Only extracted ${text.length} characters. Preview: "${text}". This may be a scanned/image-based PDF or encrypted PDF.`);
+  }
+  
+  // Check if the text looks like garbage (too many non-letter characters)
+  const letterCount = (text.match(/[a-zA-Z]/g) || []).length;
+  const letterRatio = letterCount / text.length;
+  
+  console.log(`Letter ratio: ${letterRatio} (${letterCount}/${text.length})`);
+  
+  if (letterRatio < 0.3) {
+    throw new Error(`PDF text extraction produced low-quality text. Letter ratio: ${letterRatio.toFixed(2)} (${letterCount} letters out of ${text.length} characters). Text preview: "${text.substring(0, 200)}"`);
+  }
+  
+  return text;
 }
