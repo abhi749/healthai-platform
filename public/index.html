@@ -3,458 +3,589 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HealthAI - Privacy-First Health Analysis</title>
-    <meta name="description" content="AI-powered health document analysis with complete privacy protection. Anonymous processing, instant insights.">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🩺</text></svg>">
+    <title>HealthAI - Privacy-First Health Document Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .build-info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.1);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ddd;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f2ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .upload-hint {
+            font-size: 0.9rem;
+            color: #999;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 15px;
+            cursor: pointer;
+            border: none;
+            font-size: 1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .upload-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .processing {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .processing.show {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .processing-text {
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .results {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .success {
+            color: #28a745;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .error h4 {
+            margin-bottom: 10px;
+        }
+
+        .analysis-content {
+            line-height: 1.6;
+            color: #444;
+            white-space: pre-wrap;
+        }
+
+        .analysis-content h3 {
+            color: #667eea;
+            margin: 20px 0 10px 0;
+        }
+
+        .health-parameter {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .privacy-notice {
+            background: #e8f5e8;
+            border: 1px solid #d4edda;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #155724;
+        }
+
+        .privacy-notice h4 {
+            margin-bottom: 5px;
+        }
+
+        .metadata {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .metadata h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-section {
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-800 mb-2">
-                🩺 HealthAI
-            </h1>
-            <p class="text-lg text-gray-600 mb-4">
-                Privacy-First Health Document Analysis
-            </p>
-            <div class="bg-green-100 border border-green-300 rounded-lg p-3 inline-block">
-                <span class="text-green-800 font-medium">🔒 Your identity never leaves your device • ⚡ 3-second analysis • 🌍 Global edge processing</span>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🩺 HealthAI</h1>
+            <p>Privacy-First Health Document Analysis powered by Edge AI</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Upload Your Health Document</div>
+                <div class="upload-hint">Drag & drop your PDF here or click to browse</div>
+                <button class="upload-button" onclick="document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf" />
+            </div>
+
+            <div class="privacy-notice">
+                <h4>🔒 Your Privacy is Protected</h4>
+                <p>Personal identifiers are removed from your document before analysis. Your health data is processed anonymously and never stored permanently.</p>
             </div>
         </div>
 
-        <!-- Upload Section -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Upload Health Document</h2>
-            
-            <!-- Upload Area - Thinner design -->
-            <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition-colors">
-                <div class="flex items-center justify-center gap-6">
-                    <div class="text-4xl">📁</div>
-                    <div class="flex-1 text-left">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-1">Drop Any Health Document Here</h3>
-                        <div class="flex flex-wrap gap-2 text-sm text-gray-600 mb-2">
-                            <span>🧪 Lab Results</span>
-                            <span>•</span>
-                            <span>🦴 DEXA/Bone Density</span>
-                            <span>•</span>
-                            <span>🧬 Hormone Panels</span>
-                            <span>•</span>
-                            <span>🏃 Fitness Reports</span>
-                            <span>•</span>
-                            <span>🩸 Blood Work</span>
-                            <span>•</span>
-                            <span>⚖️ Body Composition</span>
-                        </div>
-                        <p class="text-xs text-gray-500">
-                            Maximum file size: 25MB • Format: PDF with readable text
-                        </p>
-                    </div>
-                    <button id="uploadBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-                        Choose File
-                    </button>
-                </div>
-            </div>
-
-            <input type="file" id="fileInput" accept=".pdf" class="hidden">
-            
-            <!-- Processing Status -->
-            <div id="processingStatus" class="hidden mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div class="flex items-center justify-center gap-3">
-                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                    <span class="text-blue-800 font-medium">Processing your document...</span>
-                </div>
-                <div class="mt-2 text-sm text-blue-600 text-center">
-                    🔒 Anonymous processing • ⚡ Results in ~3 seconds
-                </div>
-            </div>
-
-            <!-- Error Display -->
-            <div id="errorDisplay" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div class="flex items-start gap-3">
-                    <span class="text-red-500 text-xl">❌</span>
-                    <div class="flex-1">
-                        <h3 class="font-medium text-red-800">Document Processing Failed</h3>
-                        <p id="errorMessage" class="text-red-700 mt-1"></p>
-                        <div class="mt-2 text-sm text-red-600">
-                            <strong>Common solutions:</strong>
-                            <ul class="list-disc list-inside mt-1">
-                                <li>Ensure PDF contains readable text (not scanned images)</li>
-                                <li>Verify document contains numerical health values</li>
-                                <li>Check file size is under 25MB</li>
-                                <li>Make sure file is a valid PDF</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="processing" id="processing">
+            <div class="spinner"></div>
+            <div class="processing-text">Analyzing your health document...</div>
+            <div id="processingStatus">Starting analysis...</div>
         </div>
 
-        <!-- Results Section -->
-        <div id="resultsSection" class="hidden">
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                    <div class="text-3xl font-bold text-blue-600" id="parameterCount">0</div>
-                    <div class="text-gray-600">Health Parameters</div>
-                </div>
-                <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                    <div class="text-3xl font-bold text-green-600" id="processingTime">~3s</div>
-                    <div class="text-gray-600">Processing Time</div>
-                </div>
-                <div class="bg-white rounded-lg shadow-lg p-6 text-center">
-                    <div class="text-3xl font-bold text-purple-600">🔒</div>
-                    <div class="text-gray-600">Privacy Protected</div>
-                </div>
-            </div>
-
-            <!-- Health Parameters -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">📊 Extracted Health Data</h3>
-                <div id="healthParameters" class="space-y-3">
-                    <!-- Parameters will be inserted here -->
-                </div>
-            </div>
-
-            <!-- AI Analysis -->
-            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">🧠 AI Health Analysis</h3>
-                <div id="aiAnalysis" class="prose max-w-none">
-                    <!-- AI analysis will be inserted here -->
-                </div>
-            </div>
-
-            <!-- Medical Context -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h3 class="text-xl font-semibold text-gray-800 mb-4">📚 Medical Context & Resources</h3>
-                <div id="medicalContext" class="space-y-4">
-                    <!-- Medical context will be inserted here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Privacy Notice -->
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-            <h3 class="text-lg font-medium text-blue-800 mb-2">🔒 Your Privacy is Protected</h3>
-            <div class="text-blue-700 space-y-2">
-                <p>• <strong>Anonymous Processing:</strong> Your personal identity never leaves your device</p>
-                <p>• <strong>Edge AI:</strong> Analysis happens on secure global servers for seconds only</p>
-                <p>• <strong>No Data Storage:</strong> All processing data is automatically purged within 30 seconds</p>
-                <p>• <strong>GDPR Compliant:</strong> Anonymous data processing exceeds all privacy requirements</p>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="text-center mb-4">
-            <span class="text-xs text-gray-400">HealthAI v2.0 - Build 10</span>
-        </div>
-        <div class="text-center text-sm text-gray-500">
-            Powered by Cloudflare Workers AI • 
-            <a href="https://analysemyhealth.com" class="text-blue-600 hover:underline">analysemyhealth.com</a>
+        <div class="results" id="results">
+            <!-- Results will be populated here -->
         </div>
     </div>
 
-    <script>
-        console.log('=== HEALTHAI BUILD 10 INITIALIZATION ===');
-        
-        // Global variables
-        let currentInput = '';
-        
-        // DOM elements
-        const fileInput = document.getElementById('fileInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const processingStatus = document.getElementById('processingStatus');
-        const errorDisplay = document.getElementById('errorDisplay');
-        const errorMessage = document.getElementById('errorMessage');
-        const resultsSection = document.getElementById('resultsSection');
-        const parameterCount = document.getElementById('parameterCount');
-        const processingTime = document.getElementById('processingTime');
-        const healthParameters = document.getElementById('healthParameters');
-        const aiAnalysis = document.getElementById('aiAnalysis');
-        const medicalContext = document.getElementById('medicalContext');
+    <div class="build-info">
+        Build 1.0.7 | analysemyhealth.com
+    </div>
 
-        // Event listeners
-        uploadBtn.addEventListener('click', () => {
-            console.log('Upload button clicked');
+    <script>
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const processing = document.getElementById('processing');
+        const results = document.getElementById('results');
+        const processingStatus = document.getElementById('processingStatus');
+
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload(files[0]);
+            }
+        });
+
+        uploadArea.addEventListener('click', () => {
             fileInput.click();
         });
 
-        fileInput.addEventListener('change', handleFileUpload);
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
 
-        // Handle file upload
-        async function handleFileUpload(event) {
-            const file = event.target.files[0];
+        async function handleFileUpload(file) {
+            console.log('Upload button clicked');
+            console.log('File selected:', file?.name, file?.size, file?.type);
+            
+            // Validate file
             if (!file) {
-                console.log('No file selected');
+                showError('No file selected');
                 return;
             }
 
-            console.log('File selected:', file.name, 'Size:', file.size, 'Type:', file.type);
-
-            // Validate file
             if (!file.type.includes('pdf') && !file.name.toLowerCase().includes('.pdf')) {
-                showError('Please upload a PDF file only.');
+                showError('Please upload a PDF file');
                 return;
             }
 
             if (file.size > 25 * 1024 * 1024) {
-                showError('File size must be under 25MB.');
+                showError('File size must be under 25MB');
                 return;
             }
 
-            // Hide previous results and errors
-            hideError();
-            hideResults();
-            showProcessing();
+            // Show processing
+            results.classList.remove('show');
+            processing.classList.add('show');
+            processingStatus.textContent = 'Starting document processing...';
 
             try {
-                console.log('Starting document processing...');
-                const startTime = Date.now();
-
-                // Step 1: Extract health data
-                console.log('Step 1: Extracting health data from PDF...');
-                const extractionData = await extractHealthData(file);
-                
-                if (!extractionData.success) {
-                    throw new Error(extractionData.error || 'Extraction failed');
-                }
-
-                if (!extractionData.healthParameters || extractionData.healthParameters.length === 0) {
-                    throw new Error('No health parameters found in the document. Please ensure your PDF contains lab results, measurements, or other numerical health data.');
-                }
-
-                console.log('Extraction successful, found', extractionData.healthParameters.length, 'parameters');
-
-                // Step 2: AI Analysis
-                console.log('Step 2: Getting AI analysis...');
-                const analysisData = await getAIAnalysis(extractionData.healthParameters);
-                
-                if (!analysisData.success) {
-                    throw new Error(analysisData.error || 'Analysis failed');
-                }
-
-                // Step 3: Get medical context
-                console.log('Step 3: Getting medical context...');
-                const contextData = await getMedicalContext(extractionData.healthParameters);
-
-                const endTime = Date.now();
-                const processingTimeMs = endTime - startTime;
-                
-                console.log('Processing completed in', processingTimeMs, 'ms');
-
-                // Display results
-                hideProcessing();
-                displayResults({
-                    healthParameters: extractionData.healthParameters,
-                    aiAnalysis: analysisData.analysis,
-                    medicalContext: contextData.context || [],
-                    processingTimeMs: processingTimeMs
-                });
-
-            } catch (error) {
-                console.error('Processing error:', error);
-                hideProcessing();
-                showError(`Error: ${error.message}`);
-            }
-        }
-
-        // Extract health data from PDF
-        async function extractHealthData(file) {
-            try {
-                console.log('Calling /api/extract with file:', file.name);
+                // Step 1: Extract health data from PDF
+                processingStatus.textContent = 'Step 1: Extracting health data from PDF...';
                 
                 const formData = new FormData();
                 formData.append('pdfFile', file);
-
-                const response = await fetch('/api/extract', {
+                
+                console.log('Calling /api/extract with file:', file.name);
+                
+                const extractResponse = await fetch('/api/extract', {
                     method: 'POST',
                     body: formData
                 });
 
-                console.log('Extract API response status:', response.status);
+                console.log('Extract API response status:', extractResponse.status);
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Extract API error response:', errorText);
-                    throw new Error(`Server error: ${response.status}`);
+                if (!extractResponse.ok) {
+                    const errorData = await extractResponse.json();
+                    throw new Error(errorData.error || `Extract API failed: ${extractResponse.status}`);
                 }
 
-                const data = await response.json();
-                console.log('Extract API response data:', data);
+                const extractData = await extractResponse.json();
+                console.log('Extract API response data:', extractData);
                 
-                return data;
+                if (!extractData.success) {
+                    throw new Error(extractData.error || 'Failed to extract health data');
+                }
 
-            } catch (error) {
-                console.error('Extract API call failed:', error);
-                throw new Error(`Document extraction failed: ${error.message}`);
-            }
-        }
+                console.log('Extraction successful, found', extractData.healthParameters?.length || 0, 'parameters');
 
-        // Get AI analysis
-        async function getAIAnalysis(healthParameters) {
-            try {
-                console.log('Calling /api/analyze with', healthParameters.length, 'parameters');
+                if (!extractData.healthParameters || extractData.healthParameters.length === 0) {
+                    throw new Error('No health parameters found in the document. Please ensure your PDF contains numerical health values like lab results.');
+                }
+
+                // Step 2: Get AI analysis
+                processingStatus.textContent = 'Step 2: Getting AI analysis...';
                 
-                const response = await fetch('/api/analyze', {
+                console.log('Calling /api/analyze with', extractData.healthParameters.length, 'parameters');
+                
+                // Convert health parameters to the format expected by analyze API
+                const healthDataString = extractData.healthParameters
+                    .map(param => `${param.name}: ${param.value} (${param.category})`)
+                    .join('\n');
+                
+                console.log('Health data string for AI:', healthDataString);
+                
+                const analyzeResponse = await fetch('/api/analyze', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        healthParameters: healthParameters
+                        healthData: healthDataString  // FIXED: Changed from healthParameters to healthData
                     })
                 });
 
-                console.log('Analyze API response status:', response.status);
+                console.log('Analyze API response status:', analyzeResponse.status);
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Analyze API error response:', errorText);
-                    throw new Error(`Analysis server error: ${response.status}`);
+                if (!analyzeResponse.ok) {
+                    const errorData = await analyzeResponse.json();
+                    console.error('Analyze API error response:', errorData);
+                    throw new Error(errorData.error || `Analysis failed: ${analyzeResponse.status}`);
                 }
 
-                const data = await response.json();
-                console.log('Analyze API response data:', data);
-                
-                return data;
+                const analyzeData = await analyzeResponse.json();
+                console.log('Analyze API response data:', analyzeData);
 
-            } catch (error) {
-                console.error('Analyze API call failed:', error);
-                throw new Error(`AI analysis failed: ${error.message}`);
-            }
-        }
-
-        // Get medical context
-        async function getMedicalContext(healthParameters) {
-            try {
-                console.log('Calling /api/context with', healthParameters.length, 'parameters');
+                // Step 3: Get medical context (optional)
+                processingStatus.textContent = 'Step 3: Getting medical context...';
                 
-                const response = await fetch('/api/context', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        healthParameters: healthParameters
-                    })
-                });
+                let medicalContext = { context: [] };
+                try {
+                    console.log('Calling /api/medical-context with', extractData.healthParameters.length, 'parameters');
+                    
+                    const contextResponse = await fetch('/api/medical-context', {  // FIXED: Corrected endpoint name
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            healthParameters: extractData.healthParameters
+                        })
+                    });
 
-                console.log('Context API response status:', response.status);
-                
-                if (!response.ok) {
-                    console.log('Context API failed, continuing without medical context');
-                    return { context: [] };
+                    console.log('Medical context API response status:', contextResponse.status);
+                    
+                    if (contextResponse.ok) {
+                        medicalContext = await contextResponse.json();
+                        console.log('Medical context API response data:', medicalContext);
+                    } else {
+                        console.log('Medical context API failed, continuing without context');
+                    }
+
+                } catch (error) {
+                    console.error('Medical context API call failed:', error);
+                    // Don't fail the whole process if context fails
                 }
 
-                const data = await response.json();
-                console.log('Context API response data:', data);
-                
-                return data;
+                // Show results
+                processing.classList.remove('show');
+                displayResults(extractData, analyzeData, medicalContext);
 
             } catch (error) {
-                console.error('Context API call failed:', error);
-                // Don't fail the whole process if context fails
-                return { context: [] };
+                console.error('Processing error:', error);
+                processing.classList.remove('show');
+                showError(error.message, error);
             }
         }
 
-        // Display functions
-        function showProcessing() {
-            processingStatus.classList.remove('hidden');
-        }
-
-        function hideProcessing() {
-            processingStatus.classList.add('hidden');
-        }
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorDisplay.classList.remove('hidden');
-        }
-
-        function hideError() {
-            errorDisplay.classList.add('hidden');
-        }
-
-        function hideResults() {
-            resultsSection.classList.add('hidden');
-        }
-
-        function displayResults(data) {
-            console.log('Displaying results:', data);
-
-            // Update stats
-            parameterCount.textContent = data.healthParameters.length;
-            processingTime.textContent = `${(data.processingTimeMs / 1000).toFixed(1)}s`;
-
-            // Display health parameters
-            healthParameters.innerHTML = '';
-            data.healthParameters.forEach((param, index) => {
-                const paramDiv = document.createElement('div');
-                paramDiv.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
-                paramDiv.innerHTML = `
-                    <div class="flex-1">
-                        <div class="font-medium text-gray-800">${escapeHtml(param.name)}</div>
-                        <div class="text-sm text-gray-600">${escapeHtml(param.category || 'Health Parameter')}</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-bold text-blue-600">${escapeHtml(param.value)}</div>
-                        ${param.date ? `<div class="text-xs text-gray-500">${escapeHtml(param.date)}</div>` : ''}
-                    </div>
-                `;
-                healthParameters.appendChild(paramDiv);
-            });
-
-            // Display AI analysis
-            if (data.aiAnalysis) {
-                aiAnalysis.innerHTML = `
-                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded">
-                        <div class="whitespace-pre-wrap">${escapeHtml(data.aiAnalysis)}</div>
-                    </div>
-                `;
-            } else {
-                aiAnalysis.innerHTML = '<p class="text-gray-500">No AI analysis available.</p>';
-            }
-
-            // Display medical context
-            if (data.medicalContext && data.medicalContext.length > 0) {
-                medicalContext.innerHTML = '';
-                data.medicalContext.forEach(context => {
-                    const contextDiv = document.createElement('div');
-                    contextDiv.className = 'p-4 bg-green-50 border border-green-200 rounded-lg';
-                    contextDiv.innerHTML = `
-                        <h4 class="font-medium text-green-800 mb-2">${escapeHtml(context.title || 'Medical Information')}</h4>
-                        <p class="text-green-700">${escapeHtml(context.content || context.description || 'No description available')}</p>
-                        ${context.url ? `<a href="${escapeHtml(context.url)}" target="_blank" class="text-green-600 hover:underline text-sm">Learn more →</a>` : ''}
-                    `;
-                    medicalContext.appendChild(contextDiv);
-                });
-            } else {
-                medicalContext.innerHTML = '<p class="text-gray-500">No additional medical context available.</p>';
-            }
-
-            // Show results section
-            resultsSection.classList.remove('hidden');
+        function displayResults(extractData, analyzeData, medicalContext) {
+            console.log('Displaying results');
             
-            // Scroll to results
-            resultsSection.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Utility function to escape HTML
-        function escapeHtml(unsafe) {
-            if (typeof unsafe !== 'string') {
-                return String(unsafe);
+            let analysisText = '';
+            
+            if (analyzeData.success && analyzeData.analysis) {
+                analysisText = analyzeData.analysis;
+            } else if (analyzeData.response) {
+                analysisText = analyzeData.response;
+            } else {
+                analysisText = 'Analysis completed but no insights generated.';
             }
-            return unsafe
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+            
+            // Clean up analysis text
+            let cleanAnalysis = analysisText
+                .replace(/^["\s]+|["\s]+$/g, '') // Remove leading/trailing quotes and spaces
+                .replace(/\\n/g, '\n') // Convert literal \n to actual newlines
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Convert **text** to <strong>text</strong>
+                .replace(/\*(.*?)\*/g, '<em>$1</em>') // Convert *text* to <em>text</em>
+                .replace(/\n\n+/g, '\n\n') // Normalize multiple newlines
+                .replace(/\n/g, '<br>'); // Convert newlines to <br>
+            
+            // Remove any code-like content or technical artifacts
+            cleanAnalysis = cleanAnalysis
+                .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+                .replace(/`[^`]*`/g, '') // Remove inline code
+                .replace(/\$\{[^}]*\}/g, '') // Remove template literals
+                .replace(/function\s*\([^)]*\)/g, '') // Remove function declarations
+                .replace(/const\s+\w+\s*=/g, '') // Remove const declarations
+                .replace(/let\s+\w+\s*=/g, '') // Remove let declarations
+                .replace(/var\s+\w+\s*=/g, '') // Remove var declarations
+                .trim();
+            
+            const resultDiv = document.getElementById('results');
+            resultDiv.innerHTML = `
+                <div class="result">
+                    <h3>✅ Health Analysis Complete</h3>
+                    <div class="analysis-content">${cleanAnalysis}</div>
+                    
+                    <h4>📊 Extracted Health Parameters:</h4>
+                    ${extractData.healthParameters.map(param => `
+                        <div class="health-parameter">
+                            <strong>${param.name}:</strong> ${param.value}
+                            ${param.category ? `<span style="color: #666;"> (${param.category})</span>` : ''}
+                        </div>
+                    `).join('')}
+                    
+                    ${medicalContext.context && medicalContext.context.length > 0 ? `
+                        <h4>🏥 Medical Context:</h4>
+                        <div class="medical-context">
+                            ${medicalContext.context.map(item => `
+                                <div style="margin: 10px 0; padding: 10px; background: #f0f8ff; border-radius: 5px;">
+                                    <strong>${item.parameter}:</strong> ${item.info}
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="metadata">
+                        <h4>📋 Processing Details:</h4>
+                        <p><strong>File:</strong> ${extractData.metadata?.fileName || 'Unknown'}</p>
+                        <p><strong>Parameters Found:</strong> ${extractData.healthParameters.length}</p>
+                        <p><strong>Processing Method:</strong> ${extractData.metadata?.processingMethod || 'Unknown'}</p>
+                        <p><strong>Processed:</strong> ${new Date().toLocaleString()}</p>
+                        ${extractData.metadata?.testMode ? '<p><strong>⚠️ Test Mode:</strong> Using sample data</p>' : ''}
+                    </div>
+                    
+                    <button class="btn-secondary" onclick="location.reload()">Analyze Another Document</button>
+                </div>
+            `;
+            
+            resultDiv.classList.add('show');
         }
 
-        console.log('HealthAI Build 10 initialized successfully');
+        function showError(message, errorObject = null) {
+            console.error('Showing error:', message, errorObject);
+            
+            const resultDiv = document.getElementById('results');
+            
+            let errorDetails = '';
+            if (errorObject) {
+                errorDetails = `
+                    <div style="margin-top: 15px; font-size: 0.9rem;">
+                        <strong>Technical Details:</strong><br>
+                        ${errorObject.stack ? errorObject.stack.replace(/\n/g, '<br>') : 'No additional details available'}
+                    </div>
+                `;
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="error">
+                    <h4>❌ Document Processing Failed</h4>
+                    <p><strong>Error:</strong> ${message}</p>
+                    ${errorDetails}
+                    
+                    <div style="margin-top: 15px;">
+                        <strong>Common solutions:</strong>
+                        <ul style="margin: 10px 0 0 20px;">
+                            <li>Ensure PDF contains readable text (not scanned images)</li>
+                            <li>Check that document contains numerical health values</li>
+                            <li>Try a different health document or lab report</li>
+                            <li>File size should be under 25MB</li>
+                        </ul>
+                    </div>
+                    
+                    <button class="btn-secondary" onclick="location.reload()" style="margin-top: 15px;">Try Again</button>
+                </div>
+            `;
+            
+            resultDiv.classList.add('show');
+        }
+
+        // Reset file input when page loads
+        window.addEventListener('load', () => {
+            document.getElementById('fileInput').value = '';
+        });
     </script>
 </body>
 </html>
