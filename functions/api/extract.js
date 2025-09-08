@@ -105,10 +105,10 @@ If no health data found, return: {"healthParameters":[]}`;
     console.log('Text being sent to AI (first 500 chars):', textToProcess.substring(0, 500));
     console.log('Text being sent to AI (last 200 chars):', textToProcess.substring(Math.max(0, textToProcess.length - 200)));
     
-    // Call Workers AI with conservative settings
+    // Call Workers AI with much smaller limits to prevent timeout
     const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: extractionPrompt,
-      max_tokens: 500,
+      max_tokens: 200, // Much smaller to prevent timeout
       temperature: 0.0
     });
 
