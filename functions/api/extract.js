@@ -157,7 +157,7 @@ If no health data found, return: {"healthParameters":[]}`;
       }
     });
 
-    // Return success response
+    // Return success response with detailed debugging info
     const result = {
       success: true,
       healthParameters: extractedData.healthParameters,
@@ -168,7 +168,10 @@ If no health data found, return: {"healthParameters":[]}`;
         parametersFound: extractedData.healthParameters.length,
         timestamp: new Date().toISOString(),
         aiResponseLength: responseText.length,
-        jsonExtracted: jsonText
+        jsonExtracted: jsonText,
+        // Add debugging info to see what text was processed
+        extractedTextPreview: textToProcess.substring(0, 1000),
+        fullExtractedText: textToProcess // Include full text for debugging
       }
     };
 
