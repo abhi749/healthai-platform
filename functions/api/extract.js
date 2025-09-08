@@ -102,6 +102,8 @@ If no health data found, return: {"healthParameters":[]}`;
 
     console.log('Calling Workers AI for extraction');
     console.log('Prompt length:', extractionPrompt.length);
+    console.log('Text being sent to AI (first 500 chars):', textToProcess.substring(0, 500));
+    console.log('Text being sent to AI (last 200 chars):', textToProcess.substring(Math.max(0, textToProcess.length - 200)));
     
     // Call Workers AI with conservative settings
     const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
