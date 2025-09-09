@@ -325,44 +325,74 @@ function extractParametersWithPatterns(text) {
   return parameters;
 }
 
-// AI-BASED PARAMETER EXTRACTION (Backup method)
+// ENHANCED AI-BASED PARAMETER EXTRACTION
 async function extractParametersWithAI(text, env) {
   try {
-    const prompt = `Extract ALL health parameters from this medical text. Find every numerical value with units.
+    console.log('=== AI EXTRACTION STARTING ===');
+    
+    const prompt = `You are a medical data extraction expert. Extract ONLY the main health parameters with their numerical values from this lab report text.
 
-TEXT:
+TEXT TO ANALYZE:
 ${text}
 
-Return JSON with ALL parameters found:
+INSTRUCTIONS:
+1. Find ONLY parameters with clear numerical values
+2. Do NOT create duplicate entries  
+3. Focus on: Total Cholesterol, LDL, HDL, HbA1c, ALT, AST, Creatinine
+4. Extract the EXACT values from the text, don't guess
+
+Return ONLY valid JSON in this format:
 {
   "healthParameters": [
-    {"parameter": "Total Cholesterol", "value": "230", "unit": "mg/dL", "category": "Cardiovascular"},
+    {"parameter": "Total Cholesterol", "value": "218", "unit": "mg/dL", "category": "Cardiovascular"},
     {"parameter": "LDL Cholesterol", "value": "155", "unit": "mg/dL", "category": "Cardiovascular"},
     {"parameter": "HbA1c", "value": "6.8", "unit": "%", "category": "Metabolic"}
   ]
 }
 
-Extract EVERYTHING - cholesterol, glucose, enzymes, etc. JSON only:`;
+Extract ONLY what you can clearly identify. JSON response only:`;
 
     const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: prompt,
-      max_tokens: 2000,
-      temperature: 0.1
+      max_tokens: 1500,
+      temperature: 0.0 // Very deterministic
     });
+
+    console.log('AI response received:', response?.response?.substring(0, 500));
 
     if (!response?.response) {
       console.warn('AI extraction failed - no response');
       return [];
     }
 
-    const jsonMatch = response.response.match(/\{[\s\S]*\}/);
+    // Extract JSON more carefully
+    let jsonString = response.response.trim();
+    
+    // Remove any markdown formatting
+    jsonString = jsonString.replace(/```json\s*/i, '').replace(/\s*```/i, '');
+    
+    // Find JSON object
+    const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.warn('AI response invalid JSON format');
+      console.warn('AI response missing JSON format');
       return [];
     }
 
-    const data = JSON.parse(jsonMatch[0]);
-    return data.healthParameters || [];
+    try {
+      const data = JSON.parse(jsonMatch[0]);
+      const aiParams = data.healthParameters || [];
+      
+      console.log(`AI found ${aiParams.length} parameters:`);
+      aiParams.forEach((param, index) => {
+        console.log(`${index + 1}. ${param.parameter}: ${param.value} ${param.unit || ''}`);
+      });
+      
+      return aiParams;
+      
+    } catch (parseError) {
+      console.warn('AI JSON parse error:', parseError.message);
+      return [];
+    }
 
   } catch (error) {
     console.warn('AI extraction failed:', error.message);
