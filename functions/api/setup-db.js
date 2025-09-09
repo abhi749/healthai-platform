@@ -2,9 +2,10 @@ export async function onRequestGet(context) {
   const { env } = context;
   
   try {
-    // Create tables one by one with individual statements
+    console.log('=== STARTING DATABASE SETUP ===');
     
     // Create anonymous_sessions table
+    console.log('Creating anonymous_sessions table...');
     await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS anonymous_sessions (
         session_token TEXT PRIMARY KEY,
@@ -22,12 +23,14 @@ export async function onRequestGet(context) {
     `).run();
 
     // Create unique index for user_email_hash
+    console.log('Creating user_email_hash index...');
     await env.DB.prepare(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_user_email_hash 
       ON anonymous_sessions(user_email_hash)
     `).run();
 
     // Create device_access table
+    console.log('Creating device_access table...');
     await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS device_access (
         access_id TEXT PRIMARY KEY,
@@ -41,45 +44,49 @@ export async function onRequestGet(context) {
     `).run();
 
     // Create unique index for device access
+    console.log('Creating device_access index...');
     await env.DB.prepare(`
       CREATE UNIQUE INDEX IF NOT EXISTS idx_device_access 
       ON device_access(user_email_hash, device_fingerprint)
     `).run();
 
-    // Create health_documents table (MISSING FROM YOUR VERSION)
+    // Create documents table (CRITICAL - THIS WAS MISSING)
+    console.log('Creating documents table...');
     await env.DB.prepare(`
-      CREATE TABLE IF NOT EXISTS health_documents (
+      CREATE TABLE IF NOT EXISTS documents (
         document_id TEXT PRIMARY KEY,
         session_token TEXT NOT NULL,
-        document_name TEXT NOT NULL,
+        file_name TEXT NOT NULL,
         document_type TEXT DEFAULT 'Health Report',
-        test_date TEXT,
-        parameters_json TEXT,
-        analysis_result TEXT,
+        analysis_results TEXT,
         created_at TEXT NOT NULL,
         parameter_count INTEGER DEFAULT 0,
-        status TEXT DEFAULT 'active',
-        deleted_at TEXT
+        status TEXT DEFAULT 'active'
       )
     `).run();
 
-    // Create health_parameters table (MISSING FROM YOUR VERSION)
+    // Create health_parameters table (CRITICAL - THIS WAS MISSING)
+    console.log('Creating health_parameters table...');
     await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS health_parameters (
         parameter_id TEXT PRIMARY KEY,
-        document_id TEXT NOT NULL,
         session_token TEXT NOT NULL,
+        document_id TEXT NOT NULL,
         parameter_name TEXT NOT NULL,
-        parameter_value REAL,
+        parameter_value TEXT,
         parameter_unit TEXT,
         reference_range TEXT,
-        test_date TEXT,
+        status TEXT,
         category TEXT DEFAULT 'General',
-        created_at TEXT NOT NULL
+        test_date TEXT,
+        numeric_value REAL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (document_id) REFERENCES documents(document_id)
       )
     `).run();
 
     // Create processing_logs table
+    console.log('Creating processing_logs table...');
     await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS processing_logs (
         log_id TEXT PRIMARY KEY,
@@ -94,6 +101,7 @@ export async function onRequestGet(context) {
     `).run();
 
     // Create analysis_cache table
+    console.log('Creating analysis_cache table...');
     await env.DB.prepare(`
       CREATE TABLE IF NOT EXISTS analysis_cache (
         cache_key TEXT PRIMARY KEY,
@@ -105,42 +113,82 @@ export async function onRequestGet(context) {
     `).run();
 
     // Verify tables were created by counting them
-    const tablesCount = await env.DB.prepare(`
-      SELECT COUNT(*) as count FROM sqlite_master 
+    console.log('Verifying table creation...');
+    const tablesResult = await env.DB.prepare(`
+      SELECT name FROM sqlite_master 
       WHERE type='table' AND name NOT LIKE 'sqlite_%'
-    `).first();
+      ORDER BY name
+    `).all();
+
+    const tableNames = tablesResult.results.map(row => row.name);
+    console.log('Tables created:', tableNames);
+
+    // Check if all required tables exist
+    const requiredTables = [
+      'anonymous_sessions',
+      'device_access', 
+      'documents',
+      'health_parameters',
+      'processing_logs',
+      'analysis_cache'
+    ];
+
+    const missingTables = requiredTables.filter(table => !tableNames.includes(table));
+    
+    if (missingTables.length > 0) {
+      throw new Error(`Missing required tables: ${missingTables.join(', ')}`);
+    }
+
+    console.log('=== DATABASE SETUP COMPLETED SUCCESSFULLY ===');
 
     return new Response(JSON.stringify({
       success: true,
       message: 'Database tables created successfully',
-      tablesCreated: tablesCount.count,
-      tables: [
-        'anonymous_sessions',
-        'device_access', 
-        'processing_logs',
-        'analysis_cache',
-        'health_documents',
-        'health_parameters'
-      ],
-      timestamp: new Date().toISOString()
+      tablesCreated: tableNames.length,
+      tables: tableNames,
+      requiredTables: requiredTables,
+      allTablesPresent: true,
+      timestamp: new Date().toISOString(),
+      details: {
+        totalTables: tableNames.length,
+        expectedTables: requiredTables.length,
+        tablesList: tableNames
+      }
     }), {
       headers: {
         'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
       }
     });
 
   } catch (error) {
-    console.error('Database setup error:', error);
+    console.error('=== DATABASE SETUP FAILED ===');
+    console.error('Error details:', error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      details: error.cause ? error.cause.message : 'Unknown database error',
-      timestamp: new Date().toISOString()
+      details: error.cause ? error.cause.message : 'Database setup failed',
+      timestamp: new Date().toISOString(),
+      troubleshooting: {
+        commonCauses: [
+          'D1 database not properly bound to Workers',
+          'Database permissions issues', 
+          'SQLite syntax errors',
+          'Cloudflare Workers AI binding issues'
+        ],
+        solutions: [
+          'Check wrangler.toml D1 database binding',
+          'Verify database_id is correct',
+          'Ensure D1 database exists in Cloudflare dashboard',
+          'Try recreating the D1 database'
+        ]
+      }
     }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
       }
     });
   }
