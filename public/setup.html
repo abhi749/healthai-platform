@@ -49,6 +49,29 @@
             color: #666;
         }
         
+        .mode-selector {
+            display: flex;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
         .privacy-notice {
             background: #f0f8f0;
             border: 1px solid #52c41a;
@@ -132,6 +155,10 @@
             transform: none;
         }
         
+        .setup-btn.verify {
+            background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+        }
+        
         .result {
             margin-top: 20px;
             padding: 20px;
@@ -167,6 +194,58 @@
         .recovery-info small {
             color: #8c4510;
         }
+        
+        .mode-content {
+            display: none;
+        }
+        
+        .mode-content.active {
+            display: block;
+        }
+        
+        .existing-user-notice {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .existing-user-notice h3 {
+            color: #1890ff;
+            margin-bottom: 10px;
+        }
+        
+        .version-info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .setup-container {
+                padding: 10px;
+            }
+            
+            .setup-card {
+                padding: 20px;
+            }
+            
+            .mode-selector {
+                flex-direction: column;
+            }
+            
+            .version-info {
+                position: static;
+                text-align: center;
+                margin-top: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -174,69 +253,140 @@
         <div class="setup-card">
             <div class="header">
                 <h1>🔐 Anonymous Session Setup</h1>
-                <p>Create your privacy-first health analysis account</p>
+                <p>Create or access your privacy-first health analysis account</p>
             </div>
             
-            <div class="privacy-notice">
-                <h3>🛡️ Privacy Guarantee</h3>
-                <p>Your email is only used for account recovery. We store a hash of it (not the actual email) and your personal identity never connects to your health data.</p>
+            <div class="mode-selector">
+                <button class="mode-btn active" onclick="switchMode('create')">🆕 New User</button>
+                <button class="mode-btn" onclick="switchMode('verify')">🔑 Existing User</button>
             </div>
             
-            <form id="setupForm">
-                <div class="form-group">
-                    <label for="email">Email Address (for account recovery only)</label>
-                    <input type="email" id="email" required placeholder="your@email.com">
+            <!-- CREATE MODE (New Users) -->
+            <div class="mode-content active" id="create-mode">
+                <div class="privacy-notice">
+                    <h3>🛡️ Privacy Guarantee</h3>
+                    <p>Your email is only used for account recovery. We store a hash of it (not the actual email) and your personal identity never connects to your health data.</p>
                 </div>
                 
-                <div class="security-questions">
-                    <h4>🔑 Security Questions (for cross-device access)</h4>
-                    <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
-                        These questions allow you to access your data from any device. Choose memorable answers that won't change over time.
-                    </p>
-                    
-                    <div class="question-group">
-                        <label for="answer1">What is the name of your first pet?</label>
-                        <input type="text" id="answer1" required placeholder="Enter your answer">
+                <form id="createForm">
+                    <div class="form-group">
+                        <label for="createEmail">Email Address (for account recovery only)</label>
+                        <input type="email" id="createEmail" required placeholder="your@email.com">
                     </div>
                     
-                    <div class="question-group">
-                        <label for="answer2">In what city were you born?</label>
-                        <input type="text" id="answer2" required placeholder="Enter your answer">
+                    <div class="security-questions">
+                        <h4>🔑 Security Questions (for cross-device access)</h4>
+                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                            These questions allow you to access your data from any device. Choose memorable answers that won't change over time.
+                        </p>
+                        
+                        <div class="question-group">
+                            <label for="createAnswer1">What is the name of your first pet?</label>
+                            <input type="text" id="createAnswer1" required placeholder="Enter your answer">
+                        </div>
+                        
+                        <div class="question-group">
+                            <label for="createAnswer2">In what city were you born?</label>
+                            <input type="text" id="createAnswer2" required placeholder="Enter your answer">
+                        </div>
+                        
+                        <div class="question-group">
+                            <label for="createAnswer3">What is your mother's maiden name?</label>
+                            <input type="text" id="createAnswer3" required placeholder="Enter your answer">
+                        </div>
                     </div>
                     
-                    <div class="question-group">
-                        <label for="answer3">What is your mother's maiden name?</label>
-                        <input type="text" id="answer3" required placeholder="Enter your answer">
+                    <div class="recovery-info">
+                        <h4>⚠️ Important Recovery Information</h4>
+                        <p>Save your security question answers somewhere safe! If you forget them, your historical health data cannot be recovered. We intentionally cannot reset them for you to maintain complete privacy.</p>
+                        <small>Consider writing them down or saving them in a secure password manager.</small>
                     </div>
+                    
+                    <button type="submit" class="setup-btn" id="createBtn">
+                        🚀 Create Anonymous Session
+                    </button>
+                </form>
+            </div>
+            
+            <!-- VERIFY MODE (Existing Users) -->
+            <div class="mode-content" id="verify-mode">
+                <div class="existing-user-notice">
+                    <h3>🔑 Access Your Existing Account</h3>
+                    <p>Enter your email and security question answers to access your account from this device.</p>
                 </div>
                 
-                <div class="recovery-info">
-                    <h4>⚠️ Important Recovery Information</h4>
-                    <p>Save your security question answers somewhere safe! If you forget them, your historical health data cannot be recovered. We intentionally cannot reset them for you to maintain complete privacy.</p>
-                    <small>Consider writing them down or saving them in a secure password manager.</small>
-                </div>
-                
-                <button type="submit" class="setup-btn" id="setupBtn">
-                    🚀 Create Anonymous Session
-                </button>
-                
-                <div id="result" class="result"></div>
-            </form>
+                <form id="verifyForm">
+                    <div class="form-group">
+                        <label for="verifyEmail">Your Email Address</label>
+                        <input type="email" id="verifyEmail" required placeholder="your@email.com">
+                    </div>
+                    
+                    <div class="security-questions">
+                        <h4>🔑 Security Questions</h4>
+                        <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                            Enter the same answers you provided when creating your account.
+                        </p>
+                        
+                        <div class="question-group">
+                            <label for="verifyAnswer1">What is the name of your first pet?</label>
+                            <input type="text" id="verifyAnswer1" required placeholder="Enter your answer">
+                        </div>
+                        
+                        <div class="question-group">
+                            <label for="verifyAnswer2">In what city were you born?</label>
+                            <input type="text" id="verifyAnswer2" required placeholder="Enter your answer">
+                        </div>
+                        
+                        <div class="question-group">
+                            <label for="verifyAnswer3">What is your mother's maiden name?</label>
+                            <input type="text" id="verifyAnswer3" required placeholder="Enter your answer">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="setup-btn verify" id="verifyBtn">
+                        🔑 Access My Account
+                    </button>
+                </form>
+            </div>
+            
+            <div id="result" class="result"></div>
         </div>
     </div>
     
+    <!-- Version Info Footer -->
+    <div class="version-info">
+        🚀 HealthAI Setup v1.5 | Build 2025.09.05.8
+    </div>
+
     <script>
-        document.getElementById('setupForm').addEventListener('submit', async function(e) {
+        let currentMode = 'create';
+        
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // Update buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.mode-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(mode + '-mode').classList.add('active');
+            
+            // Clear any previous results
+            hideResult();
+        }
+        
+        // CREATE FORM HANDLER
+        document.getElementById('createForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const setupBtn = document.getElementById('setupBtn');
-            const resultDiv = document.getElementById('result');
+            const createBtn = document.getElementById('createBtn');
             
             // Get form data
-            const email = document.getElementById('email').value.trim();
-            const answer1 = document.getElementById('answer1').value.trim();
-            const answer2 = document.getElementById('answer2').value.trim();
-            const answer3 = document.getElementById('answer3').value.trim();
+            const email = document.getElementById('createEmail').value.trim();
+            const answer1 = document.getElementById('createAnswer1').value.trim();
+            const answer2 = document.getElementById('createAnswer2').value.trim();
+            const answer3 = document.getElementById('createAnswer3').value.trim();
             
             if (!email || !answer1 || !answer2 || !answer3) {
                 showResult('error', 'Please fill in all fields');
@@ -244,17 +394,17 @@
             }
             
             // Show loading state
-            setupBtn.disabled = true;
-            setupBtn.innerHTML = '🔧 Creating Session...';
+            createBtn.disabled = true;
+            createBtn.innerHTML = '🔧 Creating Session...';
             
             try {
-                // Generate device fingerprint (simplified)
                 const deviceFingerprint = await generateDeviceFingerprint();
-                
-                // Hash email for privacy
                 const emailHash = await hashString(email.toLowerCase());
                 
-                // Create anonymous session
+                console.log('=== ATTEMPTING SESSION CREATION ===');
+                console.log('Email hash generated:', emailHash.substring(0, 20) + '...');
+                console.log('Device fingerprint:', deviceFingerprint.substring(0, 20) + '...');
+                
                 const response = await fetch('/api/session', {
                     method: 'POST',
                     headers: {
@@ -268,10 +418,13 @@
                     })
                 });
                 
+                console.log('API response status:', response.status);
+                
                 const data = await response.json();
+                console.log('API response data:', data);
                 
                 if (data.success) {
-                    // Store session info in localStorage for demo
+                    // Store session info in localStorage
                     localStorage.setItem('healthai_session', JSON.stringify({
                         sessionToken: data.sessionToken,
                         userSalt: data.userSalt,
@@ -279,8 +432,12 @@
                         created: new Date().toISOString()
                     }));
                     
+                    const isExistingMessage = data.isExisting ? 
+                        '<br><br><strong>Note:</strong> Found and reactivated your existing session!' : '';
+                    
                     showResult('success', `
-                        ✅ Anonymous session created successfully!
+                        ✅ Anonymous session ${data.isExisting ? 'reactivated' : 'created'} successfully!
+                        ${isExistingMessage}
                         <br><br>
                         <strong>Session Token:</strong> ${data.sessionToken.substring(0, 20)}...
                         <br>
@@ -292,14 +449,139 @@
                     `);
                     
                 } else {
-                    throw new Error(data.error);
+                    console.error('Session creation failed:', data);
+                    
+                    let errorMessage = data.error || 'Unknown error occurred';
+                    
+                    // Check if this is a duplicate user error
+                    if (errorMessage.includes('UNIQUE constraint failed') || errorMessage.includes('already exists')) {
+                        errorMessage = `
+                            You already have an account! 
+                            <br><br>
+                            <strong>Solution:</strong> Click the "Existing User" tab above and use your security questions to access your account.
+                            <br><br>
+                            <button onclick="switchMode('verify')" style="background: #52c41a; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                🔑 Switch to Existing User
+                            </button>
+                        `;
+                    }
+                    
+                    showResult('error', `❌ Setup failed: ${errorMessage}`);
                 }
                 
             } catch (error) {
-                showResult('error', `❌ Setup failed: ${error.message}`);
+                console.error('Network or other error:', error);
+                showResult('error', `❌ Network error: ${error.message}`);
             } finally {
-                setupBtn.disabled = false;
-                setupBtn.innerHTML = '🚀 Create Anonymous Session';
+                createBtn.disabled = false;
+                createBtn.innerHTML = '🚀 Create Anonymous Session';
+            }
+        });
+        
+        // VERIFY FORM HANDLER
+        document.getElementById('verifyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            // Get form data
+            const email = document.getElementById('verifyEmail').value.trim();
+            const answer1 = document.getElementById('verifyAnswer1').value.trim();
+            const answer2 = document.getElementById('verifyAnswer2').value.trim();
+            const answer3 = document.getElementById('verifyAnswer3').value.trim();
+            
+            if (!email || !answer1 || !answer2 || !answer3) {
+                showResult('error', 'Please fill in all fields');
+                return;
+            }
+            
+            // Show loading state
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '🔍 Verifying Account...';
+            
+            try {
+                const deviceFingerprint = await generateDeviceFingerprint();
+                const emailHash = await hashString(email.toLowerCase());
+                
+                console.log('=== ATTEMPTING SESSION VERIFICATION ===');
+                console.log('Email hash generated:', emailHash.substring(0, 20) + '...');
+                
+                const response = await fetch('/api/session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'verify',
+                        userEmailHash: emailHash,
+                        securityAnswers: [answer1, answer2, answer3],
+                        deviceFingerprint: deviceFingerprint
+                    })
+                });
+                
+                console.log('Verification API response status:', response.status);
+                
+                const data = await response.json();
+                console.log('Verification API response data:', data);
+                
+                if (data.success) {
+                    // Store session info in localStorage
+                    localStorage.setItem('healthai_session', JSON.stringify({
+                        sessionToken: data.sessionToken,
+                        userSalt: data.userSalt,
+                        emailHash: emailHash,
+                        created: new Date().toISOString()
+                    }));
+                    
+                    showResult('success', `
+                        ✅ Account access verified successfully!
+                        <br><br>
+                        <strong>Session Token:</strong> ${data.sessionToken.substring(0, 20)}...
+                        <br>
+                        <strong>Documents:</strong> ${data.documentCount || 0} previously uploaded
+                        <br>
+                        <strong>Last Activity:</strong> ${new Date(data.lastActivity).toLocaleDateString()}
+                        <br><br>
+                        <a href="/" style="color: #667eea; text-decoration: none; font-weight: 600;">
+                            🚀 Access Your HealthAI Dashboard →
+                        </a>
+                    `);
+                    
+                } else {
+                    console.error('Session verification failed:', data);
+                    
+                    let errorMessage = data.error || 'Verification failed';
+                    
+                    if (errorMessage.includes('No active session found')) {
+                        errorMessage = `
+                            No account found for this email address.
+                            <br><br>
+                            <strong>Solution:</strong> Click the "New User" tab above to create a new account.
+                            <br><br>
+                            <button onclick="switchMode('create')" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                                🆕 Create New Account
+                            </button>
+                        `;
+                    } else if (errorMessage.includes('Security verification failed')) {
+                        errorMessage = `
+                            Security verification failed. Please check that you're entering the exact same answers you used when creating your account.
+                            <br><br>
+                            <strong>Tips:</strong>
+                            <br>• Answers are case-sensitive
+                            <br>• Check for extra spaces
+                            <br>• Use the exact spelling you originally used
+                        `;
+                    }
+                    
+                    showResult('error', `❌ Verification failed: ${errorMessage}`);
+                }
+                
+            } catch (error) {
+                console.error('Network or other error:', error);
+                showResult('error', `❌ Network error: ${error.message}`);
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = '🔑 Access My Account';
             }
         });
         
@@ -308,6 +590,16 @@
             resultDiv.className = `result ${type}`;
             resultDiv.innerHTML = message;
             resultDiv.style.display = 'block';
+            
+            // Scroll to result
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function hideResult() {
+            const resultDiv = document.getElementById('result');
+            if (resultDiv) {
+                resultDiv.style.display = 'none';
+            }
         }
         
         async function hashString(str) {
@@ -319,23 +611,55 @@
         }
         
         async function generateDeviceFingerprint() {
-            // Simplified device fingerprint - in production would use more sophisticated methods
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            ctx.textBaseline = 'top';
-            ctx.font = '14px Arial';
-            ctx.fillText('Device fingerprint', 2, 2);
-            
-            const fingerprint = [
-                navigator.userAgent,
-                navigator.language,
-                screen.width + 'x' + screen.height,
-                new Date().getTimezoneOffset(),
-                canvas.toDataURL()
-            ].join('|');
-            
-            return await hashString(fingerprint);
+            try {
+                // Simplified device fingerprint - in production would use more sophisticated methods
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.textBaseline = 'top';
+                ctx.font = '14px Arial';
+                ctx.fillText('Device fingerprint', 2, 2);
+                
+                const fingerprint = [
+                    navigator.userAgent,
+                    navigator.language,
+                    screen.width + 'x' + screen.height,
+                    new Date().getTimezoneOffset(),
+                    canvas.toDataURL()
+                ].join('|');
+                
+                return await hashString(fingerprint);
+            } catch (error) {
+                console.warn('Error generating device fingerprint:', error);
+                return 'fallback_' + Math.random().toString(36).substring(7);
+            }
         }
+        
+        // Check if user already has a session and redirect them
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const existingSession = localStorage.getItem('healthai_session');
+                if (existingSession) {
+                    const sessionData = JSON.parse(existingSession);
+                    if (sessionData.sessionToken) {
+                        showResult('success', `
+                            🔗 Existing session found!
+                            <br><br>
+                            You already have an active HealthAI session from ${new Date(sessionData.created).toLocaleDateString()}.
+                            <br><br>
+                            <a href="/" style="color: #667eea; text-decoration: none; font-weight: 600;">
+                                🚀 Continue to Dashboard →
+                            </a>
+                            <br><br>
+                            <small style="color: #666;">
+                                Or create a new session above if you want to start fresh.
+                            </small>
+                        `);
+                    }
+                }
+            } catch (error) {
+                console.warn('Error checking existing session:', error);
+            }
+        });
     </script>
 </body>
 </html>
