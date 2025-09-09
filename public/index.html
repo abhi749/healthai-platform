@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HealthAI - Privacy-First Health Analysis</title>
-    <!-- Load Chart.js with simpler, more reliable configuration -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
         * {
             margin: 0;
@@ -397,11 +395,12 @@
                                 <th>Reference Range</th>
                                 <th>Status</th>
                                 <th>Category</th>
+                                <th>Document</th>
                             </tr>
                         </thead>
                         <tbody id="recordsTableBody">
                             <tr>
-                                <td colspan="7" class="loading">📋 Loading health records...</td>
+                                <td colspan="8" class="loading">📋 Loading health records...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -434,27 +433,27 @@
     
     <!-- Version Info Footer -->
     <div class="version-info" onclick="showVersionInfo()">
-        🚀 HealthAI Beta v1.5 | Build 2025.09.05.10
+        🚀 HealthAI Beta v1.5 | Build 2025.09.05.11
     </div>
 
     <script>
-        // 🔧 BALANCED FIX - BUILD 10 - CORE FUNCTIONALITY RESTORED
-        console.log('🚀 HealthAI Dashboard initializing (Balanced Fix)...');
+        // 🚨 NO FAKE DATA VERSION - BUILD 11 - REAL DATA ONLY
+        console.log('🚀 HealthAI Dashboard initializing (NO FAKE DATA VERSION)...');
         
-        // Version tracking system - BUILD 10 - BALANCED FIX WITH RESTORED FUNCTIONALITY
+        // Version tracking system - BUILD 11 - NO FAKE DATA VERSION
         const VERSION = {
             major: 1,
             minor: 5,
-            build: '2025.09.05.10',
-            name: 'BALANCED_FIX',
-            lastUpdated: '2025-09-05 19:00 UTC'
+            build: '2025.09.05.11',
+            name: 'NO_FAKE_DATA',
+            lastUpdated: '2025-09-05 20:00 UTC'
         };
         
         function showVersionInfo() {
-            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔧 BALANCED FIXES (Build 10):\n• RESTORED: Session detection and data loading\n• RESTORED: Health records loading from API\n• RESTORED: Document history functionality\n• FIXED: Tab content loading without errors\n• MAINTAINED: Error-free console operation`);
+            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🚨 NO FAKE DATA VERSION (Build 11):\n• REMOVED: All simulated/fake data completely\n• ENFORCED: Real PDF data only processing\n• FIXED: Proper error handling without fallbacks\n• ADDED: Detailed error messages for debugging\n• ENHANCED: Only show real data from uploaded documents`);
         }
         
-        // Global state - RESTORED BUT SIMPLIFIED
+        // Global state - REAL DATA ONLY
         let currentSession = null;
         let documents = [];
         let healthRecords = [];
@@ -464,180 +463,188 @@
             try {
                 return fn();
             } catch (error) {
-                console.warn(`Safe execution failed in ${context}:`, error);
-                return null;
+                console.error(`ERROR in ${context}:`, error);
+                throw error; // RE-THROW ERROR - NO HIDING PROBLEMS
             }
         }
         
-        // INITIALIZE DASHBOARD - RESTORED SESSION DETECTION
+        // INITIALIZE DASHBOARD - REAL SESSION DETECTION ONLY
         document.addEventListener('DOMContentLoaded', function() {
-            safeExecute(() => {
-                console.log('✅ HealthAI Dashboard initialized');
-                
-                // Check for existing session
-                const savedSession = localStorage.getItem('healthai_session');
-                if (savedSession) {
-                    try {
-                        currentSession = JSON.parse(savedSession);
-                        console.log('✅ Found existing session:', currentSession.sessionToken.substring(0, 20) + '...');
-                        
-                        // Load dashboard data if we have a session
-                        loadDashboardData();
-                    } catch (error) {
-                        console.warn('Session parsing error:', error);
-                        localStorage.removeItem('healthai_session');
-                    }
-                } else {
-                    console.log('ℹ️ No existing session found');
+            console.log('✅ HealthAI Dashboard initialized (Real Data Only)');
+            
+            // Check for existing session
+            const savedSession = localStorage.getItem('healthai_session');
+            if (savedSession) {
+                try {
+                    currentSession = JSON.parse(savedSession);
+                    console.log('✅ Found existing session:', currentSession.sessionToken.substring(0, 20) + '...');
+                    
+                    // Load dashboard data if we have a session
+                    loadDashboardData();
+                } catch (error) {
+                    console.error('❌ Session parsing error:', error);
+                    localStorage.removeItem('healthai_session');
+                    showError('Session data corrupted. Please create a new session.');
                 }
-            }, 'DOMContentLoaded');
+            } else {
+                console.log('ℹ️ No existing session found');
+            }
         });
         
-        // LOAD DASHBOARD DATA - RESTORED
+        // LOAD DASHBOARD DATA - REAL DATA ONLY
         async function loadDashboardData() {
-            await safeExecute(async () => {
-                console.log('📊 Loading dashboard data...');
-                try {
-                    await Promise.all([
-                        loadDocuments(),
-                        loadHealthRecords()
-                    ]);
-                } catch (error) {
-                    console.warn('Dashboard data loading error:', error);
-                }
-            }, 'loadDashboardData');
+            console.log('📊 Loading dashboard data (Real Data Only)...');
+            try {
+                await Promise.all([
+                    loadDocuments(),
+                    loadHealthRecords()
+                ]);
+            } catch (error) {
+                console.error('❌ Dashboard data loading error:', error);
+                showError(`Failed to load dashboard data: ${error.message}`);
+            }
         }
         
-        // TAB SWITCHING - ENHANCED WITH DATA LOADING
+        // TAB SWITCHING - WITH PROPER ERROR HANDLING
         function switchTab(tabName) {
-            safeExecute(() => {
-                console.log('🔄 Switching to tab:', tabName);
-                
-                // Hide all tab contents
-                document.querySelectorAll('.tab-content').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                // Remove active from all tabs
-                document.querySelectorAll('.tab').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                // Show selected tab content
-                const targetTab = document.getElementById(tabName + '-tab');
-                if (targetTab) {
-                    targetTab.classList.add('active');
+            console.log('🔄 Switching to tab:', tabName);
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            const targetTab = document.getElementById(tabName + '-tab');
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            
+            // Mark selected tab as active
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // Load data for specific tabs if we have a session
+            if (currentSession) {
+                if (tabName === 'records') {
+                    loadHealthRecords();
+                } else if (tabName === 'documents') {
+                    loadDocuments();
+                } else if (tabName === 'trends') {
+                    loadTrends();
                 }
-                
-                // Mark selected tab as active
-                if (event && event.target) {
-                    event.target.classList.add('active');
-                }
-                
-                // Load data for specific tabs if we have a session
-                if (currentSession) {
-                    if (tabName === 'records') {
-                        loadHealthRecords();
-                    } else if (tabName === 'documents') {
-                        loadDocuments();
-                    } else if (tabName === 'trends') {
-                        loadTrends();
-                    }
-                }
-            }, 'switchTab');
+            }
         }
         
-        // LOAD HEALTH RECORDS - RESTORED
+        // LOAD HEALTH RECORDS - REAL DATA ONLY WITH DETAILED ERRORS
         async function loadHealthRecords() {
-            await safeExecute(async () => {
-                console.log('📋 Loading health records...');
+            console.log('📋 Loading health records (Real Data Only)...');
+            
+            const tableBody = document.getElementById('recordsTableBody');
+            if (!tableBody) return;
+            
+            if (!currentSession) {
+                console.log('ℹ️ No session found for health records');
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <h3>🔐 Session Required</h3>
+                            <p>Please <a href="/setup" style="color: #667eea;">create a session</a> to view health records.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            try {
+                console.log('🔍 Fetching health records with session:', currentSession.sessionToken.substring(0, 20) + '...');
                 
-                const tableBody = document.getElementById('recordsTableBody');
-                if (!tableBody) return;
+                const response = await fetch(`/api/documents?action=healthRecords&sessionToken=${currentSession.sessionToken}`);
                 
-                if (!currentSession) {
-                    console.log('ℹ️ No session found for health records');
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="empty-state">
-                                <h3>🔐 Session Required</h3>
-                                <p>Please <a href="/setup" style="color: #667eea;">create a session</a> to view health records.</p>
-                            </td>
-                        </tr>
-                    `;
-                    return;
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API request failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
                 }
                 
-                try {
-                    console.log('🔍 Fetching health records with session:', currentSession.sessionToken.substring(0, 20) + '...');
+                const data = await response.json();
+                console.log('📊 Health Records API response:', data);
+                
+                if (!data.success) {
+                    throw new Error(`API returned error: ${data.error || 'Unknown API error'}`);
+                }
+                
+                if (data.healthRecords && data.healthRecords.length > 0) {
+                    healthRecords = data.healthRecords;
+                    console.log(`✅ Found ${healthRecords.length} REAL health records`);
                     
-                    const response = await fetch(`/api/documents?action=healthRecords&sessionToken=${currentSession.sessionToken}`);
+                    // Sort by test date (newest first)
+                    healthRecords.sort((a, b) => new Date(b.test_date) - new Date(a.test_date));
                     
-                    if (!response.ok) {
-                        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-                    }
-                    
-                    const data = await response.json();
-                    console.log('📊 Health Records API response:', data.success ? 'Success' : 'Failed');
-                    
-                    if (data.success && data.healthRecords && data.healthRecords.length > 0) {
-                        healthRecords = data.healthRecords;
-                        console.log(`✅ Found ${healthRecords.length} health records`);
-                        
-                        // Sort by test date (newest first)
-                        healthRecords.sort((a, b) => new Date(b.test_date) - new Date(a.test_date));
-                        
-                        renderRecordsTable();
-                    } else {
-                        console.log('ℹ️ No health records found');
-                        tableBody.innerHTML = `
-                            <tr>
-                                <td colspan="7" class="empty-state">
-                                    <h3>📋 No Records Found</h3>
-                                    <p>Upload your first health document to start building your record history!</p>
-                                </td>
-                            </tr>
-                        `;
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Error loading health records:', error);
+                    renderRecordsTable();
+                } else {
+                    console.log('ℹ️ No health records found in database');
                     tableBody.innerHTML = `
                         <tr>
-                            <td colspan="7" class="error">
-                                <h3>❌ Error Loading Records</h3>
-                                <p><strong>Error:</strong> ${error.message}</p>
+                            <td colspan="8" class="empty-state">
+                                <h3>📋 No Records Found</h3>
+                                <p>Upload your first health document to start building your record history!</p>
+                                <p style="margin-top: 10px; font-size: 14px; color: #999;">Only real data from uploaded PDFs will appear here.</p>
                             </td>
                         </tr>
                     `;
                 }
-            }, 'loadHealthRecords');
+                
+            } catch (error) {
+                console.error('❌ Error loading health records:', error);
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="error">
+                            <h3>❌ Error Loading Records</h3>
+                            <p><strong>Error:</strong> ${error.message}</p>
+                            <p><strong>Debug Info:</strong></p>
+                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                <li>Session Token: ${currentSession ? 'Present' : 'Missing'}</li>
+                                <li>API Endpoint: /api/documents?action=healthRecords</li>
+                                <li>Check browser console (F12) for detailed logs</li>
+                            </ul>
+                        </td>
+                    </tr>
+                `;
+            }
         }
         
-        // RENDER RECORDS TABLE - RESTORED
+        // RENDER RECORDS TABLE - REAL DATA ONLY
         function renderRecordsTable() {
-            safeExecute(() => {
-                const tableBody = document.getElementById('recordsTableBody');
-                if (!tableBody || !healthRecords || healthRecords.length === 0) return;
+            const tableBody = document.getElementById('recordsTableBody');
+            if (!tableBody || !healthRecords || healthRecords.length === 0) return;
+            
+            console.log(`📋 Rendering ${healthRecords.length} REAL health records`);
+            
+            tableBody.innerHTML = healthRecords.map(record => {
+                const testDate = record.test_date ? new Date(record.test_date).toLocaleDateString() : 'Unknown';
+                const fileName = record.file_name || 'Unknown Document';
                 
-                tableBody.innerHTML = healthRecords.map(record => {
-                    const testDate = safeExecute(() => new Date(record.test_date).toLocaleDateString(), 'testDate') || 'Unknown';
-                    
-                    return `
-                        <tr>
-                            <td>${testDate}</td>
-                            <td style="font-weight: 600;">${record.parameter_name || 'Unknown'}</td>
-                            <td style="font-weight: 500;">${record.parameter_value || 'N/A'}</td>
-                            <td>${record.parameter_unit || ''}</td>
-                            <td>${record.reference_range || 'Not specified'}</td>
-                            <td style="color: ${getStatusColor(record.status)}">${record.status || 'Unknown'}</td>
-                            <td>${record.category || 'General'}</td>
-                        </tr>
-                    `;
-                }).join('');
-                
-                console.log(`✅ Rendered ${healthRecords.length} health records in table`);
-            }, 'renderRecordsTable');
+                return `
+                    <tr>
+                        <td>${testDate}</td>
+                        <td style="font-weight: 600;">${record.parameter_name || 'Unknown'}</td>
+                        <td style="font-weight: 500;">${record.parameter_value || 'N/A'}</td>
+                        <td>${record.parameter_unit || ''}</td>
+                        <td>${record.reference_range || 'Not specified'}</td>
+                        <td style="color: ${getStatusColor(record.status)}">${record.status || 'Unknown'}</td>
+                        <td>${record.category || 'General'}</td>
+                        <td title="${fileName}">${fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            console.log(`✅ Rendered ${healthRecords.length} REAL health records in table`);
         }
         
         // GET STATUS COLOR
@@ -650,173 +657,207 @@
             }
         }
         
-        // LOAD DOCUMENTS - RESTORED
+        // LOAD DOCUMENTS - REAL DATA ONLY
         async function loadDocuments() {
-            await safeExecute(async () => {
-                console.log('📁 Loading documents...');
-                
-                const documentList = document.getElementById('documentList');
-                if (!documentList) return;
-                
-                if (!currentSession) {
-                    console.log('ℹ️ No session found for documents');
-                    documentList.innerHTML = `
-                        <div class="empty-state">
-                            <h3>🔐 Session Required</h3>
-                            <p>Please <a href="/setup" style="color: #667eea;">create a session</a> to store and track documents.</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                try {
-                    console.log('🔍 Fetching documents with session:', currentSession.sessionToken.substring(0, 20) + '...');
-                    
-                    const response = await fetch(`/api/documents?sessionToken=${currentSession.sessionToken}`);
-                    const data = await response.json();
-                    
-                    console.log('📊 Documents API response:', data.success ? 'Success' : 'Failed');
-                    
-                    if (data.success && data.documents && data.documents.length > 0) {
-                        documents = data.documents;
-                        console.log(`✅ Found ${documents.length} documents`);
-                        renderDocumentList();
-                    } else {
-                        console.log('ℹ️ No documents found');
-                        documentList.innerHTML = `
-                            <div class="empty-state">
-                                <h3>📄 No Documents Yet</h3>
-                                <p>Upload your first health document to start tracking trends!</p>
-                            </div>
-                        `;
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Error loading documents:', error);
-                    documentList.innerHTML = `
-                        <div class="error">
-                            <h3>❌ Error Loading Documents</h3>
-                            <p>${error.message}</p>
-                        </div>
-                    `;
-                }
-            }, 'loadDocuments');
-        }
-        
-        // RENDER DOCUMENT LIST - RESTORED
-        function renderDocumentList() {
-            safeExecute(() => {
-                const documentList = document.getElementById('documentList');
-                if (!documentList || !documents || documents.length === 0) return;
-                
-                documentList.innerHTML = documents.map(doc => `
-                    <div class="document-item">
-                        <div style="font-weight: 600; margin-bottom: 10px;">📄 ${doc.file_name || doc.document_name}</div>
-                        <div style="font-size: 14px; color: #666; margin-bottom: 10px;">
-                            <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
-                            <strong>Uploaded:</strong> ${new Date(doc.created_at).toLocaleDateString()}
-                        </div>
-                        <div style="display: flex; gap: 10px;">
-                            <button class="btn btn-secondary" onclick="alert('View functionality coming soon!')">👁️ View</button>
-                            <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
-                        </div>
-                    </div>
-                `).join('');
-                
-                console.log(`✅ Rendered ${documents.length} documents`);
-            }, 'renderDocumentList');
-        }
-        
-        // LOAD TRENDS - RESTORED
-        async function loadTrends() {
-            await safeExecute(async () => {
-                console.log('📈 Loading trends...');
-                
-                const trendAnalysis = document.getElementById('trendAnalysis');
-                if (!trendAnalysis) return;
-                
-                if (!currentSession) {
-                    trendAnalysis.innerHTML = `
-                        <div class="empty-state">
-                            <h3>🔐 Session Required</h3>
-                            <p>Please <a href="/setup" style="color: #667eea;">create a session</a> to view trend analysis.</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                // For now, show a placeholder
-                trendAnalysis.innerHTML = `
-                    <div class="result">
-                        <h3>📈 Trend Analysis</h3>
-                        <div class="analysis-content">
-                            Upload multiple health documents over time to see trend analysis here.
-                            
-                            The AI will automatically identify patterns in your health parameters and show:
-                            • Parameter changes over time
-                            • Health trends (improving, stable, or concerning)
-                            • Correlation between different health markers
-                            • Personalized recommendations based on trends
-                        </div>
+            console.log('📁 Loading documents (Real Data Only)...');
+            
+            const documentList = document.getElementById('documentList');
+            if (!documentList) return;
+            
+            if (!currentSession) {
+                console.log('ℹ️ No session found for documents');
+                documentList.innerHTML = `
+                    <div class="empty-state">
+                        <h3>🔐 Session Required</h3>
+                        <p>Please <a href="/setup" style="color: #667eea;">create a session</a> to store and track documents.</p>
                     </div>
                 `;
-            }, 'loadTrends');
-        }
-        
-        // DELETE DOCUMENT - RESTORED
-        async function deleteDocument(documentId) {
-            if (!confirm('Are you sure you want to delete this document?')) return;
+                return;
+            }
             
-            await safeExecute(async () => {
-                try {
-                    const response = await fetch('/api/documents', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'delete',
-                            sessionToken: currentSession.sessionToken,
-                            documentId: documentId
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        console.log('✅ Document deleted successfully');
-                        await loadDashboardData();
-                    } else {
-                        throw new Error(data.error);
-                    }
-                    
-                } catch (error) {
-                    alert('Error deleting document: ' + error.message);
+            try {
+                console.log('🔍 Fetching documents with session:', currentSession.sessionToken.substring(0, 20) + '...');
+                
+                const response = await fetch(`/api/documents?sessionToken=${currentSession.sessionToken}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API request failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
                 }
-            }, 'deleteDocument');
+                
+                const data = await response.json();
+                console.log('📊 Documents API response:', data);
+                
+                if (!data.success) {
+                    throw new Error(`API returned error: ${data.error || 'Unknown API error'}`);
+                }
+                
+                if (data.documents && data.documents.length > 0) {
+                    documents = data.documents;
+                    console.log(`✅ Found ${documents.length} REAL documents`);
+                    renderDocumentList();
+                } else {
+                    console.log('ℹ️ No documents found in database');
+                    documentList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>📄 No Documents Yet</h3>
+                            <p>Upload your first health document to start tracking trends!</p>
+                            <p style="margin-top: 10px; font-size: 14px; color: #999;">Only uploaded PDF documents will appear here.</p>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading documents:', error);
+                documentList.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error Loading Documents</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>Debug Info:</strong></p>
+                        <ul style="margin: 10px 0; padding-left: 20px;">
+                            <li>Session Token: ${currentSession ? 'Present' : 'Missing'}</li>
+                            <li>API Endpoint: /api/documents</li>
+                            <li>Check browser console (F12) for detailed logs</li>
+                        </ul>
+                    </div>
+                `;
+            }
         }
         
-        // FILE UPLOAD HANDLING - SAME AS BEFORE
+        // RENDER DOCUMENT LIST - REAL DATA ONLY
+        function renderDocumentList() {
+            const documentList = document.getElementById('documentList');
+            if (!documentList || !documents || documents.length === 0) return;
+            
+            console.log(`📁 Rendering ${documents.length} REAL documents`);
+            
+            documentList.innerHTML = documents.map(doc => `
+                <div class="document-item">
+                    <div style="font-weight: 600; margin-bottom: 10px;">📄 ${doc.file_name || doc.document_name}</div>
+                    <div style="font-size: 14px; color: #666; margin-bottom: 10px;">
+                        <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
+                        <strong>Uploaded:</strong> ${new Date(doc.created_at).toLocaleDateString()} •
+                        <strong>Parameters:</strong> ${doc.parameter_count || 0}
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn btn-secondary" onclick="alert('View functionality coming soon!')">👁️ View</button>
+                        <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            console.log(`✅ Rendered ${documents.length} REAL documents`);
+        }
+        
+        // LOAD TRENDS - REAL DATA ONLY
+        async function loadTrends() {
+            console.log('📈 Loading trends (Real Data Only)...');
+            
+            const trendAnalysis = document.getElementById('trendAnalysis');
+            if (!trendAnalysis) return;
+            
+            if (!currentSession) {
+                trendAnalysis.innerHTML = `
+                    <div class="empty-state">
+                        <h3>🔐 Session Required</h3>
+                        <p>Please <a href="/setup" style="color: #667eea;">create a session</a> to view trend analysis.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Check if we have enough data for trends
+            if (!healthRecords || healthRecords.length < 2) {
+                trendAnalysis.innerHTML = `
+                    <div class="empty-state">
+                        <h3>📈 Insufficient Data for Trends</h3>
+                        <p>Upload multiple health documents over time to see trend analysis.</p>
+                        <p style="margin-top: 10px; font-size: 14px; color: #999;">
+                            Currently have: ${healthRecords ? healthRecords.length : 0} health parameters.<br>
+                            Need: At least 2 parameters with different dates for trend analysis.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Show real trend analysis placeholder
+            trendAnalysis.innerHTML = `
+                <div class="result">
+                    <h3>📈 Trend Analysis (${healthRecords.length} Real Data Points)</h3>
+                    <div class="analysis-content">
+                        Based on your ${healthRecords.length} real health parameters from uploaded documents:
+                        
+                        • Date Range: ${new Date(Math.min(...healthRecords.map(r => new Date(r.test_date)))).toLocaleDateString()} to ${new Date(Math.max(...healthRecords.map(r => new Date(r.test_date)))).toLocaleDateString()}
+                        • Unique Parameters: ${new Set(healthRecords.map(r => r.parameter_name)).size}
+                        • Documents Analyzed: ${new Set(healthRecords.map(r => r.document_id)).size}
+                        
+                        Advanced trend analysis will be available once more data points are collected.
+                        This feature analyzes patterns in your REAL health data only.
+                    </div>
+                </div>
+            `;
+        }
+        
+        // DELETE DOCUMENT - REAL DATA ONLY
+        async function deleteDocument(documentId) {
+            if (!confirm('Are you sure you want to delete this document and all its health data?')) return;
+            
+            try {
+                console.log('🗑️ Deleting document:', documentId);
+                
+                const response = await fetch('/api/documents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete',
+                        sessionToken: currentSession.sessionToken,
+                        documentId: documentId
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Delete failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(`Delete API error: ${data.error || 'Unknown error'}`);
+                }
+                
+                console.log('✅ Document deleted successfully');
+                await loadDashboardData(); // Refresh all data
+                
+            } catch (error) {
+                console.error('❌ Error deleting document:', error);
+                alert(`Error deleting document: ${error.message}`);
+            }
+        }
+        
+        // FILE UPLOAD HANDLING - REAL DATA ONLY
         function handleFileSelect(e) {
-            safeExecute(() => {
-                const files = e.target.files;
-                if (files.length > 0) {
-                    const file = files[0];
-                    
-                    if (file.type !== 'application/pdf') {
-                        alert('Please upload a PDF file only.');
-                        return;
-                    }
-                    
-                    if (file.size > 25 * 1024 * 1024) {
-                        alert('File size must be less than 25MB.');
-                        return;
-                    }
-                    
-                    processDocument(file);
+            const files = e.target.files;
+            if (files.length > 0) {
+                const file = files[0];
+                
+                if (file.type !== 'application/pdf') {
+                    showError('Please upload a PDF file only.');
+                    return;
                 }
-            }, 'handleFileSelect');
+                
+                if (file.size > 25 * 1024 * 1024) {
+                    showError('File size must be less than 25MB.');
+                    return;
+                }
+                
+                console.log('📄 Processing REAL PDF file:', file.name, 'Size:', file.size);
+                processDocument(file);
+            }
         }
         
-        // DOCUMENT PROCESSING - ENHANCED WITH SESSION STORAGE
+        // DOCUMENT PROCESSING - REAL DATA ONLY WITH NO FALLBACKS
         async function processDocument(file) {
             const processingStatus = document.getElementById('processingStatus');
             const processingSteps = document.getElementById('processingSteps');
@@ -827,15 +868,17 @@
                 if (resultDiv) resultDiv.innerHTML = '';
                 if (processingStatus) processingStatus.style.display = 'block';
                 
+                console.log('🤖 Starting REAL document processing for:', file.name);
+                
                 // Step 1: Show processing start
                 if (processingSteps) {
-                    processingSteps.innerHTML = '⏳ Step 1: Uploading and processing document...';
+                    processingSteps.innerHTML = '⏳ Step 1: Uploading and processing REAL document...';
                 }
                 await sleep(500);
                 
-                // Step 2: Extract parameters
+                // Step 2: Extract parameters - REAL DATA ONLY
                 if (processingSteps) {
-                    processingSteps.innerHTML += '<br>⏳ Step 2: Extracting health parameters with AI...';
+                    processingSteps.innerHTML += '<br>⏳ Step 2: Extracting REAL health parameters with AI...';
                 }
                 
                 const formData = new FormData();
@@ -847,21 +890,33 @@
                 });
                 
                 if (!extractionResponse.ok) {
-                    throw new Error(`Extraction failed: ${extractionResponse.status}`);
+                    const errorText = await extractionResponse.text();
+                    throw new Error(`Extraction failed: ${extractionResponse.status} ${extractionResponse.statusText}. Response: ${errorText}`);
                 }
                 
                 const extractionData = await extractionResponse.json();
+                console.log('📊 Extraction response:', extractionData);
                 
                 if (!extractionData.success) {
-                    throw new Error(extractionData.error || 'Failed to extract health parameters');
+                    throw new Error(`Extraction error: ${extractionData.error || 'Failed to extract health parameters from PDF'}`);
                 }
                 
-                // Step 3: Analyze with AI
+                if (!extractionData.extractedData || !extractionData.extractedData.healthParameters || extractionData.extractedData.healthParameters.length === 0) {
+                    throw new Error('No health parameters found in the PDF document. Please ensure the document contains readable medical data with numerical values.');
+                }
+                
+                console.log(`✅ Found ${extractionData.extractedData.healthParameters.length} REAL health parameters`);
+                
+                // Step 3: Analyze with AI - REAL DATA ONLY
                 if (processingSteps) {
-                    processingSteps.innerHTML += '<br>⏳ Step 3: Analyzing with AI...';
+                    processingSteps.innerHTML += '<br>⏳ Step 3: Analyzing REAL data with AI...';
                 }
                 
                 const healthDataText = formatHealthDataForAnalysis(extractionData.extractedData.healthParameters);
+                
+                if (!healthDataText.trim()) {
+                    throw new Error('Failed to format health data for analysis');
+                }
                 
                 const analysisResponse = await fetch('/api/analyze', {
                     method: 'POST',
@@ -872,30 +927,34 @@
                 });
                 
                 if (!analysisResponse.ok) {
-                    throw new Error(`Analysis failed: ${analysisResponse.status}`);
+                    const errorText = await analysisResponse.text();
+                    throw new Error(`Analysis failed: ${analysisResponse.status} ${analysisResponse.statusText}. Response: ${errorText}`);
                 }
                 
                 const analysisData = await analysisResponse.json();
+                console.log('📊 Analysis response:', analysisData);
                 
                 if (!analysisData.success) {
-                    throw new Error(analysisData.error || 'Failed to analyze health data');
+                    throw new Error(`Analysis error: ${analysisData.error || 'Failed to analyze health data'}`);
                 }
                 
-                // Step 4: Store document if we have a session
+                // Step 4: Store REAL document data
                 if (processingSteps) {
-                    processingSteps.innerHTML += '<br>⏳ Step 4: Storing document for trend tracking...';
+                    processingSteps.innerHTML += '<br>⏳ Step 4: Storing REAL document data...';
                 }
                 
                 if (currentSession) {
                     await storeDocument(file.name, extractionData.extractedData, analysisData.analysis);
+                } else {
+                    console.warn('⚠️ No session - document not stored for trend tracking');
                 }
                 
                 // Step 5: Complete
                 if (processingSteps) {
-                    processingSteps.innerHTML += '<br>✅ Step 5: Analysis complete!';
+                    processingSteps.innerHTML += '<br>✅ Step 5: REAL data analysis complete!';
                 }
                 
-                // Show results
+                // Show results - REAL DATA ONLY
                 showAnalysisResults(analysisData, extractionData.extractedData);
                 
                 // Hide processing status
@@ -906,6 +965,7 @@
                 // Refresh dashboard data if we have a session
                 if (currentSession) {
                     setTimeout(() => {
+                        console.log('🔄 Refreshing dashboard with new REAL data...');
                         loadDashboardData();
                     }, 1000);
                 }
@@ -914,7 +974,7 @@
                 console.error('❌ Document processing error:', error);
                 
                 if (processingSteps) {
-                    processingSteps.innerHTML += `<br>❌ Error: ${error.message}`;
+                    processingSteps.innerHTML += `<br>❌ ERROR: ${error.message}`;
                 }
                 
                 setTimeout(() => {
@@ -924,11 +984,12 @@
                                 <h3>❌ Document Processing Failed</h3>
                                 <p><strong>Error:</strong> ${error.message}</p>
                                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
-                                    <strong>Common Solutions:</strong><br>
-                                    • Ensure PDF contains readable text (not scanned images)<br>
-                                    • Check that document has clear health parameters with values<br>
-                                    • Try a different health document format<br>
-                                    • Check your internet connection and try again
+                                    <strong>Common Causes:</strong><br>
+                                    • PDF contains scanned images instead of readable text<br>
+                                    • Document lacks clear health parameters with numerical values<br>
+                                    • Network connectivity issues<br>
+                                    • File corruption or unsupported PDF format<br><br>
+                                    <strong>No fake data is used - only real PDF content is processed.</strong>
                                 </div>
                             </div>
                         `;
@@ -939,65 +1000,77 @@
             }
         }
         
-        // STORE DOCUMENT - RESTORED
+        // STORE DOCUMENT - REAL DATA ONLY
         async function storeDocument(fileName, extractedData, analysisResults) {
-            await safeExecute(async () => {
-                if (!currentSession) return;
+            if (!currentSession) {
+                console.warn('⚠️ No session available for storing document');
+                return;
+            }
+            
+            try {
+                console.log('💾 Storing REAL document data:', fileName);
                 
-                try {
-                    console.log('💾 Storing document:', fileName);
-                    
-                    const response = await fetch('/api/documents', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'store',
-                            sessionToken: currentSession.sessionToken,
-                            fileName: fileName,
-                            extractedData: extractedData,
-                            analysisResults: analysisResults,
-                            documentType: extractedData.documentType || 'Health Report'
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success) {
-                        console.log('✅ Document stored successfully:', result.message);
-                    } else {
-                        console.error('❌ Failed to store document:', result.error);
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Error storing document:', error);
+                const response = await fetch('/api/documents', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'store',
+                        sessionToken: currentSession.sessionToken,
+                        fileName: fileName,
+                        extractedData: extractedData,
+                        analysisResults: analysisResults,
+                        documentType: extractedData.documentType || 'Health Report'
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Store failed: ${response.status} ${response.statusText}. Response: ${errorText}`);
                 }
-            }, 'storeDocument');
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('✅ REAL document stored successfully:', result.message);
+                } else {
+                    throw new Error(`Store API error: ${result.error || 'Unknown storage error'}`);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error storing REAL document:', error);
+                showError(`Failed to store document: ${error.message}`);
+            }
         }
         
-        // SHOW ANALYSIS RESULTS - SAME AS BEFORE
+        // SHOW ANALYSIS RESULTS - REAL DATA ONLY
         function showAnalysisResults(analysisData, extractedData) {
             const resultDiv = document.getElementById('documentResult');
             if (!resultDiv) return;
+            
+            console.log('📊 Displaying REAL analysis results');
             
             // Clean the analysis text
             let cleanAnalysis = analysisData.analysis || 'Analysis completed successfully.';
             
             resultDiv.innerHTML = `
                 <div class="result">
-                    <h3>✅ Health Analysis Complete</h3>
+                    <h3>✅ REAL Health Analysis Complete</h3>
                     <div class="analysis-content">${cleanAnalysis}</div>
                     <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                             <div>
-                                <strong>📊 Processing Summary:</strong><br>
+                                <strong>📊 REAL Data Summary:</strong><br>
                                 • Parameters Found: ${extractedData.totalParametersFound || extractedData.healthParameters?.length || 0}<br>
                                 • Document Type: ${extractedData.documentType || 'Health Report'}<br>
+                                • Test Date: ${extractedData.testDate || 'Not specified'}<br>
                                 • Medical Context: ${analysisData.medicalContextIncluded ? '✅ Included' : '❌ Not available'}
                             </div>
                             <div>
                                 <strong>🔒 Privacy Status:</strong><br>
                                 • Personal Data Removed: ✅ Yes<br>
                                 • Anonymous Processing: ✅ Complete<br>
-                                • Storage: ${currentSession ? '✅ Stored for trends' : '❌ Session required'}
+                                • Storage: ${currentSession ? '✅ Stored for trends' : '❌ Session required'}<br>
+                                • Data Source: ✅ Real PDF Upload Only
                             </div>
                         </div>
                     </div>
@@ -1005,10 +1078,10 @@
             `;
         }
         
-        // FORMAT HEALTH DATA - SAME AS BEFORE
+        // FORMAT HEALTH DATA - REAL DATA ONLY
         function formatHealthDataForAnalysis(healthParameters) {
             if (!healthParameters || !Array.isArray(healthParameters)) {
-                return '';
+                throw new Error('No valid health parameters provided for analysis');
             }
             
             return healthParameters.map(param => {
@@ -1019,12 +1092,18 @@
             }).join('\n');
         }
         
+        // SHOW ERROR - NO FAKE DATA, CLEAR ERROR MESSAGES
+        function showError(message) {
+            console.error('❌ ERROR:', message);
+            alert(`ERROR: ${message}`);
+        }
+        
         // UTILITY FUNCTION
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
         
-        // DRAG AND DROP SETUP - SAME AS BEFORE
+        // DRAG AND DROP SETUP - REAL FILES ONLY
         const uploadArea = document.getElementById('uploadArea');
         
         if (uploadArea) {
@@ -1060,8 +1139,9 @@
             e.stopPropagation();
         }
         
-        console.log('✅ HealthAI Balanced Fix loaded successfully - Build 10');
+        console.log('✅ HealthAI NO FAKE DATA version loaded successfully - Build 11');
         console.log('📊 Session status:', currentSession ? 'Active' : 'Not found');
+        console.log('🚨 POLICY: Only real data from uploaded PDFs will be processed and displayed');
     </script>
 </body>
 </html>
