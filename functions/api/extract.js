@@ -9,12 +9,13 @@ export async function onRequestPost(context) {
   };
 
   try {
-    console.log('=== EXTRACT API CALLED ===');
+    console.log('=== EXTRACT API CALLED (ENHANCED DEBUG) ===');
     console.log('Content-Type:', request.headers.get('content-type'));
     
     let textToProcess = '';
     let processingMethod = 'unknown';
     let fileName = 'unknown';
+    let fileSize = 0;
     
     const contentType = request.headers.get('content-type') || '';
     
@@ -27,13 +28,17 @@ export async function onRequestPost(context) {
       
       if (pdfFile && pdfFile instanceof File) {
         fileName = pdfFile.name;
-        console.log('Processing PDF file:', fileName, 'Size:', pdfFile.size, 'Type:', pdfFile.type);
+        fileSize = pdfFile.size;
+        console.log('Processing PDF file:', fileName, 'Size:', fileSize, 'Type:', pdfFile.type);
         
-        // Extract text from PDF - throw error if it fails
-        textToProcess = await extractTextFromPDF(pdfFile);
+        // Extract text from PDF with enhanced debugging
+        const extractionResult = await extractTextFromPDFWithDebug(pdfFile);
+        textToProcess = extractionResult.text;
         processingMethod = 'PDF text extraction';
         
-        console.log('PDF extraction successful, length:', textToProcess.length);
+        console.log('PDF extraction completed');
+        console.log('Extracted text length:', textToProcess.length);
+        console.log('Extraction method details:', extractionResult.methods);
         
       } else if (documentText) {
         textToProcess = documentText;
@@ -58,20 +63,47 @@ export async function onRequestPost(context) {
       throw new Error('Unsupported content type. Use multipart/form-data for file uploads or application/json for text.');
     }
 
-    // Validate we have sufficient text
+    // Enhanced text validation with detailed debugging
     if (!textToProcess || textToProcess.length < 20) {
-      throw new Error(`Insufficient text content extracted (${textToProcess?.length || 0} characters). Document may be image-based, corrupted, or empty.`);
+      throw new Error(`Insufficient text content extracted (${textToProcess?.length || 0} characters). 
+      
+DEBUG INFO:
+- File name: ${fileName}
+- File size: ${fileSize} bytes
+- Processing method: ${processingMethod}
+- Extracted text preview: "${textToProcess?.substring(0, 200) || 'EMPTY'}"
+
+This usually means:
+1. PDF is image-based (scanned) rather than text-based
+2. PDF has complex formatting that prevents text extraction
+3. File is corrupted or password-protected`);
     }
 
     console.log('Text extracted successfully, starting parameter extraction...');
-    console.log('Text preview:', textToProcess.substring(0, 300));
+    console.log('Text preview (first 500 chars):', textToProcess.substring(0, 500));
 
-    // Extract parameters using AI with enhanced date detection
-    const extractedData = await extractParametersWithAI(textToProcess, env);
+    // Enhanced parameter extraction with detailed AI debugging
+    const extractedData = await extractParametersWithAIDebug(textToProcess, env, fileName, fileSize);
     
     // Validate we found parameters
     if (!extractedData.healthParameters || extractedData.healthParameters.length === 0) {
-      throw new Error('No health parameters found in document. Please ensure the document contains medical lab values, measurements, or health data with numerical values.');
+      throw new Error(`No health parameters found in document.
+
+DEBUG INFO:
+- File name: ${fileName}
+- File size: ${fileSize} bytes
+- Text length: ${textToProcess.length} characters
+- Processing method: ${processingMethod}
+- AI response details: ${extractedData.debugInfo || 'Not available'}
+
+EXTRACTED TEXT SAMPLE:
+"${textToProcess.substring(0, 1000)}"
+
+LIKELY CAUSES:
+1. Document contains no numerical health values
+2. Text format prevents AI from recognizing medical data
+3. AI model temporarily unavailable or rate limited
+4. Document is not a medical/health report`);
     }
 
     console.log('Parameter extraction successful:', extractedData.healthParameters.length, 'parameters found');
@@ -79,6 +111,16 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({
       success: true,
       extractedData: extractedData,
+      debugInfo: {
+        fileName: fileName,
+        fileSize: fileSize,
+        processingMethod: processingMethod,
+        textLength: textToProcess.length,
+        textPreview: textToProcess.substring(0, 500),
+        parametersFound: extractedData.healthParameters.length,
+        aiProcessingTime: extractedData.processingTime,
+        timestamp: new Date().toISOString()
+      },
       processingInfo: {
         model: 'llama-3.1-8b-instruct',
         extractionMethod: processingMethod,
@@ -97,17 +139,24 @@ export async function onRequestPost(context) {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      details: 'Document extraction failed',
+      details: 'Document extraction failed with enhanced debugging',
       timestamp: new Date().toISOString(),
+      debugInfo: {
+        fileName: fileName || 'unknown',
+        fileSize: fileSize || 0,
+        processingMethod: processingMethod || 'unknown',
+        errorType: 'EXTRACTION_FAILURE'
+      },
       troubleshooting: {
         pdfRequirements: 'PDF must contain readable text (not scanned images)',
         dataRequirements: 'Document must contain numerical health values (lab results, measurements, etc.)',
         supportedFormats: 'Text-based PDFs with medical data',
         commonIssues: [
           'Scanned/image-based PDFs cannot be processed',
-          'Documents without numerical health values',
+          'Documents without numerical health values', 
           'Corrupted or password-protected files',
-          'Non-medical documents'
+          'Non-medical documents',
+          'AI model temporarily unavailable'
         ]
       }
     }), {
@@ -117,13 +166,16 @@ export async function onRequestPost(context) {
   }
 }
 
-// PDF text extraction - throws errors on failure
-async function extractTextFromPDF(pdfFile) {
+// Enhanced PDF text extraction with detailed debugging
+async function extractTextFromPDFWithDebug(pdfFile) {
   try {
     const arrayBuffer = await pdfFile.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     
-    console.log('PDF size:', uint8Array.length, 'bytes');
+    console.log('PDF Analysis:');
+    console.log('- File size:', uint8Array.length, 'bytes');
+    console.log('- File type:', pdfFile.type);
+    console.log('- File name:', pdfFile.name);
     
     if (uint8Array.length === 0) {
       throw new Error('PDF file is empty or corrupted');
@@ -133,11 +185,13 @@ async function extractTextFromPDF(pdfFile) {
     const pdfString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
     
     let extractedText = '';
+    const extractionMethods = [];
     
     // Method 1: Extract text in parentheses (common PDF text encoding)
     const parenthesesMatches = pdfString.match(/\(([^)]{2,})\)/g);
     if (parenthesesMatches) {
-      console.log('Found', parenthesesMatches.length, 'parentheses text blocks');
+      console.log('Method 1: Found', parenthesesMatches.length, 'parentheses text blocks');
+      extractionMethods.push(`Parentheses method: ${parenthesesMatches.length} blocks`);
       
       const cleanText = parenthesesMatches
         .map(match => match.slice(1, -1)) // Remove parentheses
@@ -145,13 +199,16 @@ async function extractTextFromPDF(pdfFile) {
         .join(' ');
       
       extractedText += cleanText + ' ';
+      console.log('Method 1 extracted', cleanText.length, 'characters');
     }
     
     // Method 2: Extract text between BT and ET markers
     const btMatches = pdfString.match(/BT\s+(.*?)\s+ET/gs);
     if (btMatches) {
-      console.log('Found', btMatches.length, 'BT/ET text blocks');
+      console.log('Method 2: Found', btMatches.length, 'BT/ET text blocks');
+      extractionMethods.push(`BT/ET method: ${btMatches.length} blocks`);
       
+      let btExtractedLength = 0;
       btMatches.forEach(match => {
         const content = match.replace(/BT\s*|\s*ET/g, '');
         // Look for text show commands
@@ -161,26 +218,33 @@ async function extractTextFromPDF(pdfFile) {
             const text = cmd.match(/\((.*?)\)/);
             if (text && text[1] && text[1].length > 1) {
               extractedText += text[1] + ' ';
+              btExtractedLength += text[1].length;
             }
           });
         }
       });
+      console.log('Method 2 extracted', btExtractedLength, 'characters');
     }
     
     // Method 3: Look for stream content with readable text
     const streamMatches = pdfString.match(/stream\s*(.*?)\s*endstream/gs);
     if (streamMatches) {
-      console.log('Found', streamMatches.length, 'PDF streams');
+      console.log('Method 3: Found', streamMatches.length, 'PDF streams');
+      extractionMethods.push(`Stream method: ${streamMatches.length} streams`);
       
+      let streamExtractedLength = 0;
       streamMatches.forEach(stream => {
         const streamContent = stream.replace(/^stream\s*|\s*endstream$/g, '');
         
         // Extract readable text patterns from stream
         const readableText = streamContent.match(/[A-Za-z][A-Za-z\s\d.,:-]{5,}/g);
         if (readableText) {
-          extractedText += readableText.join(' ') + ' ';
+          const streamText = readableText.join(' ') + ' ';
+          extractedText += streamText;
+          streamExtractedLength += streamText.length;
         }
       });
+      console.log('Method 3 extracted', streamExtractedLength, 'characters');
     }
     
     // Clean up extracted text
@@ -190,40 +254,82 @@ async function extractTextFromPDF(pdfFile) {
       .replace(/[^\w\s\d.,;:()\-\/\%]/g, ' ')  // Remove special characters but keep medical symbols
       .trim();
     
-    console.log('Final extracted text length:', extractedText.length);
-    console.log('Text preview:', extractedText.substring(0, 500));
+    console.log('Text extraction summary:');
+    console.log('- Total extracted length:', extractedText.length);
+    console.log('- Extraction methods used:', extractionMethods.length);
+    console.log('- Text preview:', extractedText.substring(0, 300));
     
+    // Enhanced content validation
     if (extractedText.length < 20) {
-      throw new Error(`PDF text extraction failed - only ${extractedText.length} characters extracted. This PDF appears to be image-based or does not contain readable text. Please use a text-based PDF with selectable text.`);
+      throw new Error(`PDF text extraction failed - only ${extractedText.length} characters extracted.
+
+EXTRACTION DETAILS:
+- Methods attempted: ${extractionMethods.join(', ')}
+- Parentheses blocks: ${parenthesesMatches?.length || 0}
+- BT/ET blocks: ${btMatches?.length || 0}  
+- Stream blocks: ${streamMatches?.length || 0}
+- Raw text sample: "${extractedText}"
+
+This PDF appears to be image-based or does not contain readable text. Please use a text-based PDF with selectable text.`);
     }
     
-    // Check if text contains any potential health-related content
-    const healthIndicators = ['cholesterol', 'glucose', 'hemoglobin', 'blood', 'test', 'result', 'lab', 'mg/dl', 'mmol', 'normal', 'high', 'low', 'reference'];
-    const hasHealthContent = healthIndicators.some(indicator => 
+    // Check if text contains potential health-related content
+    const healthIndicators = ['cholesterol', 'glucose', 'hemoglobin', 'blood', 'test', 'result', 'lab', 'mg/dl', 'mmol', 'normal', 'high', 'low', 'reference', 'diabetes', 'a1c'];
+    const foundIndicators = healthIndicators.filter(indicator => 
       extractedText.toLowerCase().includes(indicator)
     );
     
-    if (!hasHealthContent) {
-      throw new Error('Extracted text does not appear to contain health/medical data. Please upload a medical document with lab results, health measurements, or clinical data.');
+    console.log('Health indicators found:', foundIndicators);
+    
+    if (foundIndicators.length === 0) {
+      throw new Error(`Extracted text does not appear to contain health/medical data.
+
+EXTRACTED TEXT (first 1000 chars):
+"${extractedText.substring(0, 1000)}"
+
+EXTRACTION METHODS USED:
+${extractionMethods.join('\n')}
+
+Please ensure the document contains medical data with numerical values (lab results, health measurements, etc.).`);
     }
     
-    return extractedText;
+    return {
+      text: extractedText,
+      methods: extractionMethods,
+      healthIndicators: foundIndicators,
+      extractionStats: {
+        parenthesesBlocks: parenthesesMatches?.length || 0,
+        btBlocks: btMatches?.length || 0,
+        streamBlocks: streamMatches?.length || 0
+      }
+    };
     
   } catch (error) {
-    if (error.message.includes('PDF text extraction failed') || error.message.includes('does not appear to contain health')) {
-      throw error; // Re-throw our custom errors
+    if (error.message.includes('PDF text extraction failed') || 
+        error.message.includes('does not appear to contain health') ||
+        error.message.includes('EXTRACTION DETAILS')) {
+      throw error; // Re-throw our custom errors with debug info
     }
-    throw new Error(`PDF processing failed: ${error.message}. Please ensure the file is a valid, text-based PDF document.`);
+    throw new Error(`PDF processing failed: ${error.message}. 
+
+DEBUG INFO:
+- File name: ${pdfFile.name}
+- File size: ${pdfFile.size} bytes
+- Error type: ${error.constructor.name}
+
+Please ensure the file is a valid, text-based PDF document.`);
   }
 }
 
-// ENHANCED AI-based parameter extraction with SMART DATE HANDLING
-async function extractParametersWithAI(textToProcess, env) {
+// Enhanced AI parameter extraction with detailed debugging
+async function extractParametersWithAIDebug(textToProcess, env, fileName, fileSize) {
+  const startTime = Date.now();
+  
   const prompt = `Extract health parameters from this medical document text. Look for numerical values with units for medical tests, measurements, and lab results.
 
 IMPORTANT: Look carefully for dates in the document and extract the actual test/collection date.
 
-TEXT:
+TEXT TO ANALYZE:
 ${textToProcess}
 
 Find all health measurements including:
@@ -238,7 +344,7 @@ Respond with ONLY a JSON object in this exact format:
   "healthParameters": [
     {
       "category": "Cardiovascular",
-      "parameter": "Total Cholesterol",
+      "parameter": "Total Cholesterol", 
       "value": "185",
       "unit": "mg/dL",
       "referenceRange": "<200",
@@ -263,7 +369,9 @@ CRITICAL DATE HANDLING RULES:
 JSON only, no other text:`;
 
   try {
-    console.log('Sending text to AI for parameter extraction with smart date detection...');
+    console.log('Starting AI parameter extraction...');
+    console.log('Text length being sent to AI:', textToProcess.length);
+    console.log('Prompt length:', prompt.length);
     
     const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: prompt,
@@ -271,12 +379,26 @@ JSON only, no other text:`;
       temperature: 0.1
     });
 
+    const processingTime = Date.now() - startTime;
+    console.log('AI response received after', processingTime, 'ms');
+
     if (!aiResponse || !aiResponse.response) {
-      throw new Error('AI model returned empty response');
+      throw new Error(`AI model returned empty response.
+
+DEBUG INFO:
+- File: ${fileName}
+- Text length: ${textToProcess.length}
+- Processing time: ${processingTime}ms
+- AI Response: ${JSON.stringify(aiResponse)}
+
+This could indicate:
+1. AI model is temporarily unavailable
+2. Text format confuses the AI model
+3. Request timeout or rate limiting`);
     }
 
-    console.log('AI response received, length:', aiResponse.response.length);
-    console.log('AI response preview:', aiResponse.response.substring(0, 300));
+    console.log('AI response length:', aiResponse.response.length);
+    console.log('AI response preview:', aiResponse.response.substring(0, 500));
 
     // Try to parse JSON from AI response
     let jsonString = aiResponse.response.trim();
@@ -286,7 +408,17 @@ JSON only, no other text:`;
     if (jsonMatch) {
       jsonString = jsonMatch[0];
     } else {
-      throw new Error('AI response does not contain valid JSON structure');
+      throw new Error(`AI response does not contain valid JSON structure.
+
+AI RESPONSE:
+"${aiResponse.response}"
+
+DEBUG INFO:
+- File: ${fileName}
+- Text length: ${textToProcess.length}
+- Processing time: ${processingTime}ms
+
+The AI model failed to return properly formatted JSON.`);
     }
     
     // Remove any markdown formatting
@@ -299,36 +431,81 @@ JSON only, no other text:`;
     try {
       extractedData = JSON.parse(jsonString);
     } catch (parseError) {
-      throw new Error(`Failed to parse AI response as JSON: ${parseError.message}`);
+      throw new Error(`Failed to parse AI response as JSON.
+
+PARSE ERROR: ${parseError.message}
+
+AI RESPONSE:
+"${jsonString}"
+
+DEBUG INFO:
+- File: ${fileName}
+- Processing time: ${processingTime}ms
+- Response length: ${jsonString.length}`);
     }
     
     // Validate required fields
     if (!extractedData.healthParameters) {
-      throw new Error('AI response missing healthParameters field');
+      throw new Error(`AI response missing healthParameters field.
+
+AI RESPONSE:
+${JSON.stringify(extractedData, null, 2)}
+
+DEBUG INFO:
+- File: ${fileName}  
+- Processing time: ${processingTime}ms`);
     }
     
     if (!Array.isArray(extractedData.healthParameters)) {
-      throw new Error('healthParameters must be an array');
+      throw new Error(`healthParameters must be an array.
+
+RECEIVED TYPE: ${typeof extractedData.healthParameters}
+VALUE: ${JSON.stringify(extractedData.healthParameters)}
+
+DEBUG INFO:
+- File: ${fileName}
+- Processing time: ${processingTime}ms`);
     }
     
     if (extractedData.healthParameters.length === 0) {
-      throw new Error('No health parameters found by AI analysis. Document may not contain recognizable medical data with numerical values.');
+      throw new Error(`No health parameters found by AI analysis.
+
+AI RESPONSE:
+${JSON.stringify(extractedData, null, 2)}
+
+INPUT TEXT SAMPLE:
+"${textToProcess.substring(0, 1000)}"
+
+DEBUG INFO:
+- File: ${fileName}
+- Text length: ${textToProcess.length}
+- Processing time: ${processingTime}ms
+
+The AI could not identify numerical health parameters in this document.`);
     }
     
     // Validate each parameter has required fields
     extractedData.healthParameters.forEach((param, index) => {
       if (!param.parameter || !param.value) {
-        throw new Error(`Health parameter ${index + 1} missing required fields (parameter name or value)`);
+        throw new Error(`Health parameter ${index + 1} missing required fields.
+
+PARAMETER DATA:
+${JSON.stringify(param, null, 2)}
+
+DEBUG INFO:
+- File: ${fileName}
+- Parameter index: ${index}
+- Processing time: ${processingTime}ms`);
       }
     });
     
-    // ENHANCED: Process and validate dates with smart month handling
-    console.log('Processing and validating dates with smart month handling...');
+    // Process and validate dates with smart month handling
+    console.log('Processing and validating dates...');
     
-    // Try to extract a more accurate test date from the text using enhanced date detection
+    // Try to extract a more accurate test date from the text
     const detectedTestDate = detectDateFromTextSmart(textToProcess);
     if (detectedTestDate) {
-      console.log('Detected test date from smart text analysis:', detectedTestDate);
+      console.log('Detected test date from text analysis:', detectedTestDate);
       extractedData.testDate = detectedTestDate;
     }
     
@@ -341,7 +518,7 @@ JSON only, no other text:`;
       extractedData.testDate = new Date().toISOString().split('T')[0];
     }
     
-    // Validate and normalize test date with smart month handling
+    // Validate and normalize test date
     extractedData.testDate = validateAndNormalizeDateSmart(extractedData.testDate);
     
     // Update all parameters with the correct test date if they don't have individual dates
@@ -359,62 +536,69 @@ JSON only, no other text:`;
     }
     
     extractedData.totalParametersFound = extractedData.healthParameters.length;
+    extractedData.processingTime = processingTime;
+    extractedData.debugInfo = {
+      fileName: fileName,
+      fileSize: fileSize,
+      textLength: textToProcess.length,
+      aiResponseLength: aiResponse.response.length,
+      processingTimeMs: processingTime
+    };
     
     console.log('AI extraction successful:', extractedData.totalParametersFound, 'parameters found');
-    console.log('Final test date used:', extractedData.testDate);
-    console.log('Parameter dates:', extractedData.healthParameters.map(p => `${p.parameter}: ${p.date}`));
+    console.log('Processing completed in', processingTime, 'ms');
     
     return extractedData;
     
   } catch (error) {
+    const processingTime = Date.now() - startTime;
+    console.error('AI parameter extraction failed after', processingTime, 'ms:', error);
+    
     if (error.message.includes('No health parameters found') || 
         error.message.includes('missing required fields') ||
-        error.message.includes('AI response')) {
-      throw error; // Re-throw our custom errors
+        error.message.includes('AI response') ||
+        error.message.includes('DEBUG INFO')) {
+      throw error; // Re-throw our custom errors with debug info
     }
-    throw new Error(`AI parameter extraction failed: ${error.message}`);
+    throw new Error(`AI parameter extraction failed: ${error.message}
+
+DEBUG INFO:
+- File: ${fileName}
+- File size: ${fileSize} bytes
+- Text length: ${textToProcess.length}
+- Processing time: ${processingTime}ms
+- Error type: ${error.constructor.name}`);
   }
 }
 
-// ENHANCED: Smart date detection with month-middle assumption
+// Smart date detection with month-middle assumption (same as before)
 function detectDateFromTextSmart(text) {
   console.log('Smart date detection from text...');
   
-  // Common date patterns in medical documents
   const datePatterns = [
-    // ISO format: 2025-09-15, 2025/09/15
     /\b(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})\b/g,
-    // US format: 09/15/2025, 09-15-2025
     /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
-    // European format: 15/09/2025, 15-09-2025
     /\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})\b/g,
-    // Month name formats: September 15, 2025 or 15 September 2025
     /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2}),?\s+(\d{4})\b/gi,
     /\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/gi,
-    // Short month formats: Sep 15, 2025 or 15-Sep-2025
     /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s*(\d{1,2}),?\s*(\d{4})\b/gi,
     /\b(\d{1,2})[\/\-](Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\/\-](\d{4})\b/gi,
-    // NEW: Month-Year only patterns (Sep 2025, September 2025)
     /\b(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})\b/gi,
     /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{4})\b/gi,
-    // NEW: Numeric month-year (09/2025, 09-2025)
     /\b(\d{1,2})[\/\-](\d{4})\b/g
   ];
   
   const foundDates = [];
   
-  // Look for dates near keywords indicating test/collection dates
   const testKeywords = [
     'test date', 'collection date', 'sample date', 'drawn on', 'collected on',
     'report date', 'lab date', 'specimen date', 'date collected',
     'date:', 'tested:', 'collected:', 'drawn:', 'specimen:'
   ];
   
-  // Search around test keywords for dates
   testKeywords.forEach(keyword => {
     const keywordIndex = text.toLowerCase().indexOf(keyword.toLowerCase());
     if (keywordIndex !== -1) {
-      // Look for dates within 50 characters after the keyword
       const searchText = text.substring(keywordIndex, keywordIndex + 100);
       datePatterns.forEach(pattern => {
         let match;
@@ -427,7 +611,6 @@ function detectDateFromTextSmart(text) {
     }
   });
   
-  // If no dates found near keywords, search the entire text
   if (foundDates.length === 0) {
     datePatterns.forEach(pattern => {
       let match;
@@ -444,7 +627,6 @@ function detectDateFromTextSmart(text) {
     return null;
   }
   
-  // Sort by priority and return the most likely test date
   foundDates.sort((a, b) => b.priority - a.priority);
   const bestDate = foundDates[0].date;
   
@@ -452,64 +634,46 @@ function detectDateFromTextSmart(text) {
   return validateAndNormalizeDateSmart(bestDate);
 }
 
-// SMART date validation with month-middle assumption
 function validateAndNormalizeDateSmart(dateStr) {
   if (!dateStr || dateStr === 'null' || dateStr === '') {
     return new Date().toISOString().split('T')[0];
   }
   
   try {
-    // Handle various date formats with smart month handling
     let normalizedDate;
     
     console.log(`Smart date processing: "${dateStr}"`);
     
-    // Already in YYYY-MM-DD format
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       normalizedDate = new Date(dateStr);
     }
-    // Month-Year only patterns (need smart handling)
     else if (/^(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})$/i.test(dateStr)) {
       const [, monthName, year] = dateStr.match(/^(\w+)\s+(\d{4})$/i);
       const monthNum = getMonthNumber(monthName);
-      normalizedDate = new Date(parseInt(year), monthNum - 1, 15); // 15th of the month
+      normalizedDate = new Date(parseInt(year), monthNum - 1, 15);
       console.log(`Month-year format detected: ${monthName} ${year} -> 15th of month`);
     }
     else if (/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{4})$/i.test(dateStr)) {
       const [, monthAbbr, year] = dateStr.match(/^(\w+)\.?\s+(\d{4})$/i);
       const monthNum = getMonthNumber(monthAbbr);
-      normalizedDate = new Date(parseInt(year), monthNum - 1, 15); // 15th of the month
+      normalizedDate = new Date(parseInt(year), monthNum - 1, 15);
       console.log(`Month abbreviation-year format: ${monthAbbr} ${year} -> 15th of month`);
     }
-    // Numeric month-year only (MM/YYYY or MM-YYYY)
     else if (/^\d{1,2}[\/\-]\d{4}$/.test(dateStr)) {
       const parts = dateStr.split(/[\/\-]/);
-      normalizedDate = new Date(parseInt(parts[1]), parseInt(parts[0]) - 1, 15); // 15th of the month
+      normalizedDate = new Date(parseInt(parts[1]), parseInt(parts[0]) - 1, 15);
       console.log(`Numeric month-year format: ${dateStr} -> 15th of month`);
     }
-    // MM/DD/YYYY or MM-DD-YYYY format
     else if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(dateStr)) {
       normalizedDate = new Date(dateStr);
     }
-    // DD/MM/YYYY format (European) - be careful here
-    else if (/^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/.test(dateStr)) {
-      const parts = dateStr.split(/[\/\-]/);
-      // Assume MM/DD/YYYY for US format first, then try DD/MM/YYYY
-      normalizedDate = new Date(parts[2], parts[0] - 1, parts[1]);
-      if (isNaN(normalizedDate.getTime())) {
-        normalizedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-      }
-    }
-    // YYYY/MM/DD format
     else if (/^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$/.test(dateStr)) {
       normalizedDate = new Date(dateStr.replace(/\//g, '-'));
     }
-    // Month name formats with day
     else {
       normalizedDate = new Date(dateStr);
     }
     
-    // Validate the date is reasonable (not in future, not too old)
     const now = new Date();
     const fiveYearsAgo = new Date(now.getFullYear() - 5, now.getMonth(), now.getDate());
     
@@ -538,7 +702,6 @@ function validateAndNormalizeDateSmart(dateStr) {
   }
 }
 
-// Helper function to convert month name to number
 function getMonthNumber(monthName) {
   const months = {
     'january': 1, 'jan': 1,
