@@ -9,119 +9,78 @@ export async function onRequestPost(context) {
   };
 
   try {
-    console.log('=== DIRECT TEXT + ENHANCED PDF SOLUTION ===');
+    console.log('=== TABLE-AWARE HEALTH PARAMETER EXTRACTION ===');
     console.log('Timestamp:', new Date().toISOString());
     
     let textToProcess = '';
     let fileName = 'unknown';
     let fileSize = 0;
-    let inputMethod = 'unknown';
     
     const contentType = request.headers.get('content-type') || '';
     
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
       const pdfFile = formData.get('pdfFile');
-      const directText = formData.get('documentText'); // NEW: Direct text input option
       
-      if (directText && directText.trim().length > 20) {
-        // PRIORITY: Use direct text input if provided
-        textToProcess = directText.trim();
-        inputMethod = 'direct_text_input';
-        fileName = 'direct_text_input.txt';
-        console.log('✅ Using DIRECT TEXT INPUT (most reliable)');
-        console.log('Direct text length:', textToProcess.length);
-      } else if (pdfFile && pdfFile instanceof File) {
+      if (pdfFile && pdfFile instanceof File) {
         fileName = pdfFile.name;
         fileSize = pdfFile.size;
-        inputMethod = 'pdf_extraction';
         
-        console.log('📄 Attempting PDF extraction...');
-        const extractionResult = await comprehensivePDFExtraction(pdfFile);
+        // Extract text from PDF
+        const extractionResult = await extractPDFText(pdfFile);
         textToProcess = extractionResult.text;
         
-        console.log('PDF extraction result:');
-        console.log('- Text length:', textToProcess.length);
-        console.log('- Methods used:', extractionResult.methodsUsed.join(', '));
+        console.log('=== EXTRACTED TEXT ANALYSIS ===');
+        console.log('Text length:', textToProcess.length);
+        console.log('FULL EXTRACTED TEXT:');
+        console.log(textToProcess);
+        
       } else {
-        throw new Error('Either PDF file or direct text input required');
-      }
-      
-    } else if (contentType.includes('application/json')) {
-      const requestData = await request.json();
-      if (requestData.documentText) {
-        textToProcess = requestData.documentText;
-        inputMethod = 'json_text_input';
-        fileName = 'json_input.txt';
-        console.log('✅ Using JSON TEXT INPUT');
-      } else {
-        throw new Error('Document text required in JSON request');
+        throw new Error('PDF file required');
       }
     } else {
-      throw new Error('Unsupported content type');
+      throw new Error('Multipart form data required');
     }
 
-    console.log('=== INPUT ANALYSIS ===');
-    console.log('Input method:', inputMethod);
-    console.log('Text length:', textToProcess.length);
-    console.log('FULL TEXT:');
-    console.log(textToProcess);
-
-    if (!textToProcess || textToProcess.length < 20) {
-      throw new Error(`INSUFFICIENT TEXT DATA
-
-Input method: ${inputMethod}
-Text length: ${textToProcess?.length || 0}
-Text content: "${textToProcess}"
-
-FOR PDF ISSUES:
-1. The PDF may be image-based (scanned) rather than text-based
-2. Try copying the text from your PDF and pasting it directly
-3. Use a text-based PDF with selectable text
-
-FOR DIRECT TEXT INPUT:
-1. Copy the health data from your document
-2. Paste it in the text area
-3. Include all parameter names and values`);
+    if (!textToProcess || textToProcess.length < 50) {
+      throw new Error(`Text extraction failed. Only got ${textToProcess?.length || 0} characters`);
     }
 
-    console.log('=== STARTING PRECISE VALUE EXTRACTION ===');
+    console.log('=== STARTING TABLE-AWARE EXTRACTION ===');
 
-    // STEP 1: Use the most precise extraction method based on input type
+    // STEP 1: Detect if this is a table-based lab report
+    const tableStructure = analyzeTableStructure(textToProcess);
+    console.log('Table structure analysis:', tableStructure);
+
+    // STEP 2: Extract parameters using table-aware methods
     let extractedParams = [];
     
-    if (inputMethod.includes('text_input')) {
-      console.log('🎯 Using DIRECT TEXT extraction (most accurate)');
-      extractedParams = directTextExtraction(textToProcess);
+    if (tableStructure.isTable) {
+      console.log('🗂️ Using TABLE-BASED extraction...');
+      extractedParams = extractFromTableStructure(textToProcess, tableStructure);
     } else {
-      console.log('📄 Using PDF-based extraction');
-      extractedParams = enhancedPDFExtraction(textToProcess);
+      console.log('📄 Using TEXT-BASED extraction...');
+      extractedParams = extractFromTextStructure(textToProcess);
     }
     
-    console.log('Primary extraction found:', extractedParams.length, 'parameters');
+    console.log('Table-aware extraction found:', extractedParams.length, 'parameters');
 
-    // STEP 2: AI verification with explicit value extraction
-    const aiParams = await explicitValueExtraction(textToProcess, env);
+    // STEP 3: AI verification and enhancement
+    const aiParams = await aiTableVerification(textToProcess, env);
     console.log('AI verification found:', aiParams.length, 'parameters');
 
-    // STEP 3: Combine results with preference for direct extraction
-    const finalParams = combineWithPriority(extractedParams, aiParams, inputMethod);
-    console.log('Final combined results:', finalParams.length, 'parameters');
+    // STEP 4: Intelligent merge with priority to table extraction
+    const finalParams = intelligentTableMerge(extractedParams, aiParams);
+    console.log('Final merged results:', finalParams.length, 'parameters');
 
     if (finalParams.length === 0) {
       throw new Error(`NO PARAMETERS FOUND
 
-INPUT METHOD: ${inputMethod}
-TEXT LENGTH: ${textToProcess.length}
-
-FULL TEXT CONTENT:
+EXTRACTED TEXT:
 "${textToProcess}"
 
-EXTRACTION RESULTS:
-- Primary method: ${extractedParams.length} parameters
-- AI method: ${aiParams.length} parameters
-
-This indicates the text doesn't contain recognizable health parameters or values.`);
+TABLE ANALYSIS:
+${JSON.stringify(tableStructure, null, 2)}`);
     }
 
     const testDate = detectTestDate(textToProcess) || '2025-09-09';
@@ -131,11 +90,11 @@ This indicates the text doesn't contain recognizable health parameters or values
       documentType: 'Lab Results',
       testDate: testDate,
       totalParametersFound: finalParams.length,
-      inputMethod: inputMethod
+      tableStructure: tableStructure
     };
 
     console.log('=== EXTRACTION SUCCESS ===');
-    console.log(`SUCCESS with ${inputMethod}! Found ${finalParams.length} parameters:`);
+    console.log('Final results:');
     finalParams.forEach((param, index) => {
       console.log(`${index + 1}. ${param.parameter}: ${param.value} ${param.unit} (${param.status})`);
     });
@@ -147,8 +106,8 @@ This indicates the text doesn't contain recognizable health parameters or values
         fileName: fileName,
         fileSize: fileSize,
         textLength: textToProcess.length,
-        inputMethod: inputMethod,
         fullExtractedText: textToProcess,
+        tableStructure: tableStructure,
         parametersFound: finalParams.length,
         timestamp: new Date().toISOString()
       }
@@ -157,14 +116,13 @@ This indicates the text doesn't contain recognizable health parameters or values
     });
 
   } catch (error) {
-    console.error('=== EXTRACTION ERROR ===');
+    console.error('=== TABLE-AWARE EXTRACTION ERROR ===');
     console.error(error.message);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      timestamp: new Date().toISOString(),
-      suggestion: 'Try copying and pasting the text directly instead of uploading PDF'
+      timestamp: new Date().toISOString()
     }), {
       status: 400,
       headers: corsHeaders
@@ -172,160 +130,140 @@ This indicates the text doesn't contain recognizable health parameters or values
   }
 }
 
-// COMPREHENSIVE PDF EXTRACTION with all methods
-async function comprehensivePDFExtraction(pdfFile) {
+// PDF text extraction
+async function extractPDFText(pdfFile) {
   try {
-    console.log('📄 COMPREHENSIVE PDF EXTRACTION');
-    
     const arrayBuffer = await pdfFile.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     const pdfString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
     
-    const extractedTexts = [];
-    const methodsUsed = [];
+    let text = '';
     
-    // Method 1: Parentheses extraction
-    const method1 = extractParenthesesText(pdfString);
-    if (method1.length > 10) {
-      extractedTexts.push(method1);
-      methodsUsed.push('parentheses');
-      console.log('✅ Parentheses extraction:', method1.length, 'chars');
+    // Method 1: Parentheses text
+    const parenthesesMatches = pdfString.match(/\(([^)]+)\)/g);
+    if (parenthesesMatches) {
+      text += parenthesesMatches
+        .map(match => match.slice(1, -1))
+        .filter(t => t.length > 0)
+        .join(' ') + ' ';
     }
     
     // Method 2: BT/ET blocks
-    const method2 = extractBTETText(pdfString);
-    if (method2.length > 10) {
-      extractedTexts.push(method2);
-      methodsUsed.push('bt_et');
-      console.log('✅ BT/ET extraction:', method2.length, 'chars');
+    const btMatches = pdfString.match(/BT(.*?)ET/gs);
+    if (btMatches) {
+      btMatches.forEach(block => {
+        const textCommands = block.match(/\(([^)]*)\)\s*Tj/g);
+        if (textCommands) {
+          textCommands.forEach(cmd => {
+            const match = cmd.match(/\(([^)]*)\)/);
+            if (match && match[1]) text += match[1] + ' ';
+          });
+        }
+      });
     }
     
-    // Method 3: Stream content
-    const method3 = extractStreamText(pdfString);
-    if (method3.length > 10) {
-      extractedTexts.push(method3);
-      methodsUsed.push('streams');
-      console.log('✅ Stream extraction:', method3.length, 'chars');
-    }
-    
-    // Method 4: Raw text
-    const method4 = extractRawText(pdfString);
-    if (method4.length > 10) {
-      extractedTexts.push(method4);
-      methodsUsed.push('raw');
-      console.log('✅ Raw text extraction:', method4.length, 'chars');
-    }
-    
-    // Method 5: Hex decoding
-    const method5 = extractHexText(pdfString);
-    if (method5.length > 10) {
-      extractedTexts.push(method5);
-      methodsUsed.push('hex');
-      console.log('✅ Hex extraction:', method5.length, 'chars');
-    }
-    
-    // Combine all successful extractions
-    let combinedText = extractedTexts.join(' ');
-    
-    // Clean and normalize
-    combinedText = combinedText
+    // Clean text
+    text = text
       .replace(/\\[rnt]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
     
-    console.log('📄 PDF extraction complete:', combinedText.length, 'characters');
-    
-    return {
-      text: combinedText,
-      methodsUsed: methodsUsed
-    };
+    return { text };
     
   } catch (error) {
     throw new Error(`PDF extraction failed: ${error.message}`);
   }
 }
 
-// PDF extraction helper methods
-function extractParenthesesText(pdfString) {
-  const matches = pdfString.match(/\(([^)]+)\)/g);
-  return matches ? matches.map(m => m.slice(1, -1)).filter(t => t.length > 0).join(' ') : '';
-}
-
-function extractBTETText(pdfString) {
-  const matches = pdfString.match(/BT(.*?)ET/gs);
-  if (!matches) return '';
+// ANALYZE TABLE STRUCTURE - Detect if this is a structured table
+function analyzeTableStructure(text) {
+  console.log('🗂️ ANALYZING TABLE STRUCTURE');
+  console.log('Text to analyze:', text);
   
-  let text = '';
-  matches.forEach(block => {
-    const commands = block.match(/\(([^)]*)\)\s*Tj/g);
-    if (commands) {
-      commands.forEach(cmd => {
-        const match = cmd.match(/\(([^)]*)\)/);
-        if (match && match[1]) text += match[1] + ' ';
+  const analysis = {
+    isTable: false,
+    hasHeaders: false,
+    columnPattern: null,
+    rowSeparators: [],
+    confidence: 0
+  };
+  
+  // Look for table indicators
+  const tableIndicators = [
+    'test', 'result', 'reference range',
+    'parameter', 'value', 'normal range',
+    'cholesterol', 'hba1c', 'creatinine'
+  ];
+  
+  let indicatorCount = 0;
+  tableIndicators.forEach(indicator => {
+    if (text.toLowerCase().includes(indicator)) {
+      indicatorCount++;
+    }
+  });
+  
+  analysis.confidence = indicatorCount / tableIndicators.length;
+  
+  // Check for common table patterns
+  if (text.toLowerCase().includes('test') && 
+      text.toLowerCase().includes('result') && 
+      text.toLowerCase().includes('reference')) {
+    analysis.isTable = true;
+    analysis.hasHeaders = true;
+    analysis.columnPattern = 'test-result-reference';
+    console.log('✅ Detected TABLE structure with Test-Result-Reference columns');
+  }
+  
+  // Look for row-like patterns
+  const lines = text.split(/[\n\r]+/).filter(line => line.trim().length > 0);
+  const rowPatterns = [];
+  
+  lines.forEach((line, index) => {
+    // Look for lines with parameter name + number + unit
+    const hasParam = /(?:cholesterol|hba1c|alt|ast|creatinine)/i.test(line);
+    const hasNumber = /\d+(?:\.\d+)?/.test(line);
+    const hasUnit = /(?:mg\/dl|%|u\/l)/i.test(line);
+    
+    if (hasParam && hasNumber) {
+      rowPatterns.push({
+        lineIndex: index,
+        line: line,
+        hasParam: hasParam,
+        hasNumber: hasNumber,
+        hasUnit: hasUnit
       });
     }
   });
-  return text;
-}
-
-function extractStreamText(pdfString) {
-  const matches = pdfString.match(/stream(.*?)endstream/gs);
-  if (!matches) return '';
   
-  let text = '';
-  matches.forEach(stream => {
-    const content = stream.replace(/^stream\s*|\s*endstream$/g, '');
-    const readable = content.match(/[A-Za-z][A-Za-z\s\d.,;:()\-\/\%]{8,}/g);
-    if (readable) text += readable.join(' ') + ' ';
-  });
-  return text;
-}
-
-function extractRawText(pdfString) {
-  const matches = pdfString.match(/[A-Za-z][A-Za-z\s\d.,;:()\-\/\%]{15,}/g);
-  return matches ? matches.join(' ') : '';
-}
-
-function extractHexText(pdfString) {
-  const hexMatches = pdfString.match(/<([0-9A-Fa-f\s]+)>/g);
-  if (!hexMatches) return '';
+  analysis.rowSeparators = rowPatterns;
   
-  let text = '';
-  hexMatches.forEach(hexStr => {
-    try {
-      const hex = hexStr.slice(1, -1).replace(/\s/g, '');
-      if (hex.length % 2 === 0) {
-        let decoded = '';
-        for (let i = 0; i < hex.length; i += 2) {
-          const char = String.fromCharCode(parseInt(hex.substr(i, 2), 16));
-          if (char.match(/[A-Za-z0-9\s.,;:()\-\/\%]/)) decoded += char;
-        }
-        if (decoded.length > 5) text += decoded + ' ';
-      }
-    } catch (e) {}
-  });
-  return text;
+  if (rowPatterns.length >= 3) {
+    analysis.isTable = true;
+    analysis.confidence = Math.min(1.0, analysis.confidence + 0.3);
+  }
+  
+  console.log('Table analysis result:', analysis);
+  return analysis;
 }
 
-// DIRECT TEXT EXTRACTION - Most reliable for text input
-function directTextExtraction(text) {
-  console.log('🎯 DIRECT TEXT EXTRACTION');
-  console.log('Processing text:', text);
+// EXTRACT FROM TABLE STRUCTURE - Focus on result values
+function extractFromTableStructure(text, tableStructure) {
+  console.log('🗂️ TABLE-BASED EXTRACTION');
+  console.log('Using table structure:', tableStructure.columnPattern);
   
   const parameters = [];
   const found = new Set();
   
-  // Ultra-precise patterns for direct text input
-  const directPatterns = [
+  // TABLE-AWARE PATTERNS - Look for specific table row formats
+  const tablePatterns = [
     {
       name: 'Total Cholesterol',
       category: 'Cardiovascular',
+      // Match: "Total Cholesterol 218 mg/dL <200 mg/dL" 
+      // Focus on the MIDDLE number (result), not the reference range
       patterns: [
-        // Look for exact table format: "Total Cholesterol 218 mg/dL <200 mg/dL"
         /total\s+cholesterol\s+(\d+(?:\.\d+)?)\s+mg\/dl\s+<\s*\d+/gi,
-        /total\s+cholesterol\s*[|\s]+(\d+(?:\.\d+)?)\s*mg\/dl/gi,
         /cholesterol\s+total\s+(\d+(?:\.\d+)?)\s+mg\/dl/gi,
-        // Flexible format
         /total\s+cholesterol[^0-9]*(\d+(?:\.\d+)?)[^<]*mg\/dl/gi
       ],
       unit: 'mg/dL',
@@ -334,9 +272,9 @@ function directTextExtraction(text) {
     {
       name: 'LDL Cholesterol',
       category: 'Cardiovascular',
+      // Match: "LDL Cholesterol 152 mg/dL <100 mg/dL"
       patterns: [
         /ldl\s+cholesterol\s+(\d+(?:\.\d+)?)\s+mg\/dl\s+<\s*\d+/gi,
-        /ldl\s+cholesterol\s*[|\s]+(\d+(?:\.\d+)?)\s*mg\/dl/gi,
         /cholesterol\s+ldl\s+(\d+(?:\.\d+)?)\s+mg\/dl/gi,
         /ldl\s+cholesterol[^0-9]*(\d+(?:\.\d+)?)[^<]*mg\/dl/gi
       ],
@@ -346,11 +284,11 @@ function directTextExtraction(text) {
     {
       name: 'HbA1c',
       category: 'Metabolic',
+      // Match: "HbA1c 6.2% <5.7%" - Focus on first percentage
       patterns: [
         /hba1c\s+(\d+(?:\.\d+)?)\s*%\s+<\s*\d+/gi,
-        /hba1c\s*[|\s]+(\d+(?:\.\d+)?)\s*%/gi,
         /hemoglobin\s+a1c\s+(\d+(?:\.\d+)?)\s*%/gi,
-        /hba1c[^0-9]*(\d+(?:\.\d+)?)\s*%/gi
+        /hba1c[^0-9]*(\d+(?:\.\d+)?)\s*%[^<]*</gi
       ],
       unit: '%',
       expectedRange: [3.0, 15.0]
@@ -358,11 +296,11 @@ function directTextExtraction(text) {
     {
       name: 'ALT',
       category: 'Liver Function',
+      // Match: "ALT (Liver Enzyme) 62 U/L 7-55 U/L"
       patterns: [
         /alt\s+\(liver\s+enzyme\)\s+(\d+(?:\.\d+)?)\s+u\/l\s+\d+\s*-\s*\d+/gi,
-        /alt\s*\(liver\s+enzyme\)\s*[|\s]+(\d+(?:\.\d+)?)\s*u\/l/gi,
         /alt[^0-9]*(\d+(?:\.\d+)?)\s+u\/l[^0-9]*\d+\s*-/gi,
-        /liver\s+enzyme.*?alt[^0-9]*(\d+(?:\.\d+)?)\s*u\/l/gi
+        /liver\s+enzyme\s+alt[^0-9]*(\d+(?:\.\d+)?)\s+u\/l/gi
       ],
       unit: 'U/L',
       expectedRange: [10, 200]
@@ -370,11 +308,11 @@ function directTextExtraction(text) {
     {
       name: 'AST',
       category: 'Liver Function',
+      // Match: "AST (Liver Enzyme) 47 U/L 8-48 U/L"
       patterns: [
         /ast\s+\(liver\s+enzyme\)\s+(\d+(?:\.\d+)?)\s+u\/l\s+\d+\s*-\s*\d+/gi,
-        /ast\s*\(liver\s+enzyme\)\s*[|\s]+(\d+(?:\.\d+)?)\s*u\/l/gi,
         /ast[^0-9]*(\d+(?:\.\d+)?)\s+u\/l[^0-9]*\d+\s*-/gi,
-        /liver\s+enzyme.*?ast[^0-9]*(\d+(?:\.\d+)?)\s*u\/l/gi
+        /liver\s+enzyme\s+ast[^0-9]*(\d+(?:\.\d+)?)\s+u\/l/gi
       ],
       unit: 'U/L',
       expectedRange: [10, 200]
@@ -382,21 +320,21 @@ function directTextExtraction(text) {
     {
       name: 'Creatinine',
       category: 'Kidney Function',
+      // Match: "Creatinine 1.03 mg/dL 0.7-1.3 mg/dL"
       patterns: [
         /creatinine\s+(\d+(?:\.\d+)?)\s+mg\/dl\s+\d+\.\d+\s*-\s*\d+\.\d+/gi,
-        /creatinine\s*[|\s]+(\d+(?:\.\d+)?)\s*mg\/dl/gi,
-        /creatinine[^0-9]*(\d+(?:\.\d+)?)\s+mg\/dl/gi
+        /creatinine[^0-9]*(\d+(?:\.\d+)?)\s+mg\/dl[^0-9]*\d+\.\d+\s*-/gi
       ],
       unit: 'mg/dL',
       expectedRange: [0.5, 3.0]
     }
   ];
 
-  // Extract using direct patterns
-  directPatterns.forEach(pattern => {
+  // Extract using table-aware patterns
+  tablePatterns.forEach(pattern => {
     if (found.has(pattern.name)) return;
     
-    console.log(`\n--- Direct extraction for: ${pattern.name} ---`);
+    console.log(`\n--- Table extraction for: ${pattern.name} ---`);
     
     for (const regex of pattern.patterns) {
       regex.lastIndex = 0;
@@ -407,11 +345,129 @@ function directTextExtraction(text) {
         const numericValue = parseFloat(value);
         const fullMatch = match[0];
         
-        console.log(`🎯 DIRECT MATCH: "${fullMatch}"`);
+        console.log(`🎯 TABLE MATCH: "${fullMatch}"`);
         console.log(`   Parameter: ${pattern.name}`);
-        console.log(`   Value: ${value}`);
+        console.log(`   Extracted value: ${value}`);
+        console.log(`   Numeric value: ${numericValue}`);
         
-        // Validate range
+        // Validate the value is in expected medical range
+        if (numericValue >= pattern.expectedRange[0] && numericValue <= pattern.expectedRange[1]) {
+          found.add(pattern.name);
+          
+          // Determine status
+          let status = 'Normal';
+          if (pattern.name === 'Total Cholesterol' && numericValue > 200) status = 'High';
+          if (pattern.name === 'LDL Cholesterol' && numericValue > 100) status = 'High';
+          if (pattern.name === 'HbA1c' && numericValue > 5.7) status = 'High';
+          if (pattern.name === 'ALT' && numericValue > 55) status = 'High';
+          if (pattern.name === 'AST' && numericValue > 48) status = 'High';
+          if (pattern.name === 'Creatinine' && numericValue > 1.3) status = 'High';
+          
+          parameters.push({
+            category: pattern.category,
+            parameter: pattern.name,
+            value: value,
+            unit: pattern.unit,
+            referenceRange: getReferenceRange(pattern.name),
+            status: status,
+            date: '2025-09-09',
+            source: 'table_extraction'
+          });
+          
+          console.log(`✅ ADDED: ${pattern.name} = ${value} ${pattern.unit} (${status})`);
+          break;
+        } else {
+          console.log(`❌ REJECTED: ${pattern.name} = ${value} (outside range ${pattern.expectedRange[0]}-${pattern.expectedRange[1]})`);
+        }
+      }
+    }
+  });
+
+  console.log(`🗂️ Table extraction found ${parameters.length} parameters`);
+  return parameters;
+}
+
+// EXTRACT FROM TEXT STRUCTURE - For non-table documents
+function extractFromTextStructure(text) {
+  console.log('📄 TEXT-BASED EXTRACTION');
+  
+  const parameters = [];
+  const found = new Set();
+  
+  // Standard patterns for text-based documents
+  const textPatterns = [
+    {
+      name: 'Total Cholesterol',
+      category: 'Cardiovascular',
+      patterns: [
+        /total\s*cholesterol\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi,
+        /cholesterol\s*total\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi,
+        /cholesterol\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*mg/gi
+      ],
+      unit: 'mg/dL',
+      expectedRange: [100, 400]
+    },
+    {
+      name: 'LDL Cholesterol',
+      category: 'Cardiovascular',
+      patterns: [
+        /ldl\s*cholesterol\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi,
+        /ldl\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi
+      ],
+      unit: 'mg/dL',
+      expectedRange: [50, 300]
+    },
+    {
+      name: 'HbA1c',
+      category: 'Metabolic',
+      patterns: [
+        /hba1c\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi,
+        /a1c\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi
+      ],
+      unit: '%',
+      expectedRange: [3.0, 15.0]
+    },
+    {
+      name: 'ALT',
+      category: 'Liver Function',
+      patterns: [
+        /alt\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi
+      ],
+      unit: 'U/L',
+      expectedRange: [10, 200]
+    },
+    {
+      name: 'AST',
+      category: 'Liver Function',
+      patterns: [
+        /ast\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi
+      ],
+      unit: 'U/L',
+      expectedRange: [10, 200]
+    },
+    {
+      name: 'Creatinine',
+      category: 'Kidney Function',
+      patterns: [
+        /creatinine\s*[:\-]?\s*(\d+(?:\.\d+)?)/gi
+      ],
+      unit: 'mg/dL',
+      expectedRange: [0.5, 3.0]
+    }
+  ];
+
+  // Use same extraction logic as table but with simpler patterns
+  textPatterns.forEach(pattern => {
+    if (found.has(pattern.name)) return;
+    
+    for (const regex of pattern.patterns) {
+      regex.lastIndex = 0;
+      
+      const match = regex.exec(text);
+      if (match && match[1]) {
+        const value = match[1];
+        const numericValue = parseFloat(value);
+        
         if (numericValue >= pattern.expectedRange[0] && numericValue <= pattern.expectedRange[1]) {
           found.add(pattern.name);
           
@@ -431,53 +487,41 @@ function directTextExtraction(text) {
             referenceRange: getReferenceRange(pattern.name),
             status: status,
             date: '2025-09-09',
-            source: 'direct_extraction'
+            source: 'text_extraction'
           });
           
-          console.log(`✅ ADDED: ${pattern.name} = ${value} ${pattern.unit} (${status})`);
           break;
-        } else {
-          console.log(`❌ REJECTED: ${value} outside range ${pattern.expectedRange[0]}-${pattern.expectedRange[1]}`);
         }
       }
     }
   });
 
-  console.log(`🎯 Direct extraction found ${parameters.length} parameters`);
   return parameters;
 }
 
-// ENHANCED PDF EXTRACTION for PDF inputs
-function enhancedPDFExtraction(text) {
-  console.log('📄 ENHANCED PDF EXTRACTION');
-  
-  // Same logic as directTextExtraction but with more flexible patterns
-  return directTextExtraction(text);
-}
-
-// EXPLICIT VALUE EXTRACTION using AI
-async function explicitValueExtraction(text, env) {
+// AI TABLE VERIFICATION
+async function aiTableVerification(text, env) {
   try {
-    console.log('🤖 EXPLICIT VALUE EXTRACTION');
+    console.log('🤖 AI TABLE VERIFICATION');
     
-    const prompt = `Extract the exact numerical values from this health report. Look for the RESULT values, not reference ranges.
+    const prompt = `You are analyzing a lab report table. Extract the RESULT VALUES (not reference ranges) for each test.
 
 TEXT: ${text}
 
-Based on the table format "Test | Result | Reference Range", extract ONLY the Result column values:
+This appears to be a table with columns: Test | Result | Reference Range
 
-Expected format in text:
-- Total Cholesterol 218 mg/dL <200 mg/dL → Result: 218
-- LDL Cholesterol 152 mg/dL <100 mg/dL → Result: 152  
-- HbA1c 6.2% <5.7% → Result: 6.2
-- ALT (Liver Enzyme) 62 U/L 7-55 U/L → Result: 62
-- AST (Liver Enzyme) 47 U/L 8-48 U/L → Result: 47
-- Creatinine 1.03 mg/dL 0.7-1.3 mg/dL → Result: 1.03
+Extract ONLY the Result column values:
+- Total Cholesterol: ? mg/dL
+- LDL Cholesterol: ? mg/dL  
+- HbA1c: ? %
+- ALT: ? U/L
+- AST: ? U/L
+- Creatinine: ? mg/dL
 
-Return JSON with EXACT result values:
+Return JSON with the ACTUAL RESULT VALUES (middle column):
 {"healthParameters": [{"parameter": "Total Cholesterol", "value": "218", "unit": "mg/dL"}]}
 
-Extract ONLY the middle values (results), ignore reference ranges. JSON only:`;
+JSON only:`;
 
     const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: prompt,
@@ -497,44 +541,37 @@ Extract ONLY the middle values (results), ignore reference ranges. JSON only:`;
       referenceRange: getReferenceRange(param.parameter),
       status: 'Unknown',
       date: '2025-09-09',
-      source: 'ai_explicit'
+      source: 'ai_verification'
     }));
 
   } catch (error) {
-    console.warn('AI explicit extraction failed:', error.message);
+    console.warn('AI verification failed:', error.message);
     return [];
   }
 }
 
-// COMBINE WITH PRIORITY based on input method
-function combineWithPriority(primaryParams, aiParams, inputMethod) {
-  console.log('🧩 COMBINING WITH PRIORITY');
-  console.log('Input method:', inputMethod);
+// INTELLIGENT TABLE MERGE
+function intelligentTableMerge(tableParams, aiParams) {
+  console.log('🧩 INTELLIGENT TABLE MERGE');
   
-  const combined = new Map();
+  const merged = new Map();
   
-  // Higher priority for direct text input
-  const primaryPriority = inputMethod.includes('text_input') ? 'HIGH' : 'MEDIUM';
-  
-  console.log('Primary extraction priority:', primaryPriority);
-  
-  // Add primary parameters
-  primaryParams.forEach(param => {
-    combined.set(param.parameter, param);
-    console.log(`📌 Primary: ${param.parameter} = ${param.value}`);
+  // Priority: Table extraction > AI verification
+  tableParams.forEach(param => {
+    merged.set(param.parameter, param);
+    console.log(`📌 Table: ${param.parameter} = ${param.value}`);
   });
   
-  // Add AI parameters only if not found by primary method
   aiParams.forEach(param => {
-    if (!combined.has(param.parameter)) {
-      combined.set(param.parameter, param);
+    if (!merged.has(param.parameter)) {
+      merged.set(param.parameter, param);
       console.log(`🤖 AI: ${param.parameter} = ${param.value}`);
     } else {
       console.log(`⚠️ AI duplicate skipped: ${param.parameter}`);
     }
   });
   
-  return Array.from(combined.values());
+  return Array.from(merged.values());
 }
 
 // Helper functions
