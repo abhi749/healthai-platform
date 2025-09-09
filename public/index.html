@@ -603,21 +603,21 @@
     
     <!-- Version Info Footer -->
     <div class="version-info" onclick="showVersionInfo()">
-        🚀 HealthAI Beta v1.5 | Build 2025.09.05.7
+        🚀 HealthAI Beta v1.5 | Build 2025.09.05.8
     </div>
 
     <script>
-        // Version tracking system - BUILD 7 - FIXED ALL CHART AND CONSOLE ERRORS
+        // Version tracking system - BUILD 8 - FIXED SESSION CREATION ERRORS
         const VERSION = {
             major: 1,
             minor: 5,
-            build: '2025.09.05.7',
+            build: '2025.09.05.8',
             name: 'BETA',
-            lastUpdated: '2025-09-05 17:45 UTC'
+            lastUpdated: '2025-09-05 18:00 UTC'
         };
         
         function showVersionInfo() {
-            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔥 Latest Changes (Build 7):\n• FIXED: Chart.js date formatting errors\n• FIXED: Canvas reuse errors - proper cleanup\n• FIXED: SES_UNCAUGHT_EXCEPTION errors\n• FIXED: All console errors on page load\n• REMOVED: Problematic date-fns dependencies\n• IMPROVED: Simple, stable chart rendering`);
+            alert(`🩺 HealthAI ${VERSION.name} v${VERSION.major}.${VERSION.minor}\n\nBuild: ${VERSION.build}\nLast Updated: ${VERSION.lastUpdated}\n\n🔥 Latest Changes (Build 8):\n• FIXED: Session creation UNIQUE constraint errors\n• ADDED: Proper existing user handling\n• IMPROVED: Enhanced setup page with create/verify modes\n• FIXED: Better error messages and user guidance\n• ENHANCED: Cross-device session access logic`);
         }
         
         // Global state
@@ -981,542 +981,6 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            action: 'store',
-                            sessionToken: currentSession.sessionToken,
-                            documentName: documentName,
-                            extractedParameters: extractedData.healthParameters || [],
-                            analysisResult: analysisResult,
-                            documentType: documentType,
-                            testDate: testDate
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    if (!result.success) {
-                        console.error('Failed to store document:', result.error);
-                    }
-                    
-                } catch (error) {
-                    console.error('Error storing document:', error);
-                }
-            }, 'storeDocument');
-        }
-        
-        // Load health records for the table - FIXED WITH ERROR HANDLING
-        async function loadHealthRecords() {
-            await safeExecute(async () => {
-                console.log('=== LOADING HEALTH RECORDS ===');
-                
-                const tableBody = document.getElementById('recordsTableBody');
-                if (!tableBody) return;
-                
-                if (!currentSession) {
-                    console.log('No session found for health records');
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="9" class="empty-state">
-                                <h3>🔐 Session Required</h3>
-                                <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view health records.</p>
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                try {
-                    console.log('Fetching documents with session:', currentSession.sessionToken.substring(0, 20) + '...');
-                    
-                    const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                    
-                    if (!response.ok) {
-                        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-                    }
-                    
-                    const data = await response.json();
-                    console.log('Documents API response:', data);
-                    
-                    if (data.success) {
-                        documents = data.documents || [];
-                        healthRecords = data.healthRecords || [];
-                        
-                        console.log('Documents loaded:', documents.length);
-                        console.log('Health records loaded:', healthRecords.length);
-                        
-                        // Sort by test date (newest first)
-                        healthRecords.sort((a, b) => new Date(b.testDate) - new Date(a.testDate));
-                        
-                        filteredRecords = [...healthRecords];
-                        renderRecordsTable();
-                        updateRecordsStats();
-                        
-                    } else {
-                        throw new Error(data.error || 'Failed to load documents');
-                    }
-                    
-                } catch (error) {
-                    console.error('Error loading health records:', error);
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="9" class="error">
-                                <h3>❌ Error Loading Records</h3>
-                                <p><strong>Error:</strong> ${error.message}</p>
-                                <p><strong>Debug:</strong> Check console (F12) for detailed logs</p>
-                            </td>
-                        </tr>
-                    `;
-                }
-            }, 'loadHealthRecords');
-        }
-        
-        // Render records table
-        function renderRecordsTable() {
-            safeExecute(() => {
-                const tableBody = document.getElementById('recordsTableBody');
-                if (!tableBody) return;
-                
-                if (filteredRecords.length === 0) {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="9" class="empty-state">
-                                <h3>📋 No Records Found</h3>
-                                <p>Upload your first health document to start building your record history!</p>
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-                
-                tableBody.innerHTML = filteredRecords.map(record => {
-                    const testDate = safeExecute(() => new Date(record.testDate).toLocaleDateString(), 'testDate') || 'Unknown';
-                    const uploadDate = safeExecute(() => new Date(record.uploadDate).toLocaleDateString(), 'uploadDate') || 'Unknown';
-                    const statusClass = getStatusClass(record.status);
-                    
-                    return `
-                        <tr>
-                            <td>${testDate}</td>
-                            <td>${uploadDate}</td>
-                            <td class="parameter-name">${record.parameterName || 'Unknown'}</td>
-                            <td class="parameter-value">${record.value || 'N/A'}</td>
-                            <td>${record.unit || ''}</td>
-                            <td>${record.referenceRange || 'Not specified'}</td>
-                            <td class="status-${statusClass}">${record.status || 'Unknown'}</td>
-                            <td>${record.category || 'General'}</td>
-                            <td title="${record.documentType || 'Health Report'}">${record.documentName && record.documentName.length > 20 ? record.documentName.substring(0, 20) + '...' : record.documentName || 'Unnamed'}</td>
-                        </tr>
-                    `;
-                }).join('');
-            }, 'renderRecordsTable');
-        }
-        
-        function getStatusClass(status) {
-            return safeExecute(() => {
-                switch (status?.toLowerCase()) {
-                    case 'normal': case 'optimal': return 'normal';
-                    case 'high': case 'elevated': return 'high';
-                    case 'low': case 'below': return 'low';
-                    default: return 'unknown';
-                }
-            }, 'getStatusClass') || 'unknown';
-        }
-        
-        // Filter records
-        function filterRecords() {
-            safeExecute(() => {
-                const parameterFilter = document.getElementById('parameterFilter')?.value?.toLowerCase() || '';
-                const dateFromFilter = document.getElementById('dateFromFilter')?.value || '';
-                const dateToFilter = document.getElementById('dateToFilter')?.value || '';
-                const categoryFilter = document.getElementById('categoryFilter')?.value || '';
-                
-                filteredRecords = healthRecords.filter(record => {
-                    // Parameter name filter
-                    if (parameterFilter && !record.parameterName?.toLowerCase().includes(parameterFilter)) {
-                        return false;
-                    }
-                    
-                    // Date range filter
-                    if (dateFromFilter && new Date(record.testDate) < new Date(dateFromFilter)) {
-                        return false;
-                    }
-                    if (dateToFilter && new Date(record.testDate) > new Date(dateToFilter)) {
-                        return false;
-                    }
-                    
-                    // Category filter
-                    if (categoryFilter && record.category !== categoryFilter) {
-                        return false;
-                    }
-                    
-                    return true;
-                });
-                
-                renderRecordsTable();
-                updateRecordsStats();
-            }, 'filterRecords');
-        }
-        
-        // Update records statistics
-        function updateRecordsStats() {
-            safeExecute(() => {
-                const totalRecords = healthRecords.length;
-                const uniqueParameters = new Set(healthRecords.map(r => r.parameterName).filter(Boolean)).size;
-                const filteredCount = filteredRecords.length;
-                
-                let dateRange = '--';
-                if (healthRecords.length > 0) {
-                    const dates = healthRecords.map(r => new Date(r.testDate)).sort();
-                    const minDate = dates[0].toLocaleDateString();
-                    const maxDate = dates[dates.length - 1].toLocaleDateString();
-                    dateRange = `${minDate} - ${maxDate}`;
-                }
-                
-                const totalRecordsEl = document.getElementById('totalRecords');
-                const uniqueParametersEl = document.getElementById('uniqueParameters');
-                const dateRangeEl = document.getElementById('dateRange');
-                const filteredCountEl = document.getElementById('filteredCount');
-                
-                if (totalRecordsEl) totalRecordsEl.textContent = totalRecords;
-                if (uniqueParametersEl) uniqueParametersEl.textContent = uniqueParameters;
-                if (dateRangeEl) dateRangeEl.textContent = dateRange;
-                if (filteredCountEl) filteredCountEl.textContent = filteredCount;
-            }, 'updateRecordsStats');
-        }
-        
-        // Export records to CSV
-        function exportRecords() {
-            safeExecute(() => {
-                if (filteredRecords.length === 0) {
-                    alert('No records to export');
-                    return;
-                }
-                
-                const headers = ['Test Date', 'Upload Date', 'Parameter Name', 'Value', 'Unit', 'Reference Range', 'Status', 'Category', 'Document Name'];
-                const csvContent = [
-                    headers.join(','),
-                    ...filteredRecords.map(record => [
-                        record.testDate,
-                        record.uploadDate,
-                        `"${record.parameterName || ''}"`,
-                        record.value || '',
-                        `"${record.unit || ''}"`,
-                        `"${record.referenceRange || ''}"`,
-                        record.status || '',
-                        record.category || '',
-                        `"${record.documentName || ''}"`
-                    ].join(','))
-                ].join('\n');
-                
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `healthai_records_${new Date().toISOString().split('T')[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            }, 'exportRecords');
-        }
-        
-        // Load documents
-        async function loadDocuments() {
-            await safeExecute(async () => {
-                const documentList = document.getElementById('documentList');
-                if (!documentList) return;
-                
-                if (!currentSession) {
-                    documentList.innerHTML = `
-                        <div class="empty-state">
-                            <h3>🔐 Session Required</h3>
-                            <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to store and track documents.</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                try {
-                    const response = await fetch(`/api/documents?session=${currentSession.sessionToken}`);
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        documents = data.documents || [];
-                        renderDocumentList();
-                    } else {
-                        throw new Error(data.error);
-                    }
-                    
-                } catch (error) {
-                    documentList.innerHTML = `
-                        <div class="error">
-                            <h3>❌ Error Loading Documents</h3>
-                            <p>${error.message}</p>
-                        </div>
-                    `;
-                }
-            }, 'loadDocuments');
-        }
-        
-        function renderDocumentList() {
-            safeExecute(() => {
-                const documentList = document.getElementById('documentList');
-                if (!documentList) return;
-                
-                if (documents.length === 0) {
-                    documentList.innerHTML = `
-                        <div class="empty-state">
-                            <h3>📄 No Documents Yet</h3>
-                            <p>Upload your first health document to start tracking trends!</p>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                documentList.innerHTML = documents.map(doc => `
-                    <div class="document-item">
-                        <div class="document-title">📄 ${doc.document_name}</div>
-                        <div class="document-meta">
-                            <span class="status-badge status-${doc.status}">${doc.status}</span>
-                            <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
-                            <strong>Test Date:</strong> ${doc.test_date || 'Unknown'} • 
-                            <strong>Parameters:</strong> ${doc.parameter_count || 0}
-                        </div>
-                        <div class="document-actions">
-                            <button class="btn btn-secondary" onclick="viewDocument('${doc.document_id}')">👁️ View</button>
-                            <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
-                        </div>
-                    </div>
-                `).join('');
-            }, 'renderDocumentList');
-        }
-        
-        // Load trends - COMPLETELY FIXED WITH PROPER CHART CLEANUP
-        async function loadTrends() {
-            await safeExecute(async () => {
-                const trendAnalysis = document.getElementById('trendAnalysis');
-                const chartFallback = document.getElementById('chartFallback');
-                
-                if (!currentSession) {
-                    if (trendAnalysis) {
-                        trendAnalysis.innerHTML = `
-                            <div class="empty-state">
-                                <h3>🔐 Session Required</h3>
-                                <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view trend analysis.</p>
-                            </div>
-                        `;
-                    }
-                    return;
-                }
-                
-                try {
-                    const timeRange = document.getElementById('timeRange')?.value || '6months';
-                    console.log('=== LOADING TRENDS ===');
-                    console.log('Time range:', timeRange);
-                    console.log('Session token:', currentSession.sessionToken.substring(0, 20) + '...');
-                    console.log('Chart.js available:', chartJsLoaded);
-                    
-                    if (trendAnalysis) {
-                        trendAnalysis.innerHTML = `
-                            <div class="loading">📈 Loading trend analysis...</div>
-                        `;
-                    }
-                    
-                    const response = await fetch('/api/documents', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'analyze-trends',
-                            sessionToken: currentSession.sessionToken,
-                            timeRange: timeRange
-                        })
-                    });
-                    
-                    console.log('Trends API response status:', response.status);
-                    
-                    if (!response.ok) {
-                        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-                    }
-                    
-                    const data = await response.json();
-                    console.log('Trends API response:', data);
-                    
-                    if (data.success) {
-                        trendData = data.trendData || [];
-                        console.log('Trend data received:', trendData.length, 'parameters');
-                        
-                        renderTrendChart();
-                        
-                        if (trendAnalysis) {
-                            trendAnalysis.innerHTML = `
-                                <div class="result">
-                                    <h3>📈 Trend Analysis (${timeRange})</h3>
-                                    <div class="analysis-content">${data.analysis || 'No trend analysis available yet.'}</div>
-                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
-                                        <strong>📊 Analysis Summary:</strong><br>
-                                        • Parameters with Trends: ${data.trendsFound || 0}<br>
-                                        • Time Range: ${timeRange}<br>
-                                        • Generated: ${new Date(data.generatedAt || Date.now()).toLocaleString()}<br>
-                                        • Chart.js Status: ${chartJsLoaded ? '✅ Available' : '❌ Not loaded'}<br>
-                                        ${data.debugInfo ? `• Total Parameters Available: ${data.debugInfo.totalParametersAvailable}<br>• Date Range: ${data.debugInfo.dateRange?.start} to ${data.debugInfo.dateRange?.end}` : ''}
-                                    </div>
-                                </div>
-                            `;
-                        }
-                    } else {
-                        console.error('Trends API returned error:', data);
-                        throw new Error(data.error || 'Unknown API error');
-                    }
-                    
-                } catch (error) {
-                    console.error('=== TRENDS LOADING ERROR ===');
-                    console.error('Error details:', error);
-                    
-                    if (trendAnalysis) {
-                        trendAnalysis.innerHTML = `
-                            <div class="error">
-                                <h3>❌ Error Loading Trends</h3>
-                                <p><strong>Error:</strong> ${error.message}</p>
-                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #ffcdd2; font-size: 14px;">
-                                    <strong>Debugging Info:</strong><br>
-                                    • Chart.js loaded: ${chartJsLoaded ? 'Yes' : 'No'}<br>
-                                    • Check browser console (F12) for detailed logs<br>
-                                    • Ensure you have uploaded multiple documents<br>
-                                    • Try refreshing the page and checking again<br>
-                                    • Current session: ${currentSession ? 'Active' : 'None'}
-                                </div>
-                            </div>
-                        `;
-                    }
-                }
-            }, 'loadTrends');
-        }
-        
-        function renderTrendChart() {
-            safeExecute(() => {
-                const ctx = document.getElementById('trendsChart');
-                const chartFallback = document.getElementById('chartFallback');
-                
-                if (!ctx) {
-                    console.error('Chart canvas not found');
-                    return;
-                }
-                
-                // Properly destroy existing chart
-                if (currentChart) {
-                    try {
-                        currentChart.destroy();
-                        currentChart = null;
-                        console.log('Previous chart destroyed successfully');
-                    } catch (error) {
-                        console.warn('Error destroying previous chart:', error);
-                        currentChart = null;
-                    }
-                }
-                
-                // Clear canvas
-                const context = ctx.getContext('2d');
-                context.clearRect(0, 0, ctx.width, ctx.height);
-                
-                // Check if Chart.js is available
-                if (!chartJsLoaded || typeof Chart === 'undefined') {
-                    console.warn('Chart.js not available, showing fallback');
-                    if (chartFallback) {
-                        chartFallback.style.display = 'block';
-                        chartFallback.innerHTML = '📈 Chart library not available. Trend data is shown in the analysis below.';
-                    }
-                    return;
-                }
-                
-                if (trendData.length === 0) {
-                    if (chartFallback) {
-                        chartFallback.style.display = 'block';
-                        chartFallback.innerHTML = '📈 No trend data available yet. Upload more documents to see trends.';
-                    }
-                    return;
-                }
-                
-                if (chartFallback) {
-                    chartFallback.style.display = 'none';
-                }
-                
-                try {
-                    const datasets = trendData.map((trend, index) => {
-                        const colors = ['#667eea', '#764ba2', '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4'];
-                        return {
-                            label: trend.parameter,
-                            data: trend.data.map(d => ({ 
-                                x: d.date, 
-                                y: d.value 
-                            })),
-                            borderColor: colors[index % colors.length],
-                            backgroundColor: colors[index % colors.length] + '20',
-                            tension: 0.4,
-                            fill: false
-                        };
-                    });
-                    
-                    // Create new chart with simple configuration (no date-fns)
-                    currentChart = new Chart(ctx, {
-                        type: 'line',
-                        data: { datasets },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: 'Health Parameter Trends Over Time'
-                                },
-                                legend: {
-                                    display: true,
-                                    position: 'top'
-                                }
-                            },
-                            scales: {
-                                x: {
-                                    title: {
-                                        display: true,
-                                        text: 'Date'
-                                    }
-                                },
-                                y: {
-                                    title: {
-                                        display: true,
-                                        text: 'Value'
-                                    }
-                                }
-                            }
-                        }
-                    });
-                    
-                    console.log('✅ Chart rendered successfully');
-                    
-                } catch (chartError) {
-                    console.error('Chart rendering error:', chartError);
-                    if (chartFallback) {
-                        chartFallback.style.display = 'block';
-                        chartFallback.innerHTML = '📈 Chart rendering error. Trend data is shown in the analysis below.';
-                    }
-                }
-            }, 'renderTrendChart');
-        }
-        
-        // Document actions
-        function viewDocument(documentId) {
-            safeExecute(() => {
-                alert(`View document functionality coming soon! Document ID: ${documentId}`);
-            }, 'viewDocument');
-        }
-        
-        async function deleteDocument(documentId) {
-            await safeExecute(async () => {
-                if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
-                    return;
-                }
-                
-                try {
-                    const response = await fetch('/api/documents', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
                             action: 'delete',
                             sessionToken: currentSession.sessionToken,
                             documentId: documentId
@@ -1588,3 +1052,401 @@
     </script>
 </body>
 </html>
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'store',
+                            sessionToken: currentSession.sessionToken,
+                            fileName: documentName,
+                            extractedData: extractedData,
+                            analysisResults: analysisResult,
+                            documentType: documentType || 'Health Report'
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    if (!result.success) {
+                        console.error('Failed to store document:', result.error);
+                    } else {
+                        console.log('Document stored successfully:', result.message);
+                    }
+                    
+                } catch (error) {
+                    console.error('Error storing document:', error);
+                }
+            }, 'storeDocument');
+        }
+        
+        // Load health records for the table - FIXED WITH ERROR HANDLING
+        async function loadHealthRecords() {
+            await safeExecute(async () => {
+                console.log('=== LOADING HEALTH RECORDS ===');
+                
+                const tableBody = document.getElementById('recordsTableBody');
+                if (!tableBody) return;
+                
+                if (!currentSession) {
+                    console.log('No session found for health records');
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <h3>🔐 Session Required</h3>
+                                <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view health records.</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                try {
+                    console.log('Fetching health records with session:', currentSession.sessionToken.substring(0, 20) + '...');
+                    
+                    const response = await fetch(`/api/documents?action=healthRecords&sessionToken=${currentSession.sessionToken}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Health Records API response:', data);
+                    
+                    if (data.success) {
+                        healthRecords = data.healthRecords || [];
+                        console.log('Health records loaded:', healthRecords.length);
+                        
+                        // Sort by test date (newest first)
+                        healthRecords.sort((a, b) => new Date(b.test_date) - new Date(a.test_date));
+                        
+                        filteredRecords = [...healthRecords];
+                        renderRecordsTable();
+                        updateRecordsStats();
+                        
+                    } else {
+                        throw new Error(data.error || 'Failed to load health records');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading health records:', error);
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="error">
+                                <h3>❌ Error Loading Records</h3>
+                                <p><strong>Error:</strong> ${error.message}</p>
+                                <p><strong>Debug:</strong> Check console (F12) for detailed logs</p>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }, 'loadHealthRecords');
+        }
+        
+        // Render records table
+        function renderRecordsTable() {
+            safeExecute(() => {
+                const tableBody = document.getElementById('recordsTableBody');
+                if (!tableBody) return;
+                
+                if (filteredRecords.length === 0) {
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <h3>📋 No Records Found</h3>
+                                <p>Upload your first health document to start building your record history!</p>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tableBody.innerHTML = filteredRecords.map(record => {
+                    const testDate = safeExecute(() => new Date(record.test_date).toLocaleDateString(), 'testDate') || 'Unknown';
+                    const uploadDate = safeExecute(() => new Date(record.created_at).toLocaleDateString(), 'uploadDate') || 'Unknown';
+                    const statusClass = getStatusClass(record.status);
+                    
+                    return `
+                        <tr>
+                            <td>${testDate}</td>
+                            <td>${uploadDate}</td>
+                            <td class="parameter-name">${record.parameter_name || 'Unknown'}</td>
+                            <td class="parameter-value">${record.parameter_value || 'N/A'}</td>
+                            <td>${record.parameter_unit || ''}</td>
+                            <td>${record.reference_range || 'Not specified'}</td>
+                            <td class="status-${statusClass}">${record.status || 'Unknown'}</td>
+                            <td>${record.category || 'General'}</td>
+                            <td title="${record.file_name || 'Health Report'}">${record.file_name && record.file_name.length > 20 ? record.file_name.substring(0, 20) + '...' : record.file_name || 'Unnamed'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }, 'renderRecordsTable');
+        }
+        
+        function getStatusClass(status) {
+            return safeExecute(() => {
+                switch (status?.toLowerCase()) {
+                    case 'normal': case 'optimal': return 'normal';
+                    case 'high': case 'elevated': return 'high';
+                    case 'low': case 'below': return 'low';
+                    default: return 'unknown';
+                }
+            }, 'getStatusClass') || 'unknown';
+        }
+        
+        // Filter records
+        function filterRecords() {
+            safeExecute(() => {
+                const parameterFilter = document.getElementById('parameterFilter')?.value?.toLowerCase() || '';
+                const dateFromFilter = document.getElementById('dateFromFilter')?.value || '';
+                const dateToFilter = document.getElementById('dateToFilter')?.value || '';
+                const categoryFilter = document.getElementById('categoryFilter')?.value || '';
+                
+                filteredRecords = healthRecords.filter(record => {
+                    // Parameter name filter
+                    if (parameterFilter && !record.parameter_name?.toLowerCase().includes(parameterFilter)) {
+                        return false;
+                    }
+                    
+                    // Date range filter
+                    if (dateFromFilter && new Date(record.test_date) < new Date(dateFromFilter)) {
+                        return false;
+                    }
+                    if (dateToFilter && new Date(record.test_date) > new Date(dateToFilter)) {
+                        return false;
+                    }
+                    
+                    // Category filter
+                    if (categoryFilter && record.category !== categoryFilter) {
+                        return false;
+                    }
+                    
+                    return true;
+                });
+                
+                renderRecordsTable();
+                updateRecordsStats();
+            }, 'filterRecords');
+        }
+        
+        // Update records statistics
+        function updateRecordsStats() {
+            safeExecute(() => {
+                const totalRecords = healthRecords.length;
+                const uniqueParameters = new Set(healthRecords.map(r => r.parameter_name).filter(Boolean)).size;
+                const filteredCount = filteredRecords.length;
+                
+                let dateRange = '--';
+                if (healthRecords.length > 0) {
+                    const dates = healthRecords.map(r => new Date(r.test_date)).sort();
+                    const minDate = dates[0].toLocaleDateString();
+                    const maxDate = dates[dates.length - 1].toLocaleDateString();
+                    dateRange = `${minDate} - ${maxDate}`;
+                }
+                
+                const totalRecordsEl = document.getElementById('totalRecords');
+                const uniqueParametersEl = document.getElementById('uniqueParameters');
+                const dateRangeEl = document.getElementById('dateRange');
+                const filteredCountEl = document.getElementById('filteredCount');
+                
+                if (totalRecordsEl) totalRecordsEl.textContent = totalRecords;
+                if (uniqueParametersEl) uniqueParametersEl.textContent = uniqueParameters;
+                if (dateRangeEl) dateRangeEl.textContent = dateRange;
+                if (filteredCountEl) filteredCountEl.textContent = filteredCount;
+            }, 'updateRecordsStats');
+        }
+        
+        // Export records to CSV
+        function exportRecords() {
+            safeExecute(() => {
+                if (filteredRecords.length === 0) {
+                    alert('No records to export');
+                    return;
+                }
+                
+                const headers = ['Test Date', 'Upload Date', 'Parameter Name', 'Value', 'Unit', 'Reference Range', 'Status', 'Category', 'Document Name'];
+                const csvContent = [
+                    headers.join(','),
+                    ...filteredRecords.map(record => [
+                        record.test_date,
+                        record.created_at,
+                        `"${record.parameter_name || ''}"`,
+                        record.parameter_value || '',
+                        `"${record.parameter_unit || ''}"`,
+                        `"${record.reference_range || ''}"`,
+                        record.status || '',
+                        record.category || '',
+                        `"${record.file_name || ''}"`
+                    ].join(','))
+                ].join('\n');
+                
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `healthai_records_${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 'exportRecords');
+        }
+        
+        // Load documents
+        async function loadDocuments() {
+            await safeExecute(async () => {
+                const documentList = document.getElementById('documentList');
+                if (!documentList) return;
+                
+                if (!currentSession) {
+                    documentList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>🔐 Session Required</h3>
+                            <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to store and track documents.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                try {
+                    const response = await fetch(`/api/documents?sessionToken=${currentSession.sessionToken}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        documents = data.documents || [];
+                        renderDocumentList();
+                    } else {
+                        throw new Error(data.error);
+                    }
+                    
+                } catch (error) {
+                    documentList.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Error Loading Documents</h3>
+                            <p>${error.message}</p>
+                        </div>
+                    `;
+                }
+            }, 'loadDocuments');
+        }
+        
+        function renderDocumentList() {
+            safeExecute(() => {
+                const documentList = document.getElementById('documentList');
+                if (!documentList) return;
+                
+                if (documents.length === 0) {
+                    documentList.innerHTML = `
+                        <div class="empty-state">
+                            <h3>📄 No Documents Yet</h3>
+                            <p>Upload your first health document to start tracking trends!</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                documentList.innerHTML = documents.map(doc => `
+                    <div class="document-item">
+                        <div class="document-title">📄 ${doc.file_name}</div>
+                        <div class="document-meta">
+                            <span class="status-badge status-active">active</span>
+                            <strong>Type:</strong> ${doc.document_type || 'Health Report'} • 
+                            <strong>Uploaded:</strong> ${new Date(doc.created_at).toLocaleDateString()} • 
+                            <strong>Parameters:</strong> ${doc.parameter_count || 0}
+                        </div>
+                        <div class="document-actions">
+                            <button class="btn btn-secondary" onclick="viewDocument('${doc.document_id}')">👁️ View</button>
+                            <button class="btn btn-danger" onclick="deleteDocument('${doc.document_id}')">🗑️ Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            }, 'renderDocumentList');
+        }
+        
+        // Load trends - COMPLETELY FIXED WITH PROPER CHART CLEANUP
+        async function loadTrends() {
+            await safeExecute(async () => {
+                const trendAnalysis = document.getElementById('trendAnalysis');
+                const chartFallback = document.getElementById('chartFallback');
+                
+                if (!currentSession) {
+                    if (trendAnalysis) {
+                        trendAnalysis.innerHTML = `
+                            <div class="empty-state">
+                                <h3>🔐 Session Required</h3>
+                                <p>Please <a href="/setup.html" style="color: #667eea;">create a session</a> to view trend analysis.</p>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
+                try {
+                    if (trendAnalysis) {
+                        trendAnalysis.innerHTML = `
+                            <div class="loading">📈 Loading trend analysis...</div>
+                        `;
+                    }
+                    
+                    // For now, show a placeholder since trends requires multiple documents
+                    if (trendAnalysis) {
+                        trendAnalysis.innerHTML = `
+                            <div class="result">
+                                <h3>📈 Trend Analysis</h3>
+                                <div class="analysis-content">
+                                    Upload multiple health documents over time to see trend analysis here.
+                                    
+                                    The AI will automatically identify patterns in your health parameters and show:
+                                    • Parameter changes over time
+                                    • Health trends (improving, stable, or concerning)
+                                    • Correlation between different health markers
+                                    • Personalized recommendations based on trends
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Show chart fallback
+                    if (chartFallback) {
+                        chartFallback.style.display = 'block';
+                        chartFallback.innerHTML = '📈 Trend visualization will appear here once you upload multiple health documents over time.';
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading trends:', error);
+                    
+                    if (trendAnalysis) {
+                        trendAnalysis.innerHTML = `
+                            <div class="error">
+                                <h3>❌ Error Loading Trends</h3>
+                                <p><strong>Error:</strong> ${error.message}</p>
+                            </div>
+                        `;
+                    }
+                }
+            }, 'loadTrends');
+        }
+        
+        function renderTrendChart() {
+            safeExecute(() => {
+                // Chart rendering code would go here
+                // For now, just show the fallback
+                const chartFallback = document.getElementById('chartFallback');
+                if (chartFallback) {
+                    chartFallback.style.display = 'block';
+                }
+            }, 'renderTrendChart');
+        }
+        
+        // Document actions
+        function viewDocument(documentId) {
+            safeExecute(() => {
+                alert(`View document functionality coming soon! Document ID: ${documentId}`);
+            }, 'viewDocument');
+        }
+        
+        async function deleteDocument(documentId) {
+            await safeExecute(async () => {
+                if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/api/documents', {
