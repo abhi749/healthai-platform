@@ -9,125 +9,93 @@ export async function onRequestPost(context) {
   };
 
   try {
-    console.log('=== ENHANCED DEBUG EXTRACT API ===');
-    console.log('Content-Type:', request.headers.get('content-type'));
+    console.log('=== FIXED EXTRACT API - MULTI-PARAMETER DETECTION ===');
+    console.log('Request timestamp:', new Date().toISOString());
     
     let textToProcess = '';
-    let processingMethod = 'unknown';
     let fileName = 'unknown';
     let fileSize = 0;
-    let extractionDebug = {};
     
     const contentType = request.headers.get('content-type') || '';
     
     if (contentType.includes('multipart/form-data')) {
-      console.log('Processing FormData request');
-      
       const formData = await request.formData();
       const pdfFile = formData.get('pdfFile');
-      const documentText = formData.get('documentText');
       
       if (pdfFile && pdfFile instanceof File) {
         fileName = pdfFile.name;
         fileSize = pdfFile.size;
-        console.log('=== PDF FILE ANALYSIS ===');
-        console.log('File name:', fileName);
-        console.log('File size:', fileSize);
-        console.log('File type:', pdfFile.type);
+        console.log('=== PROCESSING NEW PDF ===');
+        console.log('File:', fileName, 'Size:', fileSize);
         
-        // NEW: Enhanced PDF extraction with multiple methods
-        const extractionResult = await extractTextFromPDFEnhanced(pdfFile);
+        // Extract text from PDF
+        const extractionResult = await extractTextFromPDFAdvanced(pdfFile);
         textToProcess = extractionResult.text;
-        processingMethod = 'Enhanced PDF extraction';
-        extractionDebug = extractionResult.debug;
         
-        console.log('=== EXTRACTION RESULTS ===');
-        console.log('Extracted text length:', textToProcess.length);
-        console.log('Methods used:', extractionResult.methodsUsed);
-        console.log('Text preview:', textToProcess.substring(0, 500));
+        console.log('=== EXTRACTED TEXT ===');
+        console.log('Length:', textToProcess.length);
+        console.log('Full text:', textToProcess);
         
-      } else if (documentText) {
-        textToProcess = documentText;
-        processingMethod = 'Direct text input';
       } else {
-        throw new Error('Either PDF file or document text must be provided');
-      }
-      
-    } else if (contentType.includes('application/json')) {
-      console.log('Processing JSON request');
-      
-      const requestData = await request.json();
-      const { documentText } = requestData;
-      
-      if (documentText) {
-        textToProcess = documentText;
-        processingMethod = 'JSON text input';
-      } else {
-        throw new Error('Document text must be provided in JSON request');
+        throw new Error('PDF file required');
       }
     } else {
-      throw new Error('Unsupported content type. Use multipart/form-data for file uploads or application/json for text.');
+      throw new Error('Multipart form data required');
     }
 
-    // Enhanced text validation
-    if (!textToProcess || textToProcess.length < 10) {
-      throw new Error(`INSUFFICIENT TEXT EXTRACTED
-
-DEBUG INFORMATION:
-- File: ${fileName}
-- Size: ${fileSize} bytes
-- Method: ${processingMethod}
-- Text length: ${textToProcess?.length || 0}
-- Text preview: "${textToProcess?.substring(0, 200) || 'EMPTY'}"
-
-EXTRACTION DEBUG:
-${JSON.stringify(extractionDebug, null, 2)}
-
-LIKELY CAUSES:
-1. PDF is image-based (scanned) rather than text-based
-2. PDF has complex encoding that our extraction can't handle
-3. File is corrupted or password-protected
-
-SOLUTIONS:
-1. Try a different PDF with selectable text
-2. Copy/paste the text directly instead of uploading PDF
-3. Use a text-based PDF (not a scanned image)`);
+    if (!textToProcess || textToProcess.length < 20) {
+      throw new Error(`Text extraction failed. Got only ${textToProcess?.length || 0} characters`);
     }
 
-    console.log('=== STARTING AI PARAMETER EXTRACTION ===');
-    console.log('Text being sent to AI:', textToProcess.length, 'characters');
+    console.log('=== STARTING DUAL EXTRACTION METHOD ===');
 
-    // Enhanced parameter extraction with better prompting
-    const extractedData = await extractParametersEnhanced(textToProcess, env, fileName, fileSize, extractionDebug);
-    
-    // Validate we found parameters
-    if (!extractedData.healthParameters || extractedData.healthParameters.length === 0) {
-      throw new Error(`NO HEALTH PARAMETERS FOUND
+    // METHOD 1: Pattern-based extraction (for reliability)
+    console.log('Method 1: Pattern-based parameter extraction...');
+    const patternParams = extractParametersWithPatterns(textToProcess);
+    console.log('Pattern method found:', patternParams.length, 'parameters');
+    console.log('Pattern parameters:', patternParams);
 
-DETAILED DEBUG INFO:
-- File: ${fileName}
-- Size: ${fileSize} bytes
-- Text length: ${textToProcess.length}
-- Processing method: ${processingMethod}
-- AI response details: ${extractedData.debugInfo || 'Not available'}
+    // METHOD 2: AI extraction (for completeness)  
+    console.log('Method 2: AI-based parameter extraction...');
+    const aiParams = await extractParametersWithAI(textToProcess, env);
+    console.log('AI method found:', aiParams.length, 'parameters');
+    console.log('AI parameters:', aiParams);
 
-EXTRACTED TEXT SAMPLE (first 1000 chars):
-"${textToProcess.substring(0, 1000)}"
+    // METHOD 3: Combine and deduplicate results
+    console.log('Method 3: Combining results...');
+    const combinedParams = combineParameterResults(patternParams, aiParams);
+    console.log('Combined total:', combinedParams.length, 'parameters');
 
-FULL EXTRACTED TEXT:
+    if (combinedParams.length === 0) {
+      throw new Error(`NO PARAMETERS FOUND
+
+EXTRACTED TEXT:
 "${textToProcess}"
 
-AI PROCESSING DEBUG:
-${JSON.stringify(extractedData.aiDebug || {}, null, 2)}
+PATTERN RESULTS: ${patternParams.length} found
+AI RESULTS: ${aiParams.length} found
 
-This means either:
-1. The PDF text extraction failed to get readable content
-2. The text doesn't contain recognizable health parameters
-3. AI model couldn't parse the text format`);
+The document may not contain recognizable health data.`);
     }
 
-    console.log('=== SUCCESS ===');
-    console.log('Parameters found:', extractedData.healthParameters.length);
+    // Detect test date from document
+    const testDate = detectTestDate(textToProcess) || '2025-09-09';
+    
+    const extractedData = {
+      healthParameters: combinedParams,
+      documentType: 'Lab Results',
+      testDate: testDate,
+      totalParametersFound: combinedParams.length,
+      extractionMethods: {
+        patternBased: patternParams.length,
+        aiBased: aiParams.length,
+        combined: combinedParams.length
+      }
+    };
+
+    console.log('=== EXTRACTION SUCCESS ===');
+    console.log('Final parameter count:', combinedParams.length);
+    console.log('Test date detected:', testDate);
 
     return new Response(JSON.stringify({
       success: true,
@@ -135,11 +103,9 @@ This means either:
       debugInfo: {
         fileName: fileName,
         fileSize: fileSize,
-        processingMethod: processingMethod,
         textLength: textToProcess.length,
-        extractionDebug: extractionDebug,
-        fullExtractedText: textToProcess, // FULL TEXT FOR DEBUGGING
-        parametersFound: extractedData.healthParameters.length,
+        fullExtractedText: textToProcess,
+        parametersFound: combinedParams.length,
         timestamp: new Date().toISOString()
       }
     }), {
@@ -147,13 +113,12 @@ This means either:
     });
 
   } catch (error) {
-    console.error('=== EXTRACT API ERROR ===');
-    console.error('Error details:', error);
+    console.error('=== EXTRACTION ERROR ===');
+    console.error('Error:', error.message);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      details: 'Enhanced debug extraction failed',
       timestamp: new Date().toISOString()
     }), {
       status: 400,
@@ -162,299 +127,305 @@ This means either:
   }
 }
 
-// ENHANCED PDF text extraction with multiple methods
-async function extractTextFromPDFEnhanced(pdfFile) {
+// ADVANCED PDF TEXT EXTRACTION
+async function extractTextFromPDFAdvanced(pdfFile) {
   try {
     const arrayBuffer = await pdfFile.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    
-    console.log('=== ENHANCED PDF EXTRACTION ===');
-    console.log('File size:', uint8Array.length, 'bytes');
-    
-    if (uint8Array.length === 0) {
-      throw new Error('PDF file is empty or corrupted');
-    }
-    
-    // Convert to string for text extraction
     const pdfString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('');
     
     let extractedText = '';
-    const methodsUsed = [];
-    const debugInfo = {
-      totalBytes: uint8Array.length,
-      pdfVersion: '',
-      methodResults: {}
-    };
     
-    // Detect PDF version
-    const versionMatch = pdfString.match(/%PDF-(\d\.\d)/);
-    if (versionMatch) {
-      debugInfo.pdfVersion = versionMatch[1];
-      console.log('PDF Version:', debugInfo.pdfVersion);
-    }
-    
-    // METHOD 1: Enhanced parentheses extraction
-    console.log('Method 1: Enhanced parentheses extraction...');
-    const parenthesesMatches = pdfString.match(/\(([^)]{1,})\)/g);
-    if (parenthesesMatches && parenthesesMatches.length > 0) {
-      console.log('Found', parenthesesMatches.length, 'parentheses blocks');
-      methodsUsed.push('parentheses');
-      
+    // Method 1: Extract all text in parentheses (most common PDF text storage)
+    const parenthesesMatches = pdfString.match(/\(([^)]+)\)/g);
+    if (parenthesesMatches) {
       const parenthesesText = parenthesesMatches
-        .map(match => match.slice(1, -1)) // Remove parentheses
-        .filter(text => text.length > 0 && /[A-Za-z0-9]/.test(text)) // Filter readable text
+        .map(match => match.slice(1, -1))
+        .filter(text => text.length > 0)
         .join(' ');
-      
       extractedText += parenthesesText + ' ';
-      debugInfo.methodResults.parentheses = {
-        blocksFound: parenthesesMatches.length,
-        textLength: parenthesesText.length,
-        sample: parenthesesText.substring(0, 200)
-      };
-      console.log('Parentheses method extracted:', parenthesesText.length, 'characters');
     }
-    
-    // METHOD 2: BT/ET text blocks
-    console.log('Method 2: BT/ET text blocks...');
-    const btMatches = pdfString.match(/BT\s+(.*?)\s+ET/gs);
-    if (btMatches && btMatches.length > 0) {
-      console.log('Found', btMatches.length, 'BT/ET blocks');
-      methodsUsed.push('bt_et');
-      
-      let btText = '';
-      btMatches.forEach(match => {
-        const content = match.replace(/BT\s*|\s*ET/g, '');
-        // Look for text show commands
-        const textCommands = content.match(/\((.*?)\)\s*Tj/g);
+
+    // Method 2: Extract text from BT/ET blocks
+    const btMatches = pdfString.match(/BT(.*?)ET/gs);
+    if (btMatches) {
+      btMatches.forEach(block => {
+        const textCommands = block.match(/\((.*?)\)\s*Tj/g);
         if (textCommands) {
           textCommands.forEach(cmd => {
             const text = cmd.match(/\((.*?)\)/);
-            if (text && text[1] && text[1].length > 0) {
-              btText += text[1] + ' ';
+            if (text && text[1]) {
+              extractedText += text[1] + ' ';
             }
           });
         }
       });
-      
-      extractedText += btText;
-      debugInfo.methodResults.bt_et = {
-        blocksFound: btMatches.length,
-        textLength: btText.length,
-        sample: btText.substring(0, 200)
-      };
-      console.log('BT/ET method extracted:', btText.length, 'characters');
     }
-    
-    // METHOD 3: Stream content analysis
-    console.log('Method 3: Stream content analysis...');
-    const streamMatches = pdfString.match(/stream\s*(.*?)\s*endstream/gs);
-    if (streamMatches && streamMatches.length > 0) {
-      console.log('Found', streamMatches.length, 'streams');
-      methodsUsed.push('streams');
-      
-      let streamText = '';
+
+    // Method 3: Extract from streams
+    const streamMatches = pdfString.match(/stream(.*?)endstream/gs);
+    if (streamMatches) {
       streamMatches.forEach(stream => {
         const streamContent = stream.replace(/^stream\s*|\s*endstream$/g, '');
-        
-        // Try to extract readable text patterns
-        const readableMatches = streamContent.match(/[A-Za-z][A-Za-z\s\d.,;:()\-\/\%]{3,}/g);
-        if (readableMatches) {
-          streamText += readableMatches.join(' ') + ' ';
+        const readableText = streamContent.match(/[A-Za-z][A-Za-z\s\d.,;:()\-\/\%]{5,}/g);
+        if (readableText) {
+          extractedText += readableText.join(' ') + ' ';
         }
       });
-      
-      extractedText += streamText;
-      debugInfo.methodResults.streams = {
-        streamsFound: streamMatches.length,
-        textLength: streamText.length,
-        sample: streamText.substring(0, 200)
-      };
-      console.log('Stream method extracted:', streamText.length, 'characters');
     }
-    
-    // METHOD 4: Raw text extraction (fallback)
-    console.log('Method 4: Raw text extraction...');
-    const rawTextMatches = pdfString.match(/[A-Za-z][A-Za-z\s\d.,;:()\-\/\%]{10,}/g);
-    if (rawTextMatches && rawTextMatches.length > 0) {
-      console.log('Found', rawTextMatches.length, 'raw text blocks');
-      methodsUsed.push('raw_text');
-      
-      const rawText = rawTextMatches.join(' ');
-      extractedText += rawText + ' ';
-      debugInfo.methodResults.raw_text = {
-        blocksFound: rawTextMatches.length,
-        textLength: rawText.length,
-        sample: rawText.substring(0, 200)
-      };
-      console.log('Raw text method extracted:', rawText.length, 'characters');
-    }
-    
-    // Clean up extracted text
+
+    // Clean up text
     extractedText = extractedText
-      .replace(/\\[rnt]/g, ' ')  // Remove escape sequences
-      .replace(/\s+/g, ' ')      // Multiple spaces to single
-      .replace(/[^\w\s\d.,;:()\-\/\%]/g, ' ')  // Remove special chars but keep medical symbols
+      .replace(/\\[rnt]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/[^\w\s\d.,;:()\-\/\%<>]/g, ' ')
       .trim();
-    
-    console.log('=== FINAL EXTRACTION RESULTS ===');
-    console.log('Total extracted length:', extractedText.length);
-    console.log('Methods used:', methodsUsed.join(', '));
-    console.log('Final text preview:', extractedText.substring(0, 500));
-    
-    debugInfo.finalTextLength = extractedText.length;
-    debugInfo.methodsUsed = methodsUsed;
-    
-    if (extractedText.length < 10) {
-      throw new Error(`PDF text extraction failed - insufficient text
 
-EXTRACTION METHODS ATTEMPTED:
-${Object.entries(debugInfo.methodResults).map(([method, result]) => 
-  `- ${method}: ${result.blocksFound} blocks, ${result.textLength} chars`
-).join('\n')}
-
-PDF INFO:
-- Version: ${debugInfo.pdfVersion || 'Unknown'}
-- Size: ${debugInfo.totalBytes} bytes
-- Methods tried: ${methodsUsed.join(', ')}
-
-This PDF appears to be image-based or uses unsupported encoding.`);
-    }
-    
-    return {
-      text: extractedText,
-      methodsUsed: methodsUsed,
-      debug: debugInfo
-    };
+    return { text: extractedText };
     
   } catch (error) {
-    throw new Error(`Enhanced PDF extraction failed: ${error.message}`);
+    throw new Error(`PDF extraction failed: ${error.message}`);
   }
 }
 
-// Enhanced AI parameter extraction with better debugging
-async function extractParametersEnhanced(textToProcess, env, fileName, fileSize, extractionDebug) {
-  const startTime = Date.now();
+// PATTERN-BASED PARAMETER EXTRACTION (Reliable method)
+function extractParametersWithPatterns(text) {
+  console.log('=== PATTERN EXTRACTION STARTING ===');
+  console.log('Text to analyze:', text);
   
-  // ENHANCED PROMPT with better instructions
-  const prompt = `You are an expert medical data extraction AI. Extract ALL health parameters from this text.
-
-CRITICAL INSTRUCTIONS:
-1. Look for ANY numerical values with units (mg/dL, %, U/L, etc.)
-2. Find dates in ANY format (YYYY-MM-DD, MM/DD/YYYY, Month Day Year, etc.)
-3. Extract patient data like cholesterol, glucose, blood pressure, etc.
-4. Include test names, values, units, and reference ranges
-
-TEXT TO ANALYZE:
-${textToProcess}
-
-EXPECTED PARAMETERS TO LOOK FOR:
-- Cholesterol (Total, LDL, HDL, Triglycerides)
-- Blood glucose, HbA1c
-- Liver enzymes (ALT, AST)
-- Kidney function (Creatinine)
-- Blood counts (Hemoglobin, etc.)
-- Any other numerical health values
-
-Respond with ONLY a JSON object in this EXACT format:
-{
-  "healthParameters": [
+  const parameters = [];
+  
+  // Define comprehensive patterns for health parameters
+  const healthPatterns = [
+    // Cholesterol patterns
     {
-      "category": "Cardiovascular",
-      "parameter": "Total Cholesterol", 
-      "value": "230",
-      "unit": "mg/dL",
-      "referenceRange": "<200",
-      "date": "2025-01-15",
-      "status": "High"
+      name: 'Total Cholesterol',
+      category: 'Cardiovascular',
+      patterns: [
+        /total\s+cholesterol\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i,
+        /cholesterol\s+total\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i,
+        /cholesterol\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i
+      ],
+      unit: 'mg/dL',
+      normalRange: '<200 mg/dL'
+    },
+    {
+      name: 'LDL Cholesterol',
+      category: 'Cardiovascular', 
+      patterns: [
+        /ldl\s+cholesterol\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i,
+        /ldl\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i
+      ],
+      unit: 'mg/dL',
+      normalRange: '<100 mg/dL'
+    },
+    {
+      name: 'HDL Cholesterol', 
+      category: 'Cardiovascular',
+      patterns: [
+        /hdl\s+cholesterol\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i,
+        /hdl\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i
+      ],
+      unit: 'mg/dL',
+      normalRange: '>40 mg/dL'
+    },
+    // HbA1c patterns
+    {
+      name: 'HbA1c',
+      category: 'Metabolic',
+      patterns: [
+        /hba1c\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*%?/i,
+        /hemoglobin\s+a1c\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*%?/i,
+        /a1c\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*%?/i
+      ],
+      unit: '%',
+      normalRange: '<5.7%'
+    },
+    // Liver enzymes
+    {
+      name: 'ALT',
+      category: 'Liver Function',
+      patterns: [
+        /alt\s*(?:\(liver enzyme\))?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(u\/l|U\/L)?/i,
+        /alanine\s+aminotransferase\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(u\/l|U\/L)?/i
+      ],
+      unit: 'U/L',
+      normalRange: '7-55 U/L'
+    },
+    {
+      name: 'AST',
+      category: 'Liver Function', 
+      patterns: [
+        /ast\s*(?:\(liver enzyme\))?\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(u\/l|U\/L)?/i,
+        /aspartate\s+aminotransferase\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(u\/l|U\/L)?/i
+      ],
+      unit: 'U/L',
+      normalRange: '8-48 U/L'
+    },
+    // Kidney function
+    {
+      name: 'Creatinine',
+      category: 'Kidney Function',
+      patterns: [
+        /creatinine\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i
+      ],
+      unit: 'mg/dL',
+      normalRange: '0.7-1.3 mg/dL'
+    },
+    // Blood glucose
+    {
+      name: 'Glucose',
+      category: 'Metabolic',
+      patterns: [
+        /glucose\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i,
+        /blood\s+glucose\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*(mg\/dl|mg\/dL)?/i
+      ],
+      unit: 'mg/dL', 
+      normalRange: '70-99 mg/dL'
     }
-  ],
-  "documentType": "Lab Results",
-  "testDate": "2025-01-15",
-  "totalParametersFound": 1
+  ];
+
+  // Extract parameters using patterns
+  healthPatterns.forEach(pattern => {
+    console.log(`Checking pattern for: ${pattern.name}`);
+    
+    for (const regex of pattern.patterns) {
+      const match = text.match(regex);
+      if (match && match[1]) {
+        const value = match[1];
+        console.log(`✅ Found ${pattern.name}: ${value}`);
+        
+        // Determine status based on value and normal range
+        const numericValue = parseFloat(value);
+        let status = 'Normal';
+        
+        // Simple status determination (can be enhanced)
+        if (pattern.name === 'Total Cholesterol' && numericValue > 200) status = 'High';
+        if (pattern.name === 'LDL Cholesterol' && numericValue > 100) status = 'High';
+        if (pattern.name === 'HbA1c' && numericValue > 5.7) status = 'High';
+        if (pattern.name === 'ALT' && numericValue > 55) status = 'High';
+        if (pattern.name === 'AST' && numericValue > 48) status = 'High';
+        
+        parameters.push({
+          category: pattern.category,
+          parameter: pattern.name,
+          value: value,
+          unit: pattern.unit,
+          referenceRange: pattern.normalRange,
+          status: status,
+          date: detectTestDate(text) || '2025-09-09'
+        });
+        
+        break; // Found this parameter, move to next
+      }
+    }
+  });
+
+  console.log('Pattern extraction complete. Found:', parameters.length, 'parameters');
+  return parameters;
 }
 
-CRITICAL: Find the ACTUAL test date from the document. Look for dates near "Date:", "Test Date:", "Collection Date:", etc.
-JSON only, no other text:`;
-
+// AI-BASED PARAMETER EXTRACTION (Backup method)
+async function extractParametersWithAI(text, env) {
   try {
-    console.log('=== ENHANCED AI EXTRACTION ===');
-    console.log('Sending', textToProcess.length, 'characters to AI');
-    console.log('Text preview for AI:', textToProcess.substring(0, 1000));
-    
-    const aiResponse = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+    const prompt = `Extract ALL health parameters from this medical text. Find every numerical value with units.
+
+TEXT:
+${text}
+
+Return JSON with ALL parameters found:
+{
+  "healthParameters": [
+    {"parameter": "Total Cholesterol", "value": "230", "unit": "mg/dL", "category": "Cardiovascular"},
+    {"parameter": "LDL Cholesterol", "value": "155", "unit": "mg/dL", "category": "Cardiovascular"},
+    {"parameter": "HbA1c", "value": "6.8", "unit": "%", "category": "Metabolic"}
+  ]
+}
+
+Extract EVERYTHING - cholesterol, glucose, enzymes, etc. JSON only:`;
+
+    const response = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
       prompt: prompt,
-      max_tokens: 3000,
+      max_tokens: 2000,
       temperature: 0.1
     });
 
-    const processingTime = Date.now() - startTime;
-    console.log('AI response received after', processingTime, 'ms');
-    console.log('AI response length:', aiResponse?.response?.length || 0);
-    console.log('AI response preview:', aiResponse?.response?.substring(0, 500) || 'EMPTY');
-
-    if (!aiResponse || !aiResponse.response) {
-      throw new Error('AI model returned empty response');
+    if (!response?.response) {
+      console.warn('AI extraction failed - no response');
+      return [];
     }
 
-    // Enhanced JSON parsing
-    let jsonString = aiResponse.response.trim();
-    
-    // Extract JSON from response
-    const jsonMatch = jsonString.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      jsonString = jsonMatch[0];
-    } else {
-      throw new Error(`AI response does not contain valid JSON: "${jsonString}"`);
+    const jsonMatch = response.response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.warn('AI response invalid JSON format');
+      return [];
     }
-    
-    // Clean JSON
-    jsonString = jsonString
-      .replace(/^```json\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
-    
-    let extractedData;
-    try {
-      extractedData = JSON.parse(jsonString);
-    } catch (parseError) {
-      throw new Error(`JSON parse error: ${parseError.message}. AI response: "${jsonString}"`);
-    }
-    
-    // Validate structure
-    if (!extractedData.healthParameters || !Array.isArray(extractedData.healthParameters)) {
-      throw new Error(`Invalid response structure: ${JSON.stringify(extractedData)}`);
-    }
-    
-    // Set defaults
-    extractedData.totalParametersFound = extractedData.healthParameters.length;
-    extractedData.processingTime = processingTime;
-    extractedData.aiDebug = {
-      aiResponseLength: aiResponse.response.length,
-      processingTimeMs: processingTime,
-      inputTextLength: textToProcess.length,
-      extractionDebug: extractionDebug
-    };
-    
-    console.log('=== EXTRACTION SUCCESS ===');
-    console.log('Parameters found:', extractedData.totalParametersFound);
-    
-    return extractedData;
-    
+
+    const data = JSON.parse(jsonMatch[0]);
+    return data.healthParameters || [];
+
   } catch (error) {
-    const processingTime = Date.now() - startTime;
-    console.error('=== AI EXTRACTION FAILED ===');
-    console.error('Error:', error.message);
-    console.error('Processing time:', processingTime, 'ms');
-    
-    throw new Error(`AI parameter extraction failed: ${error.message}`);
+    console.warn('AI extraction failed:', error.message);
+    return [];
   }
+}
+
+// COMBINE RESULTS FROM PATTERN AND AI METHODS
+function combineParameterResults(patternParams, aiParams) {
+  const combined = [...patternParams];
+  const existingParams = new Set(patternParams.map(p => p.parameter.toLowerCase()));
+
+  // Add AI parameters that weren't found by patterns
+  aiParams.forEach(aiParam => {
+    if (!existingParams.has(aiParam.parameter.toLowerCase())) {
+      // Enhance AI parameters with missing fields
+      combined.push({
+        category: aiParam.category || 'General',
+        parameter: aiParam.parameter,
+        value: aiParam.value,
+        unit: aiParam.unit || '',
+        referenceRange: aiParam.referenceRange || 'Consult healthcare provider',
+        status: aiParam.status || 'Unknown',
+        date: aiParam.date || '2025-09-09'
+      });
+    }
+  });
+
+  return combined;
+}
+
+// DETECT TEST DATE FROM DOCUMENT
+function detectTestDate(text) {
+  const datePatterns = [
+    /(?:test\s+date|collection\s+date|date\s+collected|report\s+date)\s*[:\-]?\s*(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/i,
+    /(?:test\s+date|collection\s+date|date\s+collected|report\s+date)\s*[:\-]?\s*(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})/i,
+    /\b(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})\b/g,
+    /\b(\d{1,2}[-\/]\d{1,2}[-\/]\d{4})\b/g
+  ];
+
+  for (const pattern of datePatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const dateStr = match[1];
+      try {
+        const date = new Date(dateStr);
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+  }
+
+  return null;
 }
 
 export async function onRequestOptions() {
   return new Response(null, {
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS', 
       'Access-Control-Allow-Headers': 'Content-Type',
     }
   });
